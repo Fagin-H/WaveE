@@ -30,3 +30,53 @@
 #include <string>
 #include <wrl.h>
 #include <shellapi.h>
+
+namespace WaveE
+{
+	// Useful Functions
+	template <typename T>
+	T align_value(T valueToAlign, int alignment)
+	{
+		// Calculate how much `valueToAlign` needs to be adjusted to be aligned
+		T remainder = valueToAlign % alignment;
+		T adjustment = (remainder == 0) ? 0 : (alignment - remainder);
+
+		// Align `valueToAlign` based on the adjustment calculated
+		return valueToAlign + adjustment;
+	}
+
+	// Useful Usings
+	template <class T>
+	using ComPtr = Microsoft::WRL::ComPtr<T>;
+
+	// Useful Macros
+
+	#define WAVEE_NO_COPY(classname)
+		classname(const classname&) = delete;
+		classname& operator=(const classname&) = delete;
+
+	#define WAVEE_SINGLETON(classname)
+		WAVEE_NO_COPY(classname)
+		public:
+			static classname& Instance()
+			{
+				return ms_pInstance;
+			}
+			static void Init()
+			{
+				if (!ms_pInstance)
+				{
+					ms_pInstance = new classname;
+				}
+			}
+			static void Uninit()
+			{
+				delete ms_pInstance;
+				ms_pInstance = nullptr;
+			}
+		private:
+			static classname* ms_pInstance;
+
+	#define WAVEE_ASSERT(condition)
+			assert(condition);
+}
