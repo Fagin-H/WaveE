@@ -16,6 +16,16 @@
     <ClCompile Include="Win32Application.cpp">
       <Filter>Private</Filter>
     </ClCompile>
+    <ClCompile Include="WaveManager.cpp">
+      <Filter>Private\WaveGraphics</Filter>
+    </ClCompile>
+    <ClCompile Include="WBuffer.cpp">
+      <Filter>Private\WaveGraphics</Filter>
+    </ClCompile>
+    <ClCompile Include="WTexture.cpp">
+      <Filter>Private\WaveGraphics</Filter>
+    </ClCompile>
+    <ClCompile Include="WDescriptorHeapManager.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="D3D12HelloConstBuffers.h">
@@ -33,6 +43,16 @@
     <ClInclude Include="Win32Application.h">
       <Filter>Public</Filter>
     </ClInclude>
+    <ClInclude Include="WaveManager.h">
+      <Filter>Public\WaveGraphics</Filter>
+    </ClInclude>
+    <ClInclude Include="WBuffer.h">
+      <Filter>Public\WaveGraphics</Filter>
+    </ClInclude>
+    <ClInclude Include="WTexture.h">
+      <Filter>Public\WaveGraphics</Filter>
+    </ClInclude>
+    <ClInclude Include="WDescriptorHeapManager.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
@@ -49,6 +69,12 @@
     </Filter>
     <Filter Include="Resources\Shaders">
       <UniqueIdentifier>{db58a1c8-a43b-4097-add1-02c60d6bb94b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Private\WaveGraphics">
+      <UniqueIdentifier>{ed4949ad-8779-41df-9c4c-dd8f90082e19}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Public\WaveGraphics">
+      <UniqueIdentifier>{4dee9a5e-3e3f-445a-877e-df39eb8f46e4}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>

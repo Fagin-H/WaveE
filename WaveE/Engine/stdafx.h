@@ -51,32 +51,38 @@ namespace WaveE
 
 	// Useful Macros
 
-	#define WAVEE_NO_COPY(classname)
-		classname(const classname&) = delete;
+	#define WAVEE_NO_COPY(classname) \
+		classname(const classname&) = delete; \
 		classname& operator=(const classname&) = delete;
 
-	#define WAVEE_SINGLETON(classname)
-		WAVEE_NO_COPY(classname)
-		public:
-			static classname& Instance()
-			{
-				return ms_pInstance;
-			}
-			static void Init()
-			{
-				if (!ms_pInstance)
-				{
-					ms_pInstance = new classname;
-				}
-			}
-			static void Uninit()
-			{
-				delete ms_pInstance;
-				ms_pInstance = nullptr;
-			}
-		private:
+	#define WAVEE_SINGLETON(classname) \
+		WAVEE_NO_COPY(classname) \
+		public: \
+			static classname* Instance() \
+			{ \
+				return ms_pInstance; \
+			} \
+			static void Init() \
+			{ \
+				if (!ms_pInstance) \
+				{ \
+					ms_pInstance = new classname; \
+				} \
+			} \
+			static void Uninit() \
+			{ \
+				delete ms_pInstance; \
+				ms_pInstance = nullptr; \
+			} \
+		private: \
 			static classname* ms_pInstance;
 
-	#define WAVEE_ASSERT(condition)
-			assert(condition);
+	#define WAVEE_SINGLETON_CPP(classname) \
+		classname* classname::ms_pInstance = nullptr;
+
+	#define WAVEE_ASSERT(condition) \
+		assert(condition);
+
+	#define WAVEE_ASSERT_MESSAGE(condition, message) \
+		assert(condition);
 }

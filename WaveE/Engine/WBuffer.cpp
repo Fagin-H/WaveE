@@ -8,14 +8,16 @@ namespace WaveE
 	{
 		D3D12_RESOURCE_STATES resourceState = D3D12_RESOURCE_STATE_GENERIC_READ;
 
-		switch (rDescriptor.type)
+		if (!rDescriptor.isDynamic)
 		{
-		case WBufferDescriptor::Constant: [[fallthrough]];
-		case WBufferDescriptor::Vertex: resourceState = D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER; break;
-		case WBufferDescriptor::Dynamic: resourceState = D3D12_RESOURCE_STATE_GENERIC_READ; break;
-		case WBufferDescriptor::Index: resourceState = D3D12_RESOURCE_STATE_INDEX_BUFFER; break;
-		case WBufferDescriptor::SRV: resourceState = D3D12_RESOURCE_STATE_ALL_SHADER_RESOURCE; break;
-		case WBufferDescriptor::UAV: resourceState = D3D12_RESOURCE_STATE_UNORDERED_ACCESS; break;
+			switch (rDescriptor.type)
+			{
+			case WBufferDescriptor::Constant: [[fallthrough]];
+			case WBufferDescriptor::Vertex: resourceState = D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER; break;
+			case WBufferDescriptor::Index: resourceState = D3D12_RESOURCE_STATE_INDEX_BUFFER; break;
+			case WBufferDescriptor::SRV: resourceState = D3D12_RESOURCE_STATE_ALL_SHADER_RESOURCE; break;
+			case WBufferDescriptor::UAV: resourceState = D3D12_RESOURCE_STATE_UNORDERED_ACCESS; break;
+			}
 		}
 
 		return resourceState;
@@ -28,28 +30,11 @@ namespace WaveE
 		m_type = rDescriptor.type;
 
 		D3D12_HEAP_PROPERTIES heapProperties = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
-		/*heapProperties.Type = D3D12_HEAP_TYPE_DEFAULT;
-		heapProperties.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY::D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
-		heapProperties.MemoryPoolPreference = D3D12_MEMORY_POOL::D3D12_MEMORY_POOL_UNKNOWN;
-		heapProperties.CreationNodeMask = 0;
-		heapProperties.VisibleNodeMask = 0;*/
-
 		D3D12_RESOURCE_DESC resourceDesc = CD3DX12_RESOURCE_DESC::Buffer(align_value(rDescriptor.m_sizeBytes, 256));
-		/*resourceDesc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
-		resourceDesc.Alignment = 0;
-		resourceDesc.Width = align_value(rDescriptor.m_sizeBytes, 256);
-		resourceDesc.Height = 1;
-		resourceDesc.DepthOrArraySize = 1;
-		resourceDesc.MipLevels = 1;
-		resourceDesc.Format = DXGI_FORMAT_UNKNOWN;
-		resourceDesc.SampleDesc.Count = 1;
-		resourceDesc.SampleDesc.Quality = 0;
-		resourceDesc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
-		resourceDesc.Flags = D3D12_RESOURCE_FLAG_NONE;*/
 
-		ID3D12Device1* pDevice = WaveManager::Instance().GetDevice();
+		ID3D12Device1* pDevice = WaveManager::Instance()->GetDevice();
 
-		WAVEE_ASSERT(pDevice);
+		WAVEE_ASSERT_MESSAGE(pDevice, "Failed to get device!");
 
 		HRESULT hr = pDevice->CreateCommittedResource(&heapProperties,
 			D3D12_HEAP_FLAG_NONE,
@@ -58,7 +43,61 @@ namespace WaveE
 			nullptr,
 			IID_PPV_ARGS(&m_pBuffer));
 
-		WAVEE_ASSERT(SUCCEEDED(hr));
+		WAVEE_ASSERT_MESSAGE(SUCCEEDED(hr), "Failed to create committed resource for buffer!");
+
+		// Allocate CPU descriptor handle for CBV/SRV/UAV based on buffer type
+		WDescriptorHeapManager* pCBVDescriptorHeapManager = WaveManager::Instance()->GetCBV_SRV_UAVHeap();
+		m_cpuDescriptorHandleIndex = pCBVDescriptorHeapManager->Allocate();
+		D3D12_CPU_DESCRIPTOR_HANDLE cpuDescriptorHandle = pCBVDescriptorHeapManager->GetCPUHandle(m_cpuDescriptorHandleIndex);
+
+		switch (m_type)
+		{
+		case WBufferDescriptor::Constant: [[fallthrough]];
+		case WBufferDescriptor::Vertex:
+		{
+			D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc = {};
+			cbvDesc.BufferLocation = m_pBuffer->GetGPUVirtualAddress();
+			cbvDesc.SizeInBytes = static_cast<UINT>(align_value(m_sizeBytes, 256));
+			pDevice->CreateConstantBufferView(&cbvDesc, cpuDescriptorHandle);
+			break;
+		}
+		// #TODO update WBufferDescriptor to pass in more data to update the creation of views
+		case WBufferDescriptor::Index:
+		{
+			D3D12_SHADER_RESOURCE_VIEW_DESC viewDesc = {};
+			viewDesc.Format = DXGI_FORMAT_R32_UINT;
+			viewDesc.ViewDimension = D3D12_SRV_DIMENSION_BUFFER;
+			viewDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+			viewDesc.Buffer.FirstElement = 0;
+			viewDesc.Buffer.NumElements = static_cast<UINT>(m_sizeBytes / sizeof(UINT));
+			viewDesc.Buffer.StructureByteStride = 0;
+			viewDesc.Buffer.Flags = D3D12_BUFFER_SRV_FLAG_NONE;
+			pDevice->CreateShaderResourceView(m_pBuffer.Get(), &viewDesc, cpuDescriptorHandle);
+			break;
+		}
+		case WBufferDescriptor::SRV:
+		{
+			D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
+			srvDesc.Format = DXGI_FORMAT_R32_FLOAT;
+			srvDesc.ViewDimension = D3D12_SRV_DIMENSION_BUFFER;
+			srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+			srvDesc.Buffer.FirstElement = 0;
+			srvDesc.Buffer.NumElements = static_cast<UINT>(m_sizeBytes) / sizeof(float);
+			srvDesc.Buffer.StructureByteStride = sizeof(float);
+
+			pDevice->CreateShaderResourceView(m_pBuffer.Get(), &srvDesc, cpuDescriptorHandle);
+			break;
+		}
+		case WBufferDescriptor::UAV:
+		{
+			D3D12_UNORDERED_ACCESS_VIEW_DESC viewDesc = {};
+			viewDesc.Format = DXGI_FORMAT_UNKNOWN;
+			viewDesc.ViewDimension = D3D12_UAV_DIMENSION_BUFFER;
+			pDevice->CreateUnorderedAccessView(m_pBuffer.Get(), nullptr, &viewDesc, cpuDescriptorHandle);
+			break;
+		}
+		}
+
 
 		if (initialData)
 		{
@@ -66,16 +105,29 @@ namespace WaveE
 		}
 	}
 
+	WBuffer::~WBuffer()
+	{
+		WDescriptorHeapManager* pCBVDescriptorHeapManager = WaveManager::Instance()->GetCBV_SRV_UAVHeap();
+		pCBVDescriptorHeapManager->Deallocate(m_cpuDescriptorHandleIndex);
+	}
+
 	void WBuffer::UploadData(const void* pData, size_t sizeBytes)
 	{
-		WAVEE_ASSERT(sizeBytes <= m_sizeBytes);
+		WAVEE_ASSERT_MESSAGE(sizeBytes <= m_sizeBytes, "Data too big for buffer!");
 
 		void* mappedData = nullptr;
 		D3D12_RANGE readRange = { 0, 0 }; // We do not intend to read this resource on the CPU
 		HRESULT hr = m_pBuffer->Map(0, &readRange, &mappedData);
-		WAVEE_ASSERT(SUCCEEDED(hr));
+		WAVEE_ASSERT_MESSAGE(SUCCEEDED(hr), "Failed to map buffer!");
 
 		memcpy(mappedData, pData, sizeBytes);
 		m_pBuffer->Unmap(0, nullptr);
 	}
+
+	D3D12_CPU_DESCRIPTOR_HANDLE WBuffer::GetCPUDescriptorHandle() const
+	{
+		WDescriptorHeapManager* pCBVDescriptorHeapManager = WaveManager::Instance()->GetCBV_SRV_UAVHeap();
+		return pCBVDescriptorHeapManager->GetCPUHandle(m_cpuDescriptorHandleIndex);
+	}
+
 }
