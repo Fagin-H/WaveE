@@ -1,0 +1,59 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="D3D12HelloConstBuffers.cpp">
+      <Filter>Private</Filter>
+    </ClCompile>
+    <ClCompile Include="DXSample.cpp">
+      <Filter>Private</Filter>
+    </ClCompile>
+    <ClCompile Include="Main.cpp">
+      <Filter>Private</Filter>
+    </ClCompile>
+    <ClCompile Include="stdafx.cpp">
+      <Filter>Private</Filter>
+    </ClCompile>
+    <ClCompile Include="Win32Application.cpp">
+      <Filter>Private</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="D3D12HelloConstBuffers.h">
+      <Filter>Public</Filter>
+    </ClInclude>
+    <ClInclude Include="DXSample.h">
+      <Filter>Public</Filter>
+    </ClInclude>
+    <ClInclude Include="DXSampleHelper.h">
+      <Filter>Public</Filter>
+    </ClInclude>
+    <ClInclude Include="stdafx.h">
+      <Filter>Public</Filter>
+    </ClInclude>
+    <ClInclude Include="Win32Application.h">
+      <Filter>Public</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="packages.config" />
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="Public">
+      <UniqueIdentifier>{5a5739a5-080c-45dc-be07-7115de92d090}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Private">
+      <UniqueIdentifier>{35199977-7d72-4380-966c-1592606ddd8e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Resources">
+      <UniqueIdentifier>{7ca4d5b8-3333-4c25-b58e-c72b12808e79}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Resources\Shaders">
+      <UniqueIdentifier>{db58a1c8-a43b-4097-add1-02c60d6bb94b}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <CustomBuild Include="shaders.hlsl">
+      <Filter>Resources\Shaders</Filter>
+    </CustomBuild>
+  </ItemGroup>
+</Project>
