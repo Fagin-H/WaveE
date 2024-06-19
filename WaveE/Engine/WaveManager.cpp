@@ -9,6 +9,28 @@ namespace WaveE
 		: m_cbvSrvUavHeap{D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE, m_descriptorHeapCount}
 		, m_rtvHeap{ D3D12_DESCRIPTOR_HEAP_TYPE_RTV, D3D12_DESCRIPTOR_HEAP_FLAG_NONE, m_descriptorHeapCount}
 		, m_dsvHeap{ D3D12_DESCRIPTOR_HEAP_TYPE_DSV, D3D12_DESCRIPTOR_HEAP_FLAG_NONE, m_descriptorHeapCount}
+		, m_uploadManager{ m_uploadBufferSize, m_uploadBufferCount }
 	{
 	}
+
+	void WaveManager::BeginFrame()
+	{
+
+	}
+
+	void WaveManager::Update()
+	{
+
+	}
+
+	void WaveManager::Render()
+	{
+
+	}
+
+	void WaveManager::EndFrame()
+	{
+		m_uploadManager.EndFrame();
+	}
+
 }

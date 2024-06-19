@@ -127,6 +127,7 @@
     </FxCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="WUploadManager.h" />
     <ClInclude Include="WaveManager.h" />
     <ClInclude Include="WDescriptorHeapManager.h" />
     <ClInclude Include="Win32Application.h" />
@@ -138,6 +139,7 @@
     <ClInclude Include="WTexture.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="WUploadManager.cpp" />
     <ClCompile Include="WaveManager.cpp" />
     <ClCompile Include="WDescriptorHeapManager.cpp" />
     <ClCompile Include="Win32Application.cpp" />

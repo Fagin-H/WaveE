@@ -49,6 +49,11 @@ namespace WaveE
 	template <class T>
 	using ComPtr = Microsoft::WRL::ComPtr<T>;
 
+	// Using for device and others in case the version changes
+	using WaveEDevice = ID3D12Device1;
+	using WaveECommandList = ID3D12GraphicsCommandList;
+	using WaveECommandQueue = ID3D12CommandQueue;
+
 	// Useful Macros
 
 	#define WAVEE_NO_COPY(classname) \

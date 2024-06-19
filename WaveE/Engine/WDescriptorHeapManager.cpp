@@ -7,7 +7,7 @@ namespace WaveE
 
 	WDescriptorHeapManager::WDescriptorHeapManager(D3D12_DESCRIPTOR_HEAP_TYPE type, D3D12_DESCRIPTOR_HEAP_FLAGS flags, UINT numDescriptors)
 	{
-		ID3D12Device1* pDevice = WaveManager::Instance()->GetDevice();
+		WaveEDevice* pDevice = WaveManager::Instance()->GetDevice();
 
 		D3D12_DESCRIPTOR_HEAP_DESC heapDesc = {};
 		heapDesc.NumDescriptors = numDescriptors;

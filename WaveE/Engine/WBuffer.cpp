@@ -24,22 +24,24 @@ namespace WaveE
 	}
 
 	WBuffer::WBuffer(const WBufferDescriptor& rDescriptor)
+		: m_cpuDescriptorHandleIndex{ WDescriptorHeapManager::InvalidIndex() }
 	{
-		bool initialData = rDescriptor.m_pInitalData;
+		bool initialData = rDescriptor.pInitalData;
 		m_sizeBytes = rDescriptor.m_sizeBytes;
 		m_type = rDescriptor.type;
+		m_state = GetResourceState(rDescriptor);
 
 		D3D12_HEAP_PROPERTIES heapProperties = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
 		D3D12_RESOURCE_DESC resourceDesc = CD3DX12_RESOURCE_DESC::Buffer(align_value(rDescriptor.m_sizeBytes, 256));
 
-		ID3D12Device1* pDevice = WaveManager::Instance()->GetDevice();
+		WaveEDevice* pDevice = WaveManager::Instance()->GetDevice();
 
 		WAVEE_ASSERT_MESSAGE(pDevice, "Failed to get device!");
 
 		HRESULT hr = pDevice->CreateCommittedResource(&heapProperties,
 			D3D12_HEAP_FLAG_NONE,
 			&resourceDesc,
-			GetResourceState(rDescriptor),
+			m_state,
 			nullptr,
 			IID_PPV_ARGS(&m_pBuffer));
 
@@ -101,27 +103,24 @@ namespace WaveE
 
 		if (initialData)
 		{
-			UploadData(rDescriptor.m_pInitalData, m_sizeBytes);
+			UploadData(rDescriptor.pInitalData, m_sizeBytes);
 		}
 	}
 
 	WBuffer::~WBuffer()
 	{
-		WDescriptorHeapManager* pCBVDescriptorHeapManager = WaveManager::Instance()->GetCBV_SRV_UAVHeap();
-		pCBVDescriptorHeapManager->Deallocate(m_cpuDescriptorHandleIndex);
+		if (!WDescriptorHeapManager::IsInvalidIndex(m_cpuDescriptorHandleIndex))
+		{
+			WDescriptorHeapManager* pCBVDescriptorHeapManager = WaveManager::Instance()->GetCBV_SRV_UAVHeap();
+			pCBVDescriptorHeapManager->Deallocate(m_cpuDescriptorHandleIndex);
+		}
 	}
 
 	void WBuffer::UploadData(const void* pData, size_t sizeBytes)
 	{
 		WAVEE_ASSERT_MESSAGE(sizeBytes <= m_sizeBytes, "Data too big for buffer!");
 
-		void* mappedData = nullptr;
-		D3D12_RANGE readRange = { 0, 0 }; // We do not intend to read this resource on the CPU
-		HRESULT hr = m_pBuffer->Map(0, &readRange, &mappedData);
-		WAVEE_ASSERT_MESSAGE(SUCCEEDED(hr), "Failed to map buffer!");
-
-		memcpy(mappedData, pData, sizeBytes);
-		m_pBuffer->Unmap(0, nullptr);
+		WaveManager::Instance()->GetUploadManager()->UploadData(m_pBuffer.Get(), pData, sizeBytes, m_state, m_state);
 	}
 
 	D3D12_CPU_DESCRIPTOR_HANDLE WBuffer::GetCPUDescriptorHandle() const

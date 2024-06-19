@@ -15,7 +15,7 @@ namespace WaveE
 		bool isDynamic{ false };
 		size_t m_sizeBytes{ 0 };
 		Type type{ Constant };
-		const void* m_pInitalData{ nullptr };
+		const void* pInitalData{ nullptr };
 	};
 
 	// A wrapper around a DX12 resource for use as a buffer
@@ -33,6 +33,7 @@ namespace WaveE
 	private:
 		size_t m_sizeBytes{ 0 };
 		WBufferDescriptor::Type m_type;
+		D3D12_RESOURCE_STATES m_state;
 		UINT m_cpuDescriptorHandleIndex;
 		ComPtr<ID3D12Resource> m_pBuffer{ nullptr };
 	};

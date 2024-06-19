@@ -25,7 +25,12 @@
     <ClCompile Include="WTexture.cpp">
       <Filter>Private\WaveGraphics</Filter>
     </ClCompile>
-    <ClCompile Include="WDescriptorHeapManager.cpp" />
+    <ClCompile Include="WDescriptorHeapManager.cpp">
+      <Filter>Private\WaveGraphics</Filter>
+    </ClCompile>
+    <ClCompile Include="WUploadManager.cpp">
+      <Filter>Private\WaveGraphics</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="D3D12HelloConstBuffers.h">
@@ -52,7 +57,12 @@
     <ClInclude Include="WTexture.h">
       <Filter>Public\WaveGraphics</Filter>
     </ClInclude>
-    <ClInclude Include="WDescriptorHeapManager.h" />
+    <ClInclude Include="WDescriptorHeapManager.h">
+      <Filter>Public\WaveGraphics</Filter>
+    </ClInclude>
+    <ClInclude Include="WUploadManager.h">
+      <Filter>Public\WaveGraphics</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
