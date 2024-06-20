@@ -1,4 +1,6 @@
 #pragma once
+#include "WDescriptorHeapManager.h"
+
 namespace WaveE
 {
 	struct WBufferDescriptor
@@ -22,7 +24,7 @@ namespace WaveE
 	class WBuffer
 	{
 	public:
-		WBuffer(const WBufferDescriptor& rDescriptor);
+		WBuffer(const WBufferDescriptor& rDescriptor, WDescriptorHeapManager::Allocation allocation = WDescriptorHeapManager::InvalidAllocation(), UINT offset = 0);
 		~WBuffer();
 
 		ID3D12Resource* GetBuffer() { return m_pBuffer.Get(); }
@@ -34,7 +36,9 @@ namespace WaveE
 		size_t m_sizeBytes{ 0 };
 		WBufferDescriptor::Type m_type;
 		D3D12_RESOURCE_STATES m_state;
-		UINT m_cpuDescriptorHandleIndex;
+		WDescriptorHeapManager::Allocation m_allocation;
+		UINT m_offset;
+		bool m_doesOwnAllocation;
 		ComPtr<ID3D12Resource> m_pBuffer{ nullptr };
 	};
 }

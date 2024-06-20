@@ -1,5 +1,4 @@
 #pragma once
-#include <stack>
 
 namespace WaveE
 {
@@ -8,22 +7,38 @@ namespace WaveE
 	{
 	public:
 		WAVEE_NO_COPY(WDescriptorHeapManager)
-		WDescriptorHeapManager(D3D12_DESCRIPTOR_HEAP_TYPE type, D3D12_DESCRIPTOR_HEAP_FLAGS flags, UINT numDescriptors);
+		
+		struct Allocation
+		{
+			UINT index;
+			UINT size;
+		};
 
-		UINT Allocate();
-		void Deallocate(UINT index);
+		WDescriptorHeapManager(D3D12_DESCRIPTOR_HEAP_TYPE type, D3D12_DESCRIPTOR_HEAP_FLAGS flags, UINT numDescriptors);
+		~WDescriptorHeapManager();
+
+		Allocation Allocate(UINT size = 1);
+		void Deallocate(Allocation allocation);
 
 		CD3DX12_GPU_DESCRIPTOR_HANDLE GetGPUHandle(UINT index) const;
+		CD3DX12_GPU_DESCRIPTOR_HANDLE GetGPUHandle(Allocation allocation) const { return GetGPUHandle(allocation.index); }
 		CD3DX12_CPU_DESCRIPTOR_HANDLE GetCPUHandle(UINT index) const;
+		CD3DX12_CPU_DESCRIPTOR_HANDLE GetCPUHandle(Allocation allocation) const { return GetCPUHandle(allocation.index); }
 
-		static UINT InvalidIndex() { return UINT_MAX; }
-		static bool IsInvalidIndex(UINT index) { return index == UINT_MAX; }
+		static Allocation InvalidAllocation() { return Allocation{ UINT_MAX, 0 }; }
+		static bool IsInvalidAllocation(Allocation allocation) { return allocation.index == UINT_MAX; }
 
 	private:
 		ComPtr<ID3D12DescriptorHeap> m_pDescriptorHeap;
 		UINT m_descriptorSize;
 		UINT m_numDescriptors;
-		std::stack<UINT> m_freeList;
+
+		struct HeapIndex
+		{
+			UINT index;
+			bool isFree;
+		};
+		std::vector<HeapIndex> m_heapIndices;
 	};
 }
 

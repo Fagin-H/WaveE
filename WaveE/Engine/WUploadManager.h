@@ -33,7 +33,7 @@ namespace WaveE
 		UINT RequestUploadBuffer();
 		void ReleaseUploadBuffer(UINT bufferIndex);
 		UINT CreateUploadBuffer();
-		void WaitForUpload(UINT bufferIndex);
+		void WaitForUpload(UINT64 bufferIndex);
 		
 		friend class WaveManager;
 		void EndFrame();

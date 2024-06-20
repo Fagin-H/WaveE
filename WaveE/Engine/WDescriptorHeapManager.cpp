@@ -20,26 +20,58 @@ namespace WaveE
 		m_descriptorSize = pDevice->GetDescriptorHandleIncrementSize(type);
 		m_numDescriptors = numDescriptors;
 
+		m_heapIndices.reserve(m_numDescriptors);
 		for (UINT i = 0; i < m_numDescriptors; ++i)
 		{
-			m_freeList.push(i);
+			m_heapIndices.push_back(HeapIndex{ i, true });
 		}
 	}
 
-	UINT WDescriptorHeapManager::Allocate()
+	WDescriptorHeapManager::~WDescriptorHeapManager()
 	{
-		WAVEE_ASSERT_MESSAGE(!m_freeList.empty(), "Descriptor heap is full!");
-
-		int index = m_freeList.top();
-		m_freeList.pop();
-		return index;
+		if (m_pDescriptorHeap)
+		{
+			m_pDescriptorHeap->Release();
+		}
 	}
 
-	void WDescriptorHeapManager::Deallocate(UINT index)
+	WDescriptorHeapManager::Allocation WDescriptorHeapManager::Allocate(UINT size)
 	{
-		WAVEE_ASSERT_MESSAGE(index >= 0 && index < m_numDescriptors, "Descriptor index out of range");
+		// #TODO Find a better way to do this that does not fragment the heap
+		UINT consecutiveCount = 0;
+		for (UINT i = 0; i < m_heapIndices.size(); i++)
+		{
+			consecutiveCount++;
+			if (!m_heapIndices[i].isFree)
+			{
+				consecutiveCount = 0;
+			}
 
-		m_freeList.push(index);
+			if (consecutiveCount == size)
+			{
+				UINT startIndex = i - consecutiveCount + 1;
+
+				for (UINT j = startIndex; j < startIndex + size; j++)
+				{
+					m_heapIndices[j].isFree = false;
+				}
+
+				return Allocation{ startIndex, size };
+			}
+		}
+
+		WAVEE_ASSERT_MESSAGE(false, "Could not allocate from heap!");
+
+		return InvalidAllocation();
+	}
+
+	void WDescriptorHeapManager::Deallocate(Allocation allocation)
+	{
+		for (UINT i = allocation.index; i < allocation.index + allocation.size; i++)
+		{
+			WAVEE_ASSERT_MESSAGE(!m_heapIndices[i].isFree, "Deallocating heap index that is already free!");
+			m_heapIndices[i].isFree = true;
+		}
 	}
 
 	CD3DX12_GPU_DESCRIPTOR_HANDLE WDescriptorHeapManager::GetGPUHandle(UINT index) const
@@ -52,7 +84,7 @@ namespace WaveE
 	CD3DX12_CPU_DESCRIPTOR_HANDLE WDescriptorHeapManager::GetCPUHandle(UINT index) const
 	{
 		WAVEE_ASSERT_MESSAGE(index >= 0 && index < m_numDescriptors, "Descriptor index out of range");
-
+		
 		return CD3DX12_CPU_DESCRIPTOR_HANDLE(m_pDescriptorHeap->GetCPUDescriptorHandleForHeapStart(), index, m_descriptorSize);
 	}
 }

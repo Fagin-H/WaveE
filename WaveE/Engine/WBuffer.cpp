@@ -23,8 +23,10 @@ namespace WaveE
 		return resourceState;
 	}
 
-	WBuffer::WBuffer(const WBufferDescriptor& rDescriptor)
-		: m_cpuDescriptorHandleIndex{ WDescriptorHeapManager::InvalidIndex() }
+	WBuffer::WBuffer(const WBufferDescriptor& rDescriptor, WDescriptorHeapManager::Allocation allocation, UINT offset)
+		: m_allocation{ allocation }
+		, m_offset{offset}
+		, m_doesOwnAllocation{ WDescriptorHeapManager::IsInvalidAllocation(allocation) }
 	{
 		bool initialData = rDescriptor.pInitalData;
 		m_sizeBytes = rDescriptor.m_sizeBytes;
@@ -47,10 +49,13 @@ namespace WaveE
 
 		WAVEE_ASSERT_MESSAGE(SUCCEEDED(hr), "Failed to create committed resource for buffer!");
 
-		// Allocate CPU descriptor handle for CBV/SRV/UAV based on buffer type
 		WDescriptorHeapManager* pCBVDescriptorHeapManager = WaveManager::Instance()->GetCBV_SRV_UAVHeap();
-		m_cpuDescriptorHandleIndex = pCBVDescriptorHeapManager->Allocate();
-		D3D12_CPU_DESCRIPTOR_HANDLE cpuDescriptorHandle = pCBVDescriptorHeapManager->GetCPUHandle(m_cpuDescriptorHandleIndex);
+		if (m_doesOwnAllocation)
+		{
+			// Allocate CPU descriptor handle for CBV/SRV/UAV based on buffer type
+			m_allocation = pCBVDescriptorHeapManager->Allocate();
+		}
+		D3D12_CPU_DESCRIPTOR_HANDLE cpuDescriptorHandle = pCBVDescriptorHeapManager->GetCPUHandle(m_allocation.index + m_offset);
 
 		switch (m_type)
 		{
@@ -109,10 +114,13 @@ namespace WaveE
 
 	WBuffer::~WBuffer()
 	{
-		if (!WDescriptorHeapManager::IsInvalidIndex(m_cpuDescriptorHandleIndex))
+		if (m_doesOwnAllocation)
 		{
-			WDescriptorHeapManager* pCBVDescriptorHeapManager = WaveManager::Instance()->GetCBV_SRV_UAVHeap();
-			pCBVDescriptorHeapManager->Deallocate(m_cpuDescriptorHandleIndex);
+			if (!WDescriptorHeapManager::IsInvalidAllocation(m_allocation))
+			{
+				WDescriptorHeapManager* pCBVDescriptorHeapManager = WaveManager::Instance()->GetCBV_SRV_UAVHeap();
+				pCBVDescriptorHeapManager->Deallocate(m_allocation);
+			}
 		}
 	}
 
@@ -126,7 +134,7 @@ namespace WaveE
 	D3D12_CPU_DESCRIPTOR_HANDLE WBuffer::GetCPUDescriptorHandle() const
 	{
 		WDescriptorHeapManager* pCBVDescriptorHeapManager = WaveManager::Instance()->GetCBV_SRV_UAVHeap();
-		return pCBVDescriptorHeapManager->GetCPUHandle(m_cpuDescriptorHandleIndex);
+		return pCBVDescriptorHeapManager->GetCPUHandle(m_allocation.index + m_offset);
 	}
 
 }

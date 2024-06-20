@@ -28,7 +28,7 @@ namespace WaveE
 		UINT UAVCount{ 0 };
 		UINT SamplerCount{ 0 };
 
-		for (int i = 0; i < rDescriptor.numDescriptorTables; i++)
+		for (UINT i = 0; i < rDescriptor.numDescriptorTables; i++)
 		{
 			DescriptorTable& rDT = rDescriptor.descriptorTables[i];
 			bool isSamplerDT{ true };
@@ -103,7 +103,7 @@ namespace WaveE
 			vIndicesForDescriptorRanges.push_back(newIndicesForDescriptorRanges);
 		}
 
-		for (int i = 0; i < vRootParameters.size(); i++)
+		for (UINT i = 0; i < vRootParameters.size(); i++)
 		{
 			// Update root parameters here so pointers to descriptor ranges don't become invalid
 			UINT startIndex = vIndicesForDescriptorRanges[i].indexToStartOfDescriptorRanges;

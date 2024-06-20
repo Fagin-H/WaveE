@@ -1,4 +1,5 @@
 #pragma once
+#include "WDescriptorHeapManager.h"
 
 namespace WaveE
 {
@@ -29,7 +30,7 @@ namespace WaveE
 	// A wrapper around a DX12 resource for use as a buffer
 	class WTexture
 	{
-		WTexture(const WTextureDescriptor& rDescriptor);
+		WTexture(const WTextureDescriptor& rDescriptor, WDescriptorHeapManager::Allocation allocationSRV = WDescriptorHeapManager::InvalidAllocation(), UINT offset = 0);
 		~WTexture();
 
 		ID3D12Resource* GetTexture() const { return m_pTexture.Get(); }
@@ -52,8 +53,10 @@ namespace WaveE
 		UINT m_width;
 		UINT m_height;
 		bool m_isDepthType;
-		UINT m_cpuDescriptorHandleIndexSRV;
-		UINT m_cpuDescriptorHandleIndexRTV_DSV;
+		WDescriptorHeapManager::Allocation m_allocationSRV;
+		UINT m_offsetSRV;
+		bool m_doesOwnAllocationSRV;
+		WDescriptorHeapManager::Allocation m_allocationRTV_DSV;
 		State m_currentState;
 		D3D12_RESOURCE_STATES m_renderTargetState;
 		D3D12_RESOURCE_STATES m_shaderResourceState;

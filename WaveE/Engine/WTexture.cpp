@@ -88,11 +88,16 @@ namespace WaveE
 				return D3D12_RESOURCE_STATE_DEPTH_WRITE;
 			}
 		}
+
+		WAVEE_ASSERT_MESSAGE(false, "Did not find resourceState");
+		return D3D12_RESOURCE_STATE_GENERIC_READ;
 	}
 
-	WTexture::WTexture(const WTextureDescriptor& rDescriptor)
-		: m_cpuDescriptorHandleIndexSRV{ WDescriptorHeapManager::InvalidIndex() }
-		, m_cpuDescriptorHandleIndexRTV_DSV{ WDescriptorHeapManager::InvalidIndex() }
+	WTexture::WTexture(const WTextureDescriptor& rDescriptor, WDescriptorHeapManager::Allocation allocationSRV, UINT offset)
+		: m_allocationSRV{ allocationSRV }
+		, m_offsetSRV{offset}
+		, m_doesOwnAllocationSRV{ WDescriptorHeapManager::IsInvalidAllocation(allocationSRV) }
+		, m_allocationRTV_DSV{ WDescriptorHeapManager::InvalidAllocation() }
 	{
 		m_width = rDescriptor.width;
 		m_height = rDescriptor.height;
@@ -163,8 +168,8 @@ namespace WaveE
 				dsvDesc.Texture2D.MipSlice = 0;
 
 				WDescriptorHeapManager* pDSVDescriptorHeapManager = WaveManager::Instance()->GetDSVHeap();
-				m_cpuDescriptorHandleIndexRTV_DSV = pDSVDescriptorHeapManager->Allocate();
-				D3D12_CPU_DESCRIPTOR_HANDLE cpuDescriptorHandle = pDSVDescriptorHeapManager->GetCPUHandle(m_cpuDescriptorHandleIndexRTV_DSV);
+				m_allocationRTV_DSV = pDSVDescriptorHeapManager->Allocate();
+				D3D12_CPU_DESCRIPTOR_HANDLE cpuDescriptorHandle = pDSVDescriptorHeapManager->GetCPUHandle(m_allocationRTV_DSV);
 				pDevice->CreateDepthStencilView(m_pTexture.Get(), &dsvDesc, cpuDescriptorHandle);
 			}
 			else
@@ -176,13 +181,21 @@ namespace WaveE
 				rtvDesc.Texture2D.PlaneSlice = 0;
 
 				WDescriptorHeapManager* pRTVDescriptorHeapManager = WaveManager::Instance()->GetRTVHeap();
-				m_cpuDescriptorHandleIndexRTV_DSV = pRTVDescriptorHeapManager->Allocate();
-				D3D12_CPU_DESCRIPTOR_HANDLE cpuDescriptorHandle = pRTVDescriptorHeapManager->GetCPUHandle(m_cpuDescriptorHandleIndexRTV_DSV);
+				m_allocationRTV_DSV = pRTVDescriptorHeapManager->Allocate();
+				D3D12_CPU_DESCRIPTOR_HANDLE cpuDescriptorHandle = pRTVDescriptorHeapManager->GetCPUHandle(m_allocationRTV_DSV);
 				pDevice->CreateRenderTargetView(m_pTexture.Get(), &rtvDesc, cpuDescriptorHandle);
 			}
 		}
 		if (rDescriptor.usage == WTextureDescriptor::Usage::ShaderResource)
 		{
+			WDescriptorHeapManager* pCBVDescriptorHeapManager = WaveManager::Instance()->GetCBV_SRV_UAVHeap();
+			if (m_doesOwnAllocationSRV)
+			{
+				// Allocate CPU descriptor handle for CBV/SRV/UAV based on buffer type
+				m_allocationSRV = pCBVDescriptorHeapManager->Allocate();
+			}
+			D3D12_CPU_DESCRIPTOR_HANDLE cpuDescriptorHandle = pCBVDescriptorHeapManager->GetCPUHandle(m_allocationSRV.index + m_offsetSRV);
+			
 			if (m_isDepthType)
 			{
 				D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
@@ -194,9 +207,6 @@ namespace WaveE
 				srvDesc.Texture2D.PlaneSlice = 0;
 				srvDesc.Texture2D.ResourceMinLODClamp = 0.0f;
 
-				WDescriptorHeapManager* pCBVDescriptorHeapManager = WaveManager::Instance()->GetCBV_SRV_UAVHeap();
-				m_cpuDescriptorHandleIndexSRV = pCBVDescriptorHeapManager->Allocate();
-				D3D12_CPU_DESCRIPTOR_HANDLE cpuDescriptorHandle = pCBVDescriptorHeapManager->GetCPUHandle(m_cpuDescriptorHandleIndexSRV);
 				pDevice->CreateShaderResourceView(m_pTexture.Get(), &srvDesc, cpuDescriptorHandle);
 			}
 			else
@@ -210,9 +220,6 @@ namespace WaveE
 				srvDesc.Texture2D.PlaneSlice = 0;
 				srvDesc.Texture2D.ResourceMinLODClamp = 0.0f;
 
-				WDescriptorHeapManager* pCBVDescriptorHeapManager = WaveManager::Instance()->GetCBV_SRV_UAVHeap();
-				m_cpuDescriptorHandleIndexSRV = pCBVDescriptorHeapManager->Allocate();
-				D3D12_CPU_DESCRIPTOR_HANDLE cpuDescriptorHandle = pCBVDescriptorHeapManager->GetCPUHandle(m_cpuDescriptorHandleIndexSRV);
 				pDevice->CreateShaderResourceView(m_pTexture.Get(), &srvDesc, cpuDescriptorHandle);
 			}
 		}
@@ -225,22 +232,26 @@ namespace WaveE
 
 	WTexture::~WTexture()
 	{
-		if (!WDescriptorHeapManager::IsInvalidIndex(m_cpuDescriptorHandleIndexSRV))
+		if (m_doesOwnAllocationSRV)
 		{
-			WDescriptorHeapManager* pCBVDescriptorHeapManager = WaveManager::Instance()->GetCBV_SRV_UAVHeap();
-			pCBVDescriptorHeapManager->Deallocate(m_cpuDescriptorHandleIndexSRV);
+			if (!WDescriptorHeapManager::IsInvalidAllocation(m_allocationSRV))
+			{
+				WDescriptorHeapManager* pCBVDescriptorHeapManager = WaveManager::Instance()->GetCBV_SRV_UAVHeap();
+				pCBVDescriptorHeapManager->Deallocate(m_allocationSRV);
+			}
 		}
-		if (!WDescriptorHeapManager::IsInvalidIndex(m_cpuDescriptorHandleIndexRTV_DSV))
+
+		if (!WDescriptorHeapManager::IsInvalidAllocation(m_allocationRTV_DSV))
 		{
 			if (m_isDepthType)
 			{
 				WDescriptorHeapManager* pDSVDescriptorHeapManager = WaveManager::Instance()->GetDSVHeap();
-				pDSVDescriptorHeapManager->Deallocate(m_cpuDescriptorHandleIndexRTV_DSV);
+				pDSVDescriptorHeapManager->Deallocate(m_allocationRTV_DSV);
 			}
 			else
 			{
 				WDescriptorHeapManager* pRTVDescriptorHeapManager = WaveManager::Instance()->GetRTVHeap();
-				pRTVDescriptorHeapManager->Deallocate(m_cpuDescriptorHandleIndexRTV_DSV);
+				pRTVDescriptorHeapManager->Deallocate(m_allocationRTV_DSV);
 			}
 		}
 	}
@@ -288,19 +299,19 @@ namespace WaveE
 		if (m_currentState == State::Input)
 		{
 			WDescriptorHeapManager* pCBVDescriptorHeapManager = WaveManager::Instance()->GetCBV_SRV_UAVHeap();
-			return pCBVDescriptorHeapManager->GetCPUHandle(m_cpuDescriptorHandleIndexSRV);
+			return pCBVDescriptorHeapManager->GetCPUHandle(m_allocationSRV.index + m_offsetSRV);
 		}
 		else
 		{
 			if (m_isDepthType)
 			{
 				WDescriptorHeapManager* pDSVDescriptorHeapManager = WaveManager::Instance()->GetDSVHeap();
-				return pDSVDescriptorHeapManager->GetCPUHandle(m_cpuDescriptorHandleIndexRTV_DSV);
+				return pDSVDescriptorHeapManager->GetCPUHandle(m_allocationRTV_DSV);
 			}
 			else
 			{
 				WDescriptorHeapManager* pRTVDescriptorHeapManager = WaveManager::Instance()->GetRTVHeap();
-				return pRTVDescriptorHeapManager->GetCPUHandle(m_cpuDescriptorHandleIndexRTV_DSV);
+				return pRTVDescriptorHeapManager->GetCPUHandle(m_allocationRTV_DSV);
 			}
 		}
 	}

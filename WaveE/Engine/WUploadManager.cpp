@@ -133,7 +133,7 @@ namespace WaveE
 		return newBefferIndex;
 	}
 
-	void WUploadManager::WaitForUpload(UINT bufferIndex)
+	void WUploadManager::WaitForUpload(UINT64 bufferIndex)
 	{
 		if (m_vUploadBuffers[bufferIndex].pFence->GetCompletedValue() < m_vUploadBuffers[bufferIndex].fenceValue)
 		{
