@@ -31,6 +31,9 @@
     <ClCompile Include="WUploadManager.cpp">
       <Filter>Private\WaveGraphics</Filter>
     </ClCompile>
+    <ClCompile Include="WRootSigniture.cpp">
+      <Filter>Private\WaveGraphics</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="D3D12HelloConstBuffers.h">
@@ -61,6 +64,9 @@
       <Filter>Public\WaveGraphics</Filter>
     </ClInclude>
     <ClInclude Include="WUploadManager.h">
+      <Filter>Public\WaveGraphics</Filter>
+    </ClInclude>
+    <ClInclude Include="WRootSigniture.h">
       <Filter>Public\WaveGraphics</Filter>
     </ClInclude>
   </ItemGroup>

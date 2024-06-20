@@ -2,6 +2,8 @@
 #include "WDescriptorHeapManager.h"
 #include <functional>
 #include "WUploadManager.h"
+#include "WRootSigniture.h"
+
 
 namespace WaveE
 {
@@ -29,7 +31,15 @@ namespace WaveE
 
 		WUploadManager* GetUploadManager() { return &m_uploadManager; }
 
+		WRootSigniture* GetDefaultRootSigniture() { return &m_defaultRootSigniture; }
+
 	private:
+		void CreateDefaultRootSigniture();
+		// Create the hlsl include file for named slots
+		// If the default slot layout changes the shaders don't need to be changes
+		// Just replace the old hlsli file with the new one and recompile
+		void CreateSlotHLSLIFile();
+
 		// DX12 variables
 		ComPtr<WaveEDevice> m_pDevice;
 		// #TODO have multiple command lists. Would require careful consideration of synchronization
@@ -43,9 +53,20 @@ namespace WaveE
 
 		WUploadManager m_uploadManager;
 
+		WRootSigniture m_defaultRootSigniture;
+
 		const UINT m_descriptorHeapCount{ 1024 };
+
 		const UINT m_uploadBufferCount{ 10 };
 		const UINT m_uploadBufferSize{ 1024 * 1024 * 32 };
+
+		const UINT m_defaultSamplerCount{ 2 };
+		const UINT m_globalCBVCount{ 1 };
+		const UINT m_globalSRVCount{ 4 };
+		const UINT m_globalSamplerCount{ m_globalSRVCount };
+		const UINT m_materialCBVCount{ 1 };
+		const UINT m_materialSRVCount{ 4 };
+		const UINT m_materialSamplerCount{ m_materialSRVCount };
 	};
 }
 
