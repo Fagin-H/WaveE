@@ -13,6 +13,11 @@ namespace WaveE
 		, m_sampelerHeap{ D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER, D3D12_DESCRIPTOR_HEAP_FLAG_NONE, m_descriptorHeapCountSampler }
 		, m_uploadManager{ m_uploadBufferSize, m_uploadBufferCount }
 		, m_defaultRootSigniture{}
+		, m_samplerAllocation{ m_sampelerHeap.Allocate(4) }
+		, m_defaultSamplerWrapPoint{ WSamplerDescriptor{WSamplerDescriptor::Filter::Point, WSamplerDescriptor::AddressMode::Wrap}, m_samplerAllocation, 0 }
+		, m_defaultSamplerClampPoint{ WSamplerDescriptor{WSamplerDescriptor::Filter::Point, WSamplerDescriptor::AddressMode::Clamp}, m_samplerAllocation, 1 }
+		, m_defaultSamplerWrapLinear{ WSamplerDescriptor{WSamplerDescriptor::Filter::Linear, WSamplerDescriptor::AddressMode::Wrap}, m_samplerAllocation, 2 }
+		, m_defaultSamplerClampLinear{ WSamplerDescriptor{WSamplerDescriptor::Filter::Linear, WSamplerDescriptor::AddressMode::Clamp}, m_samplerAllocation, 3 }
 	{
 		CreateDefaultRootSigniture();
 		CreateSlotHLSLIFile();
@@ -36,6 +41,28 @@ namespace WaveE
 	void WaveManager::EndFrame()
 	{
 		m_uploadManager.EndFrame();
+	}
+
+	WSampler* WaveManager::GetDefaultSampler(SamplerType type)
+	{
+		switch (type)
+		{
+		case WaveE::WaveManager::WRAP_POINT:
+			return &m_defaultSamplerWrapPoint;
+			break;
+		case WaveE::WaveManager::WRAP_LINEAR:
+			return &m_defaultSamplerWrapLinear;
+			break;
+		case WaveE::WaveManager::CLAMP_POINT:
+			return &m_defaultSamplerClampPoint;
+			break;
+		case WaveE::WaveManager::CLAMP_LINEAR:
+			break;
+			return &m_defaultSamplerClampLinear;
+		default:
+			break;
+		}
+		return &m_defaultSamplerWrapLinear;
 	}
 
 	void WaveManager::CreateDefaultRootSigniture()

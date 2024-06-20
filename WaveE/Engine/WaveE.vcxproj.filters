@@ -34,6 +34,7 @@
     <ClCompile Include="WRootSigniture.cpp">
       <Filter>Private\WaveGraphics</Filter>
     </ClCompile>
+    <ClCompile Include="WSampler.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="D3D12HelloConstBuffers.h">
@@ -69,6 +70,7 @@
     <ClInclude Include="WRootSigniture.h">
       <Filter>Public\WaveGraphics</Filter>
     </ClInclude>
+    <ClInclude Include="WSampler.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />

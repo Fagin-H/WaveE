@@ -128,6 +128,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="WRootSigniture.h" />
+    <ClInclude Include="WSampler.h" />
     <ClInclude Include="WUploadManager.h" />
     <ClInclude Include="WaveManager.h" />
     <ClInclude Include="WDescriptorHeapManager.h" />
@@ -141,6 +142,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="WRootSigniture.cpp" />
+    <ClCompile Include="WSampler.cpp" />
     <ClCompile Include="WUploadManager.cpp" />
     <ClCompile Include="WaveManager.cpp" />
     <ClCompile Include="WDescriptorHeapManager.cpp" />

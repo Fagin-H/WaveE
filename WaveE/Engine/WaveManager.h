@@ -3,6 +3,7 @@
 #include <functional>
 #include "WUploadManager.h"
 #include "WRootSigniture.h"
+#include "WSampler.h"
 
 
 namespace WaveE
@@ -28,10 +29,20 @@ namespace WaveE
 		WDescriptorHeapManager* GetCBV_SRV_UAVHeap() { return &m_cbvSrvUavHeap; }
 		WDescriptorHeapManager* GetRTVHeap() { return &m_rtvHeap; }
 		WDescriptorHeapManager* GetDSVHeap() { return &m_dsvHeap; }
+		WDescriptorHeapManager* GetSamplerHeap() { return &m_sampelerHeap; }
 
 		WUploadManager* GetUploadManager() { return &m_uploadManager; }
 
 		WRootSigniture* GetDefaultRootSigniture() { return &m_defaultRootSigniture; }
+
+		enum SamplerType
+		{
+			WRAP_POINT,
+			WRAP_LINEAR,
+			CLAMP_POINT,
+			CLAMP_LINEAR
+		};
+		WSampler* GetDefaultSampler(SamplerType type = WRAP_LINEAR);
 
 	private:
 		void CreateDefaultRootSigniture();
@@ -56,6 +67,12 @@ namespace WaveE
 
 		WRootSigniture m_defaultRootSigniture;
 
+		WDescriptorHeapManager::Allocation m_samplerAllocation;
+		WSampler m_defaultSamplerWrapPoint;
+		WSampler m_defaultSamplerClampPoint;
+		WSampler m_defaultSamplerWrapLinear;
+		WSampler m_defaultSamplerClampLinear;
+
 		const UINT m_descriptorHeapCountCBV_SRV_UAV{ 1024 };
 		const UINT m_descriptorHeapCountRTV{ 16 };
 		const UINT m_descriptorHeapCountDSV{ 16 };
@@ -64,7 +81,7 @@ namespace WaveE
 		const UINT m_uploadBufferCount{ 10 };
 		const UINT m_uploadBufferSize{ 1024 * 1024 * 32 };
 
-		const UINT m_defaultSamplerCount{ 2 };
+		const UINT m_defaultSamplerCount{ 4 };
 		const UINT m_globalCBVCount{ 1 };
 		const UINT m_globalSRVCount{ 4 };
 		const UINT m_globalSamplerCount{ m_globalSRVCount };
