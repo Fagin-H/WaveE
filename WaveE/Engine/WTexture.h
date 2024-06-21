@@ -27,9 +27,10 @@ namespace WaveE
 		const void* pInitalData{ nullptr };
 	};
 
-	// A wrapper around a DX12 resource for use as a buffer
+	// A wrapper around a DX12 resource for use as a texture
 	class WTexture
 	{
+	public:
 		WTexture(const WTextureDescriptor& rDescriptor, WDescriptorHeapManager::Allocation allocationSRV = WDescriptorHeapManager::InvalidAllocation(), UINT offset = 0);
 		~WTexture();
 

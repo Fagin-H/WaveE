@@ -4,6 +4,7 @@
 #include "WUploadManager.h"
 #include "WRootSigniture.h"
 #include "WSampler.h"
+#include "WResourceManager.h"
 
 
 namespace WaveE
@@ -14,8 +15,6 @@ namespace WaveE
 		WAVEE_SINGLETON(WaveManager)
 
 	public:
-		WaveManager();
-
 		void BeginFrame();
 		void Update();
 		void Render();
@@ -42,9 +41,11 @@ namespace WaveE
 			CLAMP_POINT,
 			CLAMP_LINEAR
 		};
-		WSampler* GetDefaultSampler(SamplerType type = WRAP_LINEAR);
+		ResourceID<WSampler> GetDefaultSampler(SamplerType type = WRAP_LINEAR);
 
 	private:
+		WaveManager();
+		~WaveManager();
 		void CreateDefaultRootSigniture();
 		// Create the hlsl include file for named slots
 		// If the default slot layout changes the shaders don't need to be changes
@@ -67,11 +68,7 @@ namespace WaveE
 
 		WRootSigniture m_defaultRootSigniture;
 
-		WDescriptorHeapManager::Allocation m_samplerAllocation;
-		WSampler m_defaultSamplerWrapPoint;
-		WSampler m_defaultSamplerClampPoint;
-		WSampler m_defaultSamplerWrapLinear;
-		WSampler m_defaultSamplerClampLinear;
+		ResourceBlock<WSampler> m_defaultSamplers;
 
 		const UINT m_descriptorHeapCountCBV_SRV_UAV{ 1024 };
 		const UINT m_descriptorHeapCountRTV{ 16 };
