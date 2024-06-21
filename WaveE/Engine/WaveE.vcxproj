@@ -127,6 +127,8 @@
     </FxCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="WMesh.h" />
+    <ClInclude Include="WResource.h" />
     <ClInclude Include="WResourceManager.h" />
     <ClInclude Include="WRootSigniture.h" />
     <ClInclude Include="WSampler.h" />
@@ -142,6 +144,7 @@
     <ClInclude Include="WTexture.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="WMesh.cpp" />
     <ClCompile Include="WResourceManager.cpp" />
     <ClCompile Include="WRootSigniture.cpp" />
     <ClCompile Include="WSampler.cpp" />

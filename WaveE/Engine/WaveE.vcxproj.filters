@@ -40,6 +40,9 @@
     <ClCompile Include="WResourceManager.cpp">
       <Filter>Private\WaveGraphics</Filter>
     </ClCompile>
+    <ClCompile Include="WMesh.cpp">
+      <Filter>Private\WaveGraphics</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="D3D12HelloConstBuffers.h">
@@ -80,6 +83,12 @@
     </ClInclude>
     <ClInclude Include="WResourceManager.h">
       <Filter>Public\WaveGraphics</Filter>
+    </ClInclude>
+    <ClInclude Include="WMesh.h">
+      <Filter>Public\WaveGraphics</Filter>
+    </ClInclude>
+    <ClInclude Include="WResource.h">
+      <Filter>Public</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

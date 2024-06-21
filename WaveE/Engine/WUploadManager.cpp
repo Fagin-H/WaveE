@@ -128,7 +128,7 @@ namespace WaveE
 
 		newBuffer.fenceValue = 0;
 		m_vUploadBuffers.push_back(std::move(newBuffer));
-		UINT newBefferIndex = m_vUploadBuffers.size() - 1;
+		UINT newBefferIndex = static_cast<UINT>(m_vUploadBuffers.size()) - 1;
 		m_qAvailableBuffers.push(newBefferIndex);
 		return newBefferIndex;
 	}

@@ -56,6 +56,12 @@ namespace WaveE
 		return ResourceID<WSampler>{static_cast<UINT>(m_vpSamplers.size()) - 1};
 	}
 
+	ResourceID<WMesh> WResourceManager::CreateResource(const WMeshDescriptor& rDescriptor)
+	{
+		m_vpMeshes.push_back(new WMesh{ rDescriptor });
+		return ResourceID<WMesh>{static_cast<UINT>(m_vpMeshes.size()) - 1};
+	}
+
 	ResourceBlock<WTexture> WResourceManager::CreateResourceBlock(WTextureDescriptor* pDescriptors, UINT numDescriptors)
 	{
 		WAVEE_ASSERT_MESSAGE(numDescriptors > 0, "Can't create resource block of size 0!");
@@ -132,6 +138,13 @@ namespace WaveE
 		WAVEE_ASSERT_MESSAGE(id.id < m_vpSamplers.size(), "Sampler ID out of range!");
 
 		return m_vpSamplers[id.id];
+	}
+
+	WMesh* WResourceManager::GetResource(ResourceID<WMesh> id) const
+	{
+		WAVEE_ASSERT_MESSAGE(id.id < m_vpMeshes.size(), "Mesh ID out of range!");
+
+		return m_vpMeshes[id.id];
 	}
 
 }
