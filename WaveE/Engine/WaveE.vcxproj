@@ -132,6 +132,7 @@
     <ClInclude Include="WResourceManager.h" />
     <ClInclude Include="WRootSigniture.h" />
     <ClInclude Include="WSampler.h" />
+    <ClInclude Include="WShader.h" />
     <ClInclude Include="WUploadManager.h" />
     <ClInclude Include="WaveManager.h" />
     <ClInclude Include="WDescriptorHeapManager.h" />
@@ -148,6 +149,7 @@
     <ClCompile Include="WResourceManager.cpp" />
     <ClCompile Include="WRootSigniture.cpp" />
     <ClCompile Include="WSampler.cpp" />
+    <ClCompile Include="WShader.cpp" />
     <ClCompile Include="WUploadManager.cpp" />
     <ClCompile Include="WaveManager.cpp" />
     <ClCompile Include="WDescriptorHeapManager.cpp" />

@@ -7,7 +7,7 @@ namespace WaveE
 	WAVEE_SINGLETON_CPP(WaveManager);
 
 	WaveManager::WaveManager()
-		: m_cbvSrvUavHeap{D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE, m_descriptorHeapCountCBV_SRV_UAV }
+		: m_cbvSrvUavHeap{ D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE, m_descriptorHeapCountCBV_SRV_UAV }
 		, m_rtvHeap{ D3D12_DESCRIPTOR_HEAP_TYPE_RTV, D3D12_DESCRIPTOR_HEAP_FLAG_NONE, m_descriptorHeapCountRTV }
 		, m_dsvHeap{ D3D12_DESCRIPTOR_HEAP_TYPE_DSV, D3D12_DESCRIPTOR_HEAP_FLAG_NONE, m_descriptorHeapCountDSV }
 		, m_sampelerHeap{ D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER, D3D12_DESCRIPTOR_HEAP_FLAG_NONE, m_descriptorHeapCountSampler }
@@ -16,6 +16,7 @@ namespace WaveE
 	{
 		// Init all singletons
 		WResourceManager::Init();
+		WResourceManager::Instance()->LoadShadersFromDirectory(GetShaderDirectory());
 
 		CreateDefaultRootSigniture();
 		CreateSlotHLSLIFile();
@@ -146,6 +147,17 @@ namespace WaveE
 		}
 
 		file.close();
+	}
+
+	std::string WaveManager::GetShaderDirectory()
+	{
+		char pathBuffer[MAX_PATH];
+		GetModuleFileNameA(nullptr, pathBuffer, MAX_PATH);
+		std::string pathString{ pathBuffer };
+		size_t lastSlashIndex = pathString.find_last_of("\\/");
+		pathString = pathString.substr(0, lastSlashIndex);
+		pathString += "\\..\\..\\..\\..\\Resources\\Shaders";
+		return pathString;
 	}
 
 }

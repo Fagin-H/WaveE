@@ -1,6 +1,8 @@
 #include "stdafx.h"
 #include "WResourceManager.h"
 #include "WaveManager.h"
+#include <fstream>
+#include <filesystem>
 
 namespace WaveE
 {
@@ -36,6 +38,22 @@ namespace WaveE
 				delete pSampler;
 			}
 		}
+
+		for (WMesh* pMesh : m_vpMeshes)
+		{
+			if (pMesh)
+			{
+				delete pMesh;
+			}
+		}
+
+		for (WShader* pShader : m_vpShaders)
+		{
+			if (pShader)
+			{
+				delete pShader;
+			}
+		}
 	}
 
 	ResourceID<WTexture> WResourceManager::CreateResource(const WTextureDescriptor& rDescriptor, WDescriptorHeapManager::Allocation allocation /*= WDescriptorHeapManager::InvalidAllocation()*/, UINT offset /*= 0*/)
@@ -60,6 +78,12 @@ namespace WaveE
 	{
 		m_vpMeshes.push_back(new WMesh{ rDescriptor });
 		return ResourceID<WMesh>{static_cast<UINT>(m_vpMeshes.size()) - 1};
+	}
+
+	ResourceID<WShader> WResourceManager::CreateResource(const WShaderDescriptor& rDescriptor)
+	{
+		m_vpShaders.push_back(new WShader{ rDescriptor });
+		return ResourceID<WShader>{static_cast<UINT>(m_vpShaders.size()) - 1};
 	}
 
 	ResourceBlock<WTexture> WResourceManager::CreateResourceBlock(WTextureDescriptor* pDescriptors, UINT numDescriptors)
@@ -145,6 +169,78 @@ namespace WaveE
 		WAVEE_ASSERT_MESSAGE(id.id < m_vpMeshes.size(), "Mesh ID out of range!");
 
 		return m_vpMeshes[id.id];
+	}
+
+	WShader* WResourceManager::GetResource(ResourceID<WShader> id) const
+	{
+		WAVEE_ASSERT_MESSAGE(id.id < m_vpShaders.size(), "Shader ID out of range!");
+
+		return m_vpShaders[id.id];
+	}
+
+	WShader* WResourceManager::GetShader(const std::string& shaderName) const
+	{
+		auto it = m_shaderIndexMap.find(shaderName);
+		WAVEE_ASSERT_MESSAGE(it != m_shaderIndexMap.end(), "Shader not found!");
+		WAVEE_ASSERT_MESSAGE(it->second < m_vpShaders.size(), "Shader index out of range!");
+
+		if (it != m_shaderIndexMap.end())
+		{
+			return m_vpShaders[it->second];
+		}
+
+		return nullptr;
+	}
+
+	void WResourceManager::LoadShadersFromDirectory(const std::string& directoryPath)
+	{
+		namespace fs = std::filesystem;
+
+		for (const auto& entry : fs::recursive_directory_iterator(directoryPath))
+		{
+			if (entry.is_regular_file())
+			{
+				const std::string& filepath = entry.path().string();
+				const std::string& filename = entry.path().filename().string();
+				const std::string& extension = entry.path().extension().string();
+
+				if (extension == ".cos")
+				{
+					if (filename.find("_VS") != std::string::npos)
+					{
+						m_shaderIndexMap[filename] = LoadShader(filepath, WShaderDescriptor::Vertex);
+					}
+					else if (filename.find("_PS") != std::string::npos)
+					{
+						m_shaderIndexMap[filename] = LoadShader(filepath, WShaderDescriptor::Pixel);
+					}
+					else if (filename.find("_CS") != std::string::npos)
+					{
+						m_shaderIndexMap[filename] = LoadShader(filepath, WShaderDescriptor::Compute);
+					}
+				}
+			}
+		}
+	}
+
+	UINT WResourceManager::LoadShader(const std::string& filepath, WShaderDescriptor::ShaderType type)
+	{
+		std::ifstream shaderFile{ filepath, std::ios::binary | std::ios::ate };
+		WAVEE_ASSERT_MESSAGE(shaderFile.is_open(), "Could not open shader file!");
+
+		size_t fileSize = static_cast<size_t>(shaderFile.tellg());
+		shaderFile.seekg(0, std::ios::beg);
+
+		std::vector<char> shaderBytecode(fileSize);
+		shaderFile.read(shaderBytecode.data(), fileSize);
+		shaderFile.close();
+
+		WShaderDescriptor descriptor;
+		descriptor.type = type;
+		descriptor.shaderData.pShaderBytecode = shaderBytecode.data();
+		descriptor.shaderData.bytecodeLength = fileSize;
+
+		return CreateResource(descriptor).id;
 	}
 
 }

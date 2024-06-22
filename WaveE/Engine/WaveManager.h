@@ -52,6 +52,8 @@ namespace WaveE
 		// Just replace the old hlsli file with the new one and recompile
 		void CreateSlotHLSLIFile();
 
+		std::string GetShaderDirectory();
+
 		// DX12 variables
 		ComPtr<WaveEDevice> m_pDevice;
 		// #TODO have multiple command lists. Would require careful consideration of synchronization
