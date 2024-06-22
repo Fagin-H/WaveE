@@ -86,6 +86,12 @@ namespace WaveE
 		return ResourceID<WShader>{static_cast<UINT>(m_vpShaders.size()) - 1};
 	}
 
+	ResourceID<WPipeline> WResourceManager::CreateResource(const WPipelineDescriptor& rDescriptor)
+	{
+		m_vpPipelines.push_back(new WPipeline{ rDescriptor });
+		return ResourceID<WPipeline>{static_cast<UINT>(m_vpPipelines.size()) - 1};
+	}
+
 	ResourceBlock<WTexture> WResourceManager::CreateResourceBlock(WTextureDescriptor* pDescriptors, UINT numDescriptors)
 	{
 		WAVEE_ASSERT_MESSAGE(numDescriptors > 0, "Can't create resource block of size 0!");
@@ -176,6 +182,13 @@ namespace WaveE
 		WAVEE_ASSERT_MESSAGE(id.id < m_vpShaders.size(), "Shader ID out of range!");
 
 		return m_vpShaders[id.id];
+	}
+
+	WPipeline* WResourceManager::GetResource(ResourceID<WPipeline> id) const
+	{
+		WAVEE_ASSERT_MESSAGE(id.id < m_vpPipelines.size(), "Pipeline ID out of range!");
+
+		return m_vpPipelines[id.id];
 	}
 
 	WShader* WResourceManager::GetShader(const std::string& shaderName) const

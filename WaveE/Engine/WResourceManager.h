@@ -4,6 +4,7 @@
 #include "WSampler.h"
 #include "WMesh.h"
 #include "WShader.h"
+#include "WPipeline.h"
 #include "WResource.h"
 #include <string>
 #include <unordered_map>
@@ -36,6 +37,7 @@ namespace WaveE
 		ResourceID<WSampler> CreateResource(const WSamplerDescriptor& rDescriptor, WDescriptorHeapManager::Allocation allocation = WDescriptorHeapManager::InvalidAllocation(), UINT offset = 0);
 		ResourceID<WMesh> CreateResource(const WMeshDescriptor& rDescriptor);
 		ResourceID<WShader> CreateResource(const WShaderDescriptor& rDescriptor);
+		ResourceID<WPipeline> CreateResource(const WPipelineDescriptor& rDescriptor);
 
 		ResourceBlock<WTexture> CreateResourceBlock(WTextureDescriptor* pDescriptors, UINT numDescriptors);
 		ResourceBlock<WBuffer> CreateResourceBlock(WBufferDescriptor* pDescriptors, UINT numDescriptors);
@@ -47,6 +49,7 @@ namespace WaveE
 		WMesh* GetResource(ResourceID<WMesh> id) const;
 		WShader* GetResource(ResourceID<WShader> id) const;
 		WShader* GetShader(const std::string& shaderName) const;
+		WPipeline* GetResource(ResourceID<WPipeline> id) const;
 
 		void LoadShadersFromDirectory(const std::string& directoryPath);
 
@@ -56,6 +59,7 @@ namespace WaveE
 		std::vector<WSampler*> m_vpSamplers;
 		std::vector<WMesh*> m_vpMeshes;
 		std::vector<WShader*> m_vpShaders;
+		std::vector<WPipeline*> m_vpPipelines;
 
 		std::unordered_map<std::string, UINT> m_shaderIndexMap;
 
