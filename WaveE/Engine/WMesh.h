@@ -4,6 +4,13 @@
 
 namespace WaveE
 {
+	struct DefaultVertex
+	{
+		glm::vec3 position;
+		glm::vec3 normal;
+		glm::vec4 colour;
+	};
+
 	struct WMeshDescriptor
 	{
 		enum Topology
@@ -18,7 +25,7 @@ namespace WaveE
 		Topology topology;
 		void* pVertexData;
 		size_t vertexDataSizeBytes;
-		size_t vertexStrideBytes;
+		size_t vertexStrideBytes{ sizeof(DefaultVertex) };
 		void* pIndexData;
 		size_t indexDataSizeBytes;
 	};

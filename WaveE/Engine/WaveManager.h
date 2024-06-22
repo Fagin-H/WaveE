@@ -34,6 +34,8 @@ namespace WaveE
 
 		WRootSigniture* GetDefaultRootSigniture() { return &m_defaultRootSigniture; }
 
+		D3D12_INPUT_LAYOUT_DESC GetDefaultInputLayout() const { return m_defaultInputLayout; }
+
 		enum SamplerType
 		{
 			WRAP_POINT,
@@ -71,6 +73,8 @@ namespace WaveE
 		WRootSigniture m_defaultRootSigniture;
 
 		ResourceBlock<WSampler> m_defaultSamplers;
+
+		D3D12_INPUT_LAYOUT_DESC m_defaultInputLayout;
 
 		const UINT m_descriptorHeapCountCBV_SRV_UAV{ 1024 };
 		const UINT m_descriptorHeapCountRTV{ 16 };
