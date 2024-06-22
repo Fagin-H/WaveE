@@ -128,6 +128,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="WMesh.h" />
+    <ClInclude Include="WPipeline.h" />
     <ClInclude Include="WResource.h" />
     <ClInclude Include="WResourceManager.h" />
     <ClInclude Include="WRootSigniture.h" />
@@ -136,16 +137,13 @@
     <ClInclude Include="WUploadManager.h" />
     <ClInclude Include="WaveManager.h" />
     <ClInclude Include="WDescriptorHeapManager.h" />
-    <ClInclude Include="Win32Application.h" />
-    <ClInclude Include="D3D12HelloConstBuffers.h" />
-    <ClInclude Include="DXSample.h" />
-    <ClInclude Include="DXSampleHelper.h" />
     <ClInclude Include="stdafx.h" />
     <ClInclude Include="WBuffer.h" />
     <ClInclude Include="WTexture.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="WMesh.cpp" />
+    <ClCompile Include="WPipeline.cpp" />
     <ClCompile Include="WResourceManager.cpp" />
     <ClCompile Include="WRootSigniture.cpp" />
     <ClCompile Include="WSampler.cpp" />
@@ -153,9 +151,6 @@
     <ClCompile Include="WUploadManager.cpp" />
     <ClCompile Include="WaveManager.cpp" />
     <ClCompile Include="WDescriptorHeapManager.cpp" />
-    <ClCompile Include="Win32Application.cpp" />
-    <ClCompile Include="D3D12HelloConstBuffers.cpp" />
-    <ClCompile Include="DXSample.cpp" />
     <ClCompile Include="Main.cpp" />
     <ClCompile Include="stdafx.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>

@@ -35,7 +35,7 @@ namespace WaveE
 		~WSampler();
 
 		D3D12_CPU_DESCRIPTOR_HANDLE GetCPUDescriptorHandle() const;
-
+		WDescriptorHeapManager::Allocation GetAllocation() const { return m_allocation; }
 	private:
 		WDescriptorHeapManager::Allocation m_allocation;
 		UINT m_offset;

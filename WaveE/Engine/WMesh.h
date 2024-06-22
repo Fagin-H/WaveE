@@ -24,10 +24,10 @@ namespace WaveE
 
 		Topology topology;
 		void* pVertexData;
-		size_t vertexDataSizeBytes;
+		UINT vertexCount;
 		size_t vertexStrideBytes{ sizeof(DefaultVertex) };
 		void* pIndexData;
-		size_t indexDataSizeBytes;
+		UINT indexCount;
 	};
 
 	class WMesh
@@ -37,10 +37,15 @@ namespace WaveE
 		~WMesh();
 
 		void Bind() const;
+		UINT GetVertexCount() const { return m_vertexCount; }
+		UINT GetIndexCount() const { return m_IndexCount; }
 
 	private:
 		ResourceID<WBuffer> m_vertexBufferID{};
 		ResourceID<WBuffer> m_indexBufferID{};
+
+		UINT m_vertexCount;
+		UINT m_IndexCount;
 
 		D3D12_VERTEX_BUFFER_VIEW m_vertexBufferView;
 		D3D12_INDEX_BUFFER_VIEW m_indexBufferView;

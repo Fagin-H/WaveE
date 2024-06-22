@@ -28,10 +28,12 @@
 #include "include/d3dx12/d3dx12.h"
 
 #include <string>
+#include <iostream>
 #include <wrl.h>
 #include <shellapi.h>
 
 #include <glm/glm.hpp>
+#include <strsafe.h>
 
 namespace WaveE
 {
@@ -92,4 +94,19 @@ namespace WaveE
 
 	#define WAVEE_ASSERT_MESSAGE(condition, message) \
 		assert(condition);
+
+	#define WAVEE_ERROR_DWORD(errorCode)						\
+	{															\
+		LPCTSTR strErrorMessage = NULL;\
+		FormatMessage(\
+		FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS | FORMAT_MESSAGE_ARGUMENT_ARRAY | FORMAT_MESSAGE_ALLOCATE_BUFFER,\
+		NULL,\
+		errorCode,\
+		0,\
+		(LPWSTR)&strErrorMessage,\
+		0,\
+		NULL);\
+		OutputDebugString(strErrorMessage);\
+		WAVEE_ASSERT(false);\
+	}															
 }

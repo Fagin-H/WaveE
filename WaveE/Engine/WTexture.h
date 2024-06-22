@@ -49,6 +49,14 @@ namespace WaveE
 
 		D3D12_CPU_DESCRIPTOR_HANDLE GetCPUDescriptorHandle() const;
 
+		WDescriptorHeapManager::Allocation GetAllocationSRV() const { return m_allocationSRV; }
+		WDescriptorHeapManager::Allocation GetAllocationRTV_DSV() const { return m_allocationRTV_DSV; }
+
+		UINT GetWidth() const { return m_width; }
+		UINT GetHeight() const { return m_height; }
+
+		bool IsDepthType() const { return m_isDepthType; }
+
 	private:
 		size_t m_sizeBytes{ 0 };
 		UINT m_width;

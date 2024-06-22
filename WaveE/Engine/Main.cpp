@@ -10,11 +10,24 @@
 //*********************************************************
 
 #include "stdafx.h"
-#include "D3D12HelloConstBuffers.h"
+#include "WaveManager.h"
 
-_Use_decl_annotations_
+using namespace WaveE;
+
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow)
 {
-    D3D12HelloConstBuffers sample(1280, 720, L"D3D12 Hello Constant Buffers");
-    return Win32Application::Run(&sample, hInstance, nCmdShow);
+    WaveManager::Init({});
+
+    while (true)
+    {
+        WaveManager::Instance()->BeginFrame();
+
+
+
+        WaveManager::Instance()->EndFrame();
+
+        break;
+    }
+
+    WaveManager::Uninit();
 }

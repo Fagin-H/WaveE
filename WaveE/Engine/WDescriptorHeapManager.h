@@ -14,8 +14,10 @@ namespace WaveE
 			UINT size;
 		};
 
-		WDescriptorHeapManager(D3D12_DESCRIPTOR_HEAP_TYPE type, D3D12_DESCRIPTOR_HEAP_FLAGS flags, UINT numDescriptors);
+		WDescriptorHeapManager() = default;
 		~WDescriptorHeapManager();
+
+		void Init(D3D12_DESCRIPTOR_HEAP_TYPE type, D3D12_DESCRIPTOR_HEAP_FLAGS flags, UINT numDescriptors);
 
 		Allocation Allocate(UINT size = 1);
 		void Deallocate(Allocation allocation);
@@ -27,6 +29,8 @@ namespace WaveE
 
 		static Allocation InvalidAllocation() { return Allocation{ UINT_MAX, 0 }; }
 		static bool IsInvalidAllocation(Allocation allocation) { return allocation.index == UINT_MAX; }
+
+		ID3D12DescriptorHeap* GetHeap() { return m_pDescriptorHeap.Get(); }
 
 	private:
 		ComPtr<ID3D12DescriptorHeap> m_pDescriptorHeap;

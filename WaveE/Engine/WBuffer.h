@@ -32,6 +32,8 @@ namespace WaveE
 		void UploadData(const void* pData, size_t sizeBytes);
 
 		D3D12_CPU_DESCRIPTOR_HANDLE GetCPUDescriptorHandle() const;
+
+		WDescriptorHeapManager::Allocation GetAllocation() const { return m_allocation; }
 	private:
 		size_t m_sizeBytes{ 0 };
 		WBufferDescriptor::Type m_type;

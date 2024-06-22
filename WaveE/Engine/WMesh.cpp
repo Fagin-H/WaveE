@@ -19,6 +19,8 @@ namespace WaveE
 	}
 
 	WMesh::WMesh(const WMeshDescriptor& rDescriptor)
+		: m_vertexCount{ rDescriptor.vertexCount }
+		, m_IndexCount{ rDescriptor.indexCount }
 	{
 		WAVEE_ASSERT_MESSAGE(rDescriptor.pVertexData, "No vertex data for mesh!");
 
@@ -32,14 +34,14 @@ namespace WaveE
 		{
 			WBufferDescriptor vertexBufferDescriptor = {};
 			vertexBufferDescriptor.isDynamic = false;
-			vertexBufferDescriptor.m_sizeBytes = rDescriptor.vertexDataSizeBytes;
+			vertexBufferDescriptor.m_sizeBytes = rDescriptor.vertexCount * rDescriptor.vertexStrideBytes;
 			vertexBufferDescriptor.type = WBufferDescriptor::Vertex;
 			vertexBufferDescriptor.pInitalData = rDescriptor.pVertexData;
 
 			m_vertexBufferID = WResourceManager::Instance()->CreateResource(vertexBufferDescriptor);
 
 			m_vertexBufferView.BufferLocation = m_vertexBufferID.GetResource()->GetBuffer()->GetGPUVirtualAddress();
-			m_vertexBufferView.SizeInBytes = rDescriptor.vertexDataSizeBytes;
+			m_vertexBufferView.SizeInBytes = rDescriptor.vertexCount * rDescriptor.vertexStrideBytes;
 			m_vertexBufferView.StrideInBytes = rDescriptor.vertexStrideBytes;
 		}
 
@@ -48,14 +50,14 @@ namespace WaveE
 		{
 			WBufferDescriptor indexBufferDescriptor = {};
 			indexBufferDescriptor.isDynamic = false;
-			indexBufferDescriptor.m_sizeBytes = rDescriptor.indexDataSizeBytes;
+			indexBufferDescriptor.m_sizeBytes = rDescriptor.indexCount * sizeof(UINT);
 			indexBufferDescriptor.type = WBufferDescriptor::Index;
 			indexBufferDescriptor.pInitalData = rDescriptor.pIndexData;
 
 			m_indexBufferID = WResourceManager::Instance()->CreateResource(indexBufferDescriptor);
 
 			m_indexBufferView.BufferLocation = m_indexBufferID.GetResource()->GetBuffer()->GetGPUVirtualAddress();
-			m_indexBufferView.SizeInBytes = rDescriptor.indexDataSizeBytes;
+			m_indexBufferView.SizeInBytes = rDescriptor.indexCount * sizeof(UINT);
 			m_indexBufferView.Format = DXGI_FORMAT_R32_UINT;
 		}
 	}

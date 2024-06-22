@@ -1,19 +1,10 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
-    <ClCompile Include="D3D12HelloConstBuffers.cpp">
-      <Filter>Private</Filter>
-    </ClCompile>
-    <ClCompile Include="DXSample.cpp">
-      <Filter>Private</Filter>
-    </ClCompile>
     <ClCompile Include="Main.cpp">
       <Filter>Private</Filter>
     </ClCompile>
     <ClCompile Include="stdafx.cpp">
-      <Filter>Private</Filter>
-    </ClCompile>
-    <ClCompile Include="Win32Application.cpp">
       <Filter>Private</Filter>
     </ClCompile>
     <ClCompile Include="WaveManager.cpp">
@@ -46,21 +37,12 @@
     <ClCompile Include="WShader.cpp">
       <Filter>Private\WaveGraphics</Filter>
     </ClCompile>
+    <ClCompile Include="WPipeline.cpp">
+      <Filter>Private\WaveGraphics</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="D3D12HelloConstBuffers.h">
-      <Filter>Public</Filter>
-    </ClInclude>
-    <ClInclude Include="DXSample.h">
-      <Filter>Public</Filter>
-    </ClInclude>
-    <ClInclude Include="DXSampleHelper.h">
-      <Filter>Public</Filter>
-    </ClInclude>
     <ClInclude Include="stdafx.h">
-      <Filter>Public</Filter>
-    </ClInclude>
-    <ClInclude Include="Win32Application.h">
       <Filter>Public</Filter>
     </ClInclude>
     <ClInclude Include="WaveManager.h">
@@ -90,10 +72,13 @@
     <ClInclude Include="WMesh.h">
       <Filter>Public\WaveGraphics</Filter>
     </ClInclude>
-    <ClInclude Include="WResource.h">
-      <Filter>Public</Filter>
-    </ClInclude>
     <ClInclude Include="WShader.h">
+      <Filter>Public\WaveGraphics</Filter>
+    </ClInclude>
+    <ClInclude Include="WPipeline.h">
+      <Filter>Public\WaveGraphics</Filter>
+    </ClInclude>
+    <ClInclude Include="WResource.h">
       <Filter>Public\WaveGraphics</Filter>
     </ClInclude>
   </ItemGroup>

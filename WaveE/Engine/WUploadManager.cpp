@@ -4,26 +4,19 @@
 
 namespace WaveE
 {
-
-	WUploadManager::WUploadManager(size_t bufferSize, size_t bufferCount)
-		: m_bufferSize(bufferSize)
+	WUploadManager::~WUploadManager()
 	{
-		m_fenceEvent = CreateEvent(nullptr, FALSE, FALSE, nullptr);
-		WAVEE_ASSERT_MESSAGE(m_fenceEvent, "Failed to create fence event!");
+		
+	}
+
+	void WUploadManager::Init(size_t bufferSize, size_t bufferCount)
+	{
+		m_bufferSize = bufferSize;
 
 		for (UINT i = 0; i < bufferCount; ++i)
 		{
 			CreateUploadBuffer();
 		}
-	}
-
-	WUploadManager::~WUploadManager()
-	{
-		for (auto& buffer : m_vUploadBuffers)
-		{
-			WaitForUpload(buffer.fenceValue);
-		}
-		CloseHandle(m_fenceEvent);
 	}
 
 	void WUploadManager::UploadData(ID3D12Resource* destResource, const void* data, size_t size, D3D12_RESOURCE_STATES currentState, D3D12_RESOURCE_STATES finalState)
@@ -59,9 +52,6 @@ namespace WaveE
 			CD3DX12_RESOURCE_BARRIER barrierAfterCopy = CD3DX12_RESOURCE_BARRIER::Transition(destResource, D3D12_RESOURCE_STATE_COPY_DEST, finalState);
 			pCommandList->ResourceBarrier(1, &barrierAfterCopy);
 		}
-
-		m_vUploadBuffers[bufferIndex].fenceValue++;
-		pCommandQueue->Signal(m_vUploadBuffers[bufferIndex].pFence.Get(), m_vUploadBuffers[bufferIndex].fenceValue);
 	}
 
 	void WUploadManager::EndFrame()
@@ -69,14 +59,7 @@ namespace WaveE
 		for (int i = 0; i < m_vInUseBuffers.size(); )
 		{
 			UINT bufferIndex = m_vInUseBuffers[i];
-			if (m_vUploadBuffers[bufferIndex].pFence->GetCompletedValue() >= m_vUploadBuffers[bufferIndex].fenceValue)
-			{
-				ReleaseUploadBuffer(bufferIndex);
-			}
-			else
-			{
-				i++;
-			}
+			ReleaseUploadBuffer(bufferIndex);
 		}
 	}
 
@@ -123,23 +106,9 @@ namespace WaveE
 		);
 		WAVEE_ASSERT_MESSAGE(SUCCEEDED(hr), "Failed to create upload buffer!");
 
-		hr = pDevice->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&newBuffer.pFence));
-		WAVEE_ASSERT_MESSAGE(SUCCEEDED(hr), "Failed to create fence!");
-
-		newBuffer.fenceValue = 0;
 		m_vUploadBuffers.push_back(std::move(newBuffer));
 		UINT newBefferIndex = static_cast<UINT>(m_vUploadBuffers.size()) - 1;
 		m_qAvailableBuffers.push(newBefferIndex);
 		return newBefferIndex;
 	}
-
-	void WUploadManager::WaitForUpload(UINT64 bufferIndex)
-	{
-		if (m_vUploadBuffers[bufferIndex].pFence->GetCompletedValue() < m_vUploadBuffers[bufferIndex].fenceValue)
-		{
-			m_vUploadBuffers[bufferIndex].pFence->SetEventOnCompletion(m_vUploadBuffers[bufferIndex].fenceValue, m_fenceEvent);
-			WaitForSingleObject(m_fenceEvent, INFINITE);
-		}
-	}
-
 }

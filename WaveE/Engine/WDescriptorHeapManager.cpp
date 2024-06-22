@@ -4,8 +4,15 @@
 
 namespace WaveE
 {
+	WDescriptorHeapManager::~WDescriptorHeapManager()
+	{
+		if (m_pDescriptorHeap)
+		{
+			m_pDescriptorHeap->Release();
+		}
+	}
 
-	WDescriptorHeapManager::WDescriptorHeapManager(D3D12_DESCRIPTOR_HEAP_TYPE type, D3D12_DESCRIPTOR_HEAP_FLAGS flags, UINT numDescriptors)
+	void WDescriptorHeapManager::Init(D3D12_DESCRIPTOR_HEAP_TYPE type, D3D12_DESCRIPTOR_HEAP_FLAGS flags, UINT numDescriptors)
 	{
 		WaveEDevice* pDevice = WaveManager::Instance()->GetDevice();
 
@@ -24,14 +31,6 @@ namespace WaveE
 		for (UINT i = 0; i < m_numDescriptors; ++i)
 		{
 			m_heapIndices.push_back(HeapIndex{ i, true });
-		}
-	}
-
-	WDescriptorHeapManager::~WDescriptorHeapManager()
-	{
-		if (m_pDescriptorHeap)
-		{
-			m_pDescriptorHeap->Release();
 		}
 	}
 
