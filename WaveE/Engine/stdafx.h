@@ -60,6 +60,8 @@ namespace WaveE
 
 	// Useful Macros
 
+	#define WaveInstance WaveManager::Instance()
+
 	#define WAVEE_NO_COPY(classname) \
 		classname(const classname&) = delete; \
 		classname& operator=(const classname&) = delete;

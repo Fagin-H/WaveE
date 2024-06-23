@@ -32,5 +32,6 @@ namespace WaveE
 	private:
 		WShaderDescriptor::ShaderType m_type;
 		D3D12_SHADER_BYTECODE m_shaderBytecode;
+		void* m_pBytecodeData{ nullptr };
 	};
 }

@@ -43,9 +43,19 @@ namespace WaveE
 		psoDesc.DepthStencilState = rDescriptor.depthStencilState;
 		psoDesc.PrimitiveTopologyType = rDescriptor.topologyType;
 		psoDesc.NumRenderTargets = rDescriptor.numRenderTarget;
-		*psoDesc.RTVFormats = *rDescriptor.rtvFormats;
+		for (UINT i = 0; i < rDescriptor.numRenderTarget; ++i)
+		{
+			psoDesc.RTVFormats[i] = rDescriptor.rtvFormats[i];
+		}
 		psoDesc.DSVFormat = rDescriptor.dsvFormat;
 		psoDesc.SampleDesc.Count = rDescriptor.sampleCount;
+		psoDesc.SampleDesc.Quality = 0;
+		psoDesc.IBStripCutValue = D3D12_INDEX_BUFFER_STRIP_CUT_VALUE_DISABLED;
+		psoDesc.NodeMask = 0;
+		psoDesc.CachedPSO.pCachedBlob = nullptr;
+		psoDesc.CachedPSO.CachedBlobSizeInBytes = 0;
+		psoDesc.Flags = D3D12_PIPELINE_STATE_FLAG_NONE;
+		psoDesc.SampleMask = 0xFFFFFFFF;
 
 		WaveEDevice* pDevice = WaveManager::Instance()->GetDevice();
 

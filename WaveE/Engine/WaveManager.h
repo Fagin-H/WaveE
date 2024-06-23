@@ -26,7 +26,7 @@ namespace WaveE
 		static WaveManager* Instance() { return ms_pInstance; }
 
 		static void Init(const WaveEDescriptor& rDescriptor); 
-
+		static void EndInit();
 		static void Uninit(); 
 
 	private: 
@@ -85,8 +85,10 @@ namespace WaveE
 
 		// Sets the render target, viewport, and scissor rect for drawing to the whole screen
 		void SetRenderTarget(ResourceID<WTexture> RTVId, ResourceID<WTexture> DSVId = {});
-		void ClearRenderTarget(ResourceID<WTexture> id, glm::vec4 colour);
+		void SetRenderTargetToSwapChain(ResourceID<WTexture> DSVId = {});
+		void ClearRenderTarget(ResourceID<WTexture> id, glm::vec4 colour = { 0,0,0,1 });
 		void ClearDepthStencilTarget(ResourceID<WTexture> id, float depth = 1, UINT stencil = 0);
+		void ClearBackBuffer(glm::vec4 colour = { 0,0,0,1 });
 
 		void DrawMeshWithCurrentParamaters(ResourceID<WMesh> id, UINT count = 1);
 		void DrawIndexedMeshWithCurrentParamaters(ResourceID<WMesh> id, UINT count = 1);
@@ -96,6 +98,12 @@ namespace WaveE
 		void SetRootSigniture(WRootSigniture* pRootSigniture);
 
 	private:
+		enum BackBufferState
+		{
+			STATE_PRESENT,
+			STATE_TARGET
+		};
+
 		WaveManager(const WaveEDescriptor& rDescriptor);
 		~WaveManager();
 
@@ -120,6 +128,8 @@ namespace WaveE
 		bool IsSamplerSlot(SlotIndex index);
 		bool IsCBV_SRV_UAVSlot(SlotIndex index);
 
+		bool ChangeBackBufferState(BackBufferState state);
+
 		// DX12 variables
 		static const UINT m_frameCount{ 2 };
 
@@ -128,6 +138,9 @@ namespace WaveE
 		ComPtr<WaveECommandQueue> m_pCommandQueue;
 		ComPtr<IDXGISwapChain3> m_pSwapChain;
 		ComPtr<ID3D12CommandAllocator> m_pCommandAllocators[m_frameCount];
+		ComPtr<ID3D12Resource> m_pBackBuffers[m_frameCount];
+		WDescriptorHeapManager::Allocation m_backBufferAllocations[m_frameCount];
+		BackBufferState m_backBufferStates[m_frameCount];
 
 		UINT m_frameIndex;
 		HANDLE m_fenceEvent;
@@ -150,6 +163,7 @@ namespace WaveE
 
 		ResourceBlock<WSampler> m_defaultSamplers;
 
+		D3D12_INPUT_ELEMENT_DESC m_defaultInputElements[3];
 		D3D12_INPUT_LAYOUT_DESC m_defaultInputLayout;
 
 		UINT m_width;

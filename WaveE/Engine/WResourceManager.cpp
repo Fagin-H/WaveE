@@ -214,10 +214,10 @@ namespace WaveE
 			if (entry.is_regular_file())
 			{
 				const std::string& filepath = entry.path().string();
-				const std::string& filename = entry.path().filename().string();
+				const std::string& filename = entry.path().stem().string();
 				const std::string& extension = entry.path().extension().string();
 
-				if (extension == ".cos")
+				if (extension == ".cso")
 				{
 					if (filename.find("_VS") != std::string::npos)
 					{
@@ -238,22 +238,27 @@ namespace WaveE
 
 	UINT WResourceManager::LoadShader(const std::string& filepath, WShaderDescriptor::ShaderType type)
 	{
-		std::ifstream shaderFile{ filepath, std::ios::binary | std::ios::ate };
+		std::ifstream shaderFile{ filepath, std::ios::binary};
 		WAVEE_ASSERT_MESSAGE(shaderFile.is_open(), "Could not open shader file!");
 
+		shaderFile.seekg(0, shaderFile.end);
 		size_t fileSize = static_cast<size_t>(shaderFile.tellg());
-		shaderFile.seekg(0, std::ios::beg);
+		shaderFile.seekg(0, shaderFile.beg);
 
-		std::vector<char> shaderBytecode(fileSize);
-		shaderFile.read(shaderBytecode.data(), fileSize);
+		char* shaderBytecode = new char[fileSize];
+		shaderFile.read(shaderBytecode, fileSize);
 		shaderFile.close();
 
 		WShaderDescriptor descriptor;
 		descriptor.type = type;
-		descriptor.shaderData.pShaderBytecode = shaderBytecode.data();
+		descriptor.shaderData.pShaderBytecode = shaderBytecode;
 		descriptor.shaderData.bytecodeLength = fileSize;
 
-		return CreateResource(descriptor).id;
+		UINT shaderID = CreateResource(descriptor).id;
+
+		delete shaderBytecode;
+
+		return shaderID;
 	}
 
 }

@@ -92,22 +92,11 @@
     <Filter Include="Private">
       <UniqueIdentifier>{35199977-7d72-4380-966c-1592606ddd8e}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Resources">
-      <UniqueIdentifier>{7ca4d5b8-3333-4c25-b58e-c72b12808e79}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Resources\Shaders">
-      <UniqueIdentifier>{db58a1c8-a43b-4097-add1-02c60d6bb94b}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Private\WaveGraphics">
       <UniqueIdentifier>{ed4949ad-8779-41df-9c4c-dd8f90082e19}</UniqueIdentifier>
     </Filter>
     <Filter Include="Public\WaveGraphics">
       <UniqueIdentifier>{4dee9a5e-3e3f-445a-877e-df39eb8f46e4}</UniqueIdentifier>
     </Filter>
-  </ItemGroup>
-  <ItemGroup>
-    <CustomBuild Include="shaders.hlsl">
-      <Filter>Resources\Shaders</Filter>
-    </CustomBuild>
   </ItemGroup>
 </Project>

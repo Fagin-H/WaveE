@@ -22,12 +22,12 @@ namespace WaveE
 			POINT_LIST
 		};
 
-		Topology topology;
-		void* pVertexData;
-		UINT vertexCount;
+		Topology topology{ TRIANGLE_LIST };
+		void* pVertexData{ nullptr };
+		UINT vertexCount{ 0 };
 		size_t vertexStrideBytes{ sizeof(DefaultVertex) };
-		void* pIndexData;
-		UINT indexCount;
+		void* pIndexData{ nullptr };
+		UINT indexCount{ 0 };
 	};
 
 	class WMesh

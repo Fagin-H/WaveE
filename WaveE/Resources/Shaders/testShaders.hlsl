@@ -9,24 +9,35 @@
 //
 //*********************************************************
 
-cbuffer SceneConstantBuffer : register(b0)
+#include "SlotMacros.hlsli"
+
+cbuffer SceneConstantBuffer : register(GLOBAL_CBV_0)
 {
     float4 offset;
     float4 padding[15];
 };
 
-struct PSInput
+struct VSInput
 {
-    float4 position : SV_POSITION;
+    float3 position : POSITION;
+    float3 normal : NORMAL;
     float4 color : COLOR;
 };
 
-PSInput VSMain(float4 position : POSITION, float4 color : COLOR)
+struct PSInput
+{
+    float4 position : SV_POSITION;
+    float4 normal : NORMAL;
+    float4 color : COLOR;
+};
+
+PSInput VSMain(VSInput input)
 {
     PSInput result;
 
-    result.position = position + offset;
-    result.color = color;
+    result.position = float4(input.position + offset.xyz, 1);
+    result.normal = float4(input.normal, 0);
+    result.color = input.color;
 
     return result;
 }

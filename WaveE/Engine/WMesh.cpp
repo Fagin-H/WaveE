@@ -26,7 +26,7 @@ namespace WaveE
 
 		m_topology = GetDX12Topology(rDescriptor.topology);
 
-		m_isIndexed = !rDescriptor.pIndexData;
+		m_isIndexed = rDescriptor.pIndexData;
 
 		WaveEDevice* pDevice = WaveManager::Instance()->GetDevice();
 

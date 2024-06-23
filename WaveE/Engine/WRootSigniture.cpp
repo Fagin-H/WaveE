@@ -49,7 +49,7 @@ namespace WaveE
 			{
 				D3D12_DESCRIPTOR_RANGE range = {};
 				range.BaseShaderRegister = SamplerCount;
-				range.NumDescriptors = rDT.numSRVs;
+				range.NumDescriptors = rDT.numSamplers;
 				range.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER;
 				range.OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
 				range.RegisterSpace = 0;
