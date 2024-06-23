@@ -305,8 +305,31 @@ namespace WaveE
 		return DefWindowProc(hWnd, message, wParam, lParam);
 	}
 
-	void WaveManager::BeginFrame()
+	bool WaveManager::UpdateWindowLoop()
 	{
+		MSG msg = {};
+
+		while (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
+		{
+			if (msg.message == WM_QUIT)
+			{
+				return true;
+			}
+
+			TranslateMessage(&msg);
+			DispatchMessage(&msg);
+		}
+
+		return false;
+	}
+
+	bool WaveManager::BeginFrame()
+	{
+		if (UpdateWindowLoop())
+		{
+			return false;
+		}
+
 		HRESULT hr = m_pCommandAllocators[m_frameIndex]->Reset();
 		WAVEE_ASSERT_MESSAGE(SUCCEEDED(hr), "Failed to reset command allocator!");
 
@@ -319,6 +342,8 @@ namespace WaveE
 		m_pCommandList->SetDescriptorHeaps(_countof(ppHeaps), ppHeaps);
 
 		BindSamplers(m_defaultSamplers, DEFAULT_SAMPLERS);
+
+		return true;
 	}
 
 	void WaveManager::EndFrame()

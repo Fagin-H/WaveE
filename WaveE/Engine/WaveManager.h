@@ -33,7 +33,7 @@ namespace WaveE
 		static WaveManager* ms_pInstance;
 
 	public:
-		void BeginFrame();
+		bool BeginFrame();
 		void EndFrame();
 
 		// Getter functions
@@ -110,6 +110,8 @@ namespace WaveE
 		void InitWindow(const WaveEDescriptor& rDescriptor);
 		void InitDX12(const WaveEDescriptor& rDescriptor);
 
+		// Updates the window loop, return true if the program should quit
+		bool UpdateWindowLoop();
 		static LRESULT CALLBACK WindowProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
 		void GetHardwareAdapter(
 			IDXGIFactory1* pFactory,

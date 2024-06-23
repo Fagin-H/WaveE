@@ -62,10 +62,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow)
 
     WaveManager::EndInit();
 
-    while (true)
+    while (WaveInstance->BeginFrame())
     {
-        WaveInstance->BeginFrame();
-
         WaveInstance->SetDefaultRootSigniture();
 
         WaveInstance->ClearBackBuffer();
