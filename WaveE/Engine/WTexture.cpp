@@ -314,4 +314,8 @@ namespace WaveE
 		}
 	}
 
+	D3D12_RESOURCE_STATES WTexture::GetCurrentState() const
+	{
+		return m_currentState == Input ? m_shaderResourceState : m_renderTargetState;
+	}
 }

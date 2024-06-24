@@ -46,6 +46,9 @@
     <ClCompile Include="WMeshBuilder.cpp">
       <Filter>Private\WaveGraphics</Filter>
     </ClCompile>
+    <ClCompile Include="WMaterial.cpp">
+      <Filter>Private\WaveGraphics</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="stdafx.h">
@@ -91,6 +94,9 @@
       <Filter>Public\WaveGraphics</Filter>
     </ClInclude>
     <ClInclude Include="WMeshBuilder.h">
+      <Filter>Public\WaveGraphics</Filter>
+    </ClInclude>
+    <ClInclude Include="WMaterial.h">
       <Filter>Public\WaveGraphics</Filter>
     </ClInclude>
   </ItemGroup>

@@ -1,11 +1,14 @@
 #include "WaveGeneral.hlsli"
 
+Texture2D m_albedo : register(MATERIAL_SRV_0);
+Texture2D m_normal : register(MATERIAL_SRV_1);
+
 struct PSInput
 {
     float4 position : SV_POSITION;
     float3 normal : NORMAL;
-    float4 color : COLOR;
-    float3 worldPos : TEXCOORD0;
+    float2 texCoord : TEXCOORD0;
+    float3 worldPos : POSITION;
 };
 
 PSInput VSMain(VSInput input)
@@ -20,19 +23,24 @@ PSInput VSMain(VSInput input)
     output.position = mul(worldPosition, viewMatrix);
     output.position = mul(output.position, projectionMatrix);
 
-    // Pass through normal and color
-    output.normal = mul((float3x3) worldMatrix, input.normal);
-    output.color = input.color;
+    // Sample the normal texture and transform it into world space
+    output.normal = normalize(mul((float3x3) worldMatrix, input.normal));
+
+    // Pass through UV
+    output.texCoord = input.texCoord;
 
     return output;
 }
 
 float4 PSMain(PSInput input) : SV_TARGET
 {
-    float3 normal = normalize(input.normal);
     float3 viewDir = normalize(viewPos.xyz - input.worldPos);
+    float3 vertexNormal = normalize(input.normal);
+    float3 normalMap = m_normal.Sample(g_samplerLinearWrap, input.texCoord);
+    float3 normal = GetNormal(vertexNormal, normalMap, viewDir, input.texCoord);
+    float4 colour = m_albedo.Sample(g_samplerLinearWrap, input.texCoord);
     
-    float3 finalColor = ambientColor.rgb * ambientColor.a * input.color.rgb;
+    float3 lightColour = ambientColor.rgb * ambientColor.a;
 
     for (int i = 0; i < MAX_LIGHT; ++i)
     {
@@ -47,8 +55,9 @@ float4 PSMain(PSInput input) : SV_TARGET
         float spec = pow(max(dot(viewDir, reflectDir), 0.0), 32);
         float3 specular = spec * lights[i].colour.rgb * lights[i].colour.a;
 
-        finalColor += (diffuse + specular) * input.color.rgb;
+        lightColour += (diffuse + specular);
     }
-
-    return float4(finalColor, 1);
+    
+    
+    return colour * float4(lightColour, 1);
 }

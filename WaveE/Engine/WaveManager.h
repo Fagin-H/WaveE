@@ -6,6 +6,7 @@
 #include "WSampler.h"
 #include "WResourceManager.h"
 #include "WCamera.h"
+#include "WMaterial.h"
 
 
 namespace WaveE
@@ -14,6 +15,7 @@ namespace WaveE
 	{
 		UINT width{ 1280 };
 		UINT height{ 720 };
+		float targetFrameRate{ 60.f };
 		const char* title{ "WaveE" };
 	};
 
@@ -49,12 +51,9 @@ namespace WaveE
 
 		WUploadManager* GetUploadManager() { return &m_uploadManager; }
 
-		WRootSigniture* GetDefaultRootSigniture() { return &m_defaultRootSigniture; }
-
-		D3D12_INPUT_LAYOUT_DESC GetDefaultInputLayout() const { return m_defaultInputLayout; }
-
 		ResourceID<WPipeline> GetDefaultPipelineState() const { return m_defaultPipeline3D; }
-
+		WRootSigniture* GetDefaultRootSigniture() { return &m_defaultRootSigniture; }
+		D3D12_INPUT_LAYOUT_DESC GetDefaultInputLayout() const { return m_defaultInputLayout; }
 		ResourceID<WTexture> GetDefaultDepthTexture() const { return m_defaultDepthTexture; }
 
 		UINT GetWidth() const { return m_width; }
@@ -133,6 +132,9 @@ namespace WaveE
 
 		void DrawMeshWithCurrentParamaters(ResourceID<WMesh> id, UINT count = 1);
 		void DrawIndexedMeshWithCurrentParamaters(ResourceID<WMesh> id, UINT count = 1);
+
+		void DrawMesh(ResourceID<WMesh> mesh, ResourceID<WMaterial> material, UINT count = 1);
+		void DrawIndexedMesh(ResourceID<WMesh> mesh, ResourceID<WMaterial> material, UINT count = 1);
 
 	private:
 		enum BackBufferState
@@ -224,12 +226,16 @@ namespace WaveE
 
 		D3D12_INPUT_ELEMENT_DESC m_defaultInputElements[3];
 		D3D12_INPUT_LAYOUT_DESC m_defaultInputLayout;
-
+		
 		ResourceID<WPipeline> m_defaultPipeline3D;
 		ResourceID<WTexture> m_defaultDepthTexture;
 		static constexpr char* m_defaultPixelShaderName{ "SimpleLighting_PS" };
 		static constexpr char* m_defaultVertexShaderName{ "SimpleLighting_VS" };
 		static constexpr DXGI_FORMAT m_defaultDepthType{ DXGI_FORMAT_D32_FLOAT };
+
+		ResourceID<WPipeline> m_currentPipeline{};
+		ResourceID<WMaterial> m_currentMaterial{};
+		ResourceID<WMesh> m_currentMesh{};
 
 		UINT m_width;
 		UINT m_height;
@@ -244,6 +250,7 @@ namespace WaveE
 		double m_secondsPerCount;
 		__int64  m_startTime{ 0 };
 		__int64 m_currentTime{ 0 };
+		float m_targetFrameTime;
 
 		WCamera m_gameCamera;
 

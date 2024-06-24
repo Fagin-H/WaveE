@@ -14,6 +14,7 @@ namespace WaveE
 
 		m_height = rDescriptor.height;
 		m_width = rDescriptor.width;
+		m_targetFrameTime = 1.f / rDescriptor.targetFrameRate;
 
 		InitWindow(rDescriptor);
 		InitDX12(rDescriptor);
@@ -53,7 +54,7 @@ namespace WaveE
 		// Define the default vertex input layout.
 		m_defaultInputElements[0] = D3D12_INPUT_ELEMENT_DESC{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 };
 		m_defaultInputElements[1] = D3D12_INPUT_ELEMENT_DESC{ "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 12, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 };
-		m_defaultInputElements[2] = D3D12_INPUT_ELEMENT_DESC{ "COLOR", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 24, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 };
+		m_defaultInputElements[2] = D3D12_INPUT_ELEMENT_DESC{ "TEXCOORD0", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 24, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 };
 
 		m_defaultInputLayout = { m_defaultInputElements, _countof(m_defaultInputElements) };
 		
@@ -62,7 +63,6 @@ namespace WaveE
 		pipelineDescriptor.pVertexShader = WResourceManager::Instance()->GetShader(m_defaultVertexShaderName);
 		pipelineDescriptor.pPixelShader = WResourceManager::Instance()->GetShader(m_defaultPixelShaderName);
 		pipelineDescriptor.dsvFormat = m_defaultDepthType;
-		pipelineDescriptor.rasterizerState.CullMode = D3D12_CULL_MODE_NONE;
 		m_defaultPipeline3D = WResourceManager::Instance()->CreateResource(pipelineDescriptor);
 
 		// Default depth
@@ -253,7 +253,7 @@ namespace WaveE
 		swapChainDesc.BufferCount = m_frameCount;
 		swapChainDesc.Width = m_width;
 		swapChainDesc.Height = m_height;
-		swapChainDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+		swapChainDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB; // Automatic gamma correction
 		swapChainDesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
 		swapChainDesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
 		swapChainDesc.SampleDesc.Count = 1;
@@ -482,7 +482,13 @@ namespace WaveE
 
 	void WaveManager::SetPipelineState(ResourceID<WPipeline> id)
 	{
-		m_pCommandList->SetPipelineState(id.GetResource()->GetPipelineState());
+		WAVEE_ASSERT_MESSAGE(id.IsValid(), "Invalid pipeline!");
+
+		if (id.id != m_currentPipeline.id)
+		{
+			m_pCommandList->SetPipelineState(id.GetResource()->GetPipelineState());
+			m_currentPipeline = id;
+		}
 	}
 
 	void WaveManager::BindBuffer(ResourceID<WBuffer> id, SlotIndex slot)
@@ -639,14 +645,52 @@ namespace WaveE
 
 	void WaveManager::DrawMeshWithCurrentParamaters(ResourceID<WMesh> id, UINT count /*= 1*/)
 	{
-		id.GetResource()->Bind();
+		if (id.id != m_currentMesh.id)
+		{
+			id.GetResource()->Bind();
+			m_currentMesh = id;
+		}
 		m_pCommandList->DrawInstanced(id.GetResource()->GetVertexCount(), count, 0, 0);
 	}
 
 	void WaveManager::DrawIndexedMeshWithCurrentParamaters(ResourceID<WMesh> id, UINT count /*= 1*/)
 	{
-		id.GetResource()->Bind();
+		if (id.id != m_currentMesh.id)
+		{
+			id.GetResource()->Bind();
+			m_currentMesh = id;
+		}
 		m_pCommandList->DrawIndexedInstanced(id.GetResource()->GetIndexCount(), count, 0, 0, 0);
+	}
+
+	void WaveManager::DrawMesh(ResourceID<WMesh> mesh, ResourceID<WMaterial> material, UINT count = 1)
+	{
+		if (mesh.id != m_currentMesh.id)
+		{
+			mesh.GetResource()->Bind();
+			m_currentMesh = mesh;
+		}
+		if (material.id != m_currentMaterial.id)
+		{
+			material.GetResource()->BindMaterial();
+			m_currentMaterial = material;
+		}
+		m_pCommandList->DrawInstanced(mesh.GetResource()->GetVertexCount(), count, 0, 0);
+	}
+
+	void WaveManager::DrawIndexedMesh(ResourceID<WMesh> mesh, ResourceID<WMaterial> material, UINT count = 1)
+	{
+		if (mesh.id != m_currentMesh.id)
+		{
+			mesh.GetResource()->Bind();
+			m_currentMesh = mesh;
+		}
+		if (material.id != m_currentMaterial.id)
+		{
+			material.GetResource()->BindMaterial();
+			m_currentMaterial = material;
+		}
+		m_pCommandList->DrawIndexedInstanced(mesh.GetResource()->GetIndexCount(), count, 0, 0, 0);
 	}
 
 	void WaveManager::SetRootSigniture(WRootSigniture* pRootSigniture)
@@ -856,20 +900,19 @@ namespace WaveE
 
 	void WaveManager::UpdateTime()
 	{
+		// Update delta time
 		__int64 newTime = GetTime();
 
 		m_deltaTime = (newTime - m_currentTime) * m_secondsPerCount;
 
-		m_currentTime = newTime;
 
 		if (m_deltaTime < 0.0)
 		{
 			m_deltaTime = 0.0;
 		}
 
-		m_gameTime = (m_currentTime - m_startTime) * m_secondsPerCount;
-
-		double timeToWait = (1.f / 30.f) - m_deltaTime;
+		// Sleep if delta time is less that frametime
+		double timeToWait = m_targetFrameTime - m_deltaTime;
 
 		if (timeToWait > 0.0)
 		{
@@ -878,7 +921,20 @@ namespace WaveE
 
 			// Sleep for the remaining time
 			Sleep(sleepTime);
+
+			newTime = GetTime();
+
+			m_deltaTime = (newTime - m_currentTime) * m_secondsPerCount;
+
+			if (m_deltaTime < 0.0)
+			{
+				m_deltaTime = 0.0;
+			}
 		}
+
+		m_currentTime = newTime;
+
+		m_gameTime = (m_currentTime - m_startTime) * m_secondsPerCount;
 
 	}
 

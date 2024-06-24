@@ -54,6 +54,7 @@ namespace WaveE
 
 		UINT GetWidth() const { return m_width; }
 		UINT GetHeight() const { return m_height; }
+		D3D12_RESOURCE_STATES GetCurrentState() const;
 
 		bool IsDepthType() const { return m_isDepthType; }
 

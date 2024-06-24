@@ -118,7 +118,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow)
 
     while (WaveInstance->BeginFrame())
     {
-		WaveInstance->GetGameCamera().Rotate(1, 0);
+		WaveInstance->GetGameCamera().Rotate(50 * WaveInstance->GetDeltaTime(), 0);
 
         WaveInstance->SetDefaultRootSigniture();
 

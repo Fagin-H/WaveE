@@ -128,6 +128,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="WCamera.h" />
+    <ClInclude Include="WMaterial.h" />
     <ClInclude Include="WMesh.h" />
     <ClInclude Include="WMeshBuilder.h" />
     <ClInclude Include="WPipeline.h" />
@@ -145,6 +146,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="WCamera.cpp" />
+    <ClCompile Include="WMaterial.cpp" />
     <ClCompile Include="WMesh.cpp" />
     <ClCompile Include="WMeshBuilder.cpp" />
     <ClCompile Include="WPipeline.cpp" />

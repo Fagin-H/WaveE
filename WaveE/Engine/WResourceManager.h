@@ -6,25 +6,12 @@
 #include "WShader.h"
 #include "WPipeline.h"
 #include "WResource.h"
+#include "WMaterial.h"
 #include <string>
 #include <unordered_map>
 
 namespace WaveE
 {
-	template<typename Resource>
-	struct ResourceBlock
-	{
-		UINT startID;
-		UINT numElements;
-		WDescriptorHeapManager::Allocation allocation;
-
-		ResourceID<Resource> GetResorce(UINT index)
-		{
-			WAVEE_ASSERT_MESSAGE(index < numElements, "Resource index out of range!");
-			return ResourceID<Resource>{startID + index};
-		}
-	};
-
 	// A class to manage resources
 	// #TODO Currently no way to release resources
 	class WResourceManager
@@ -38,6 +25,7 @@ namespace WaveE
 		ResourceID<WMesh> CreateResource(const WMeshDescriptor& rDescriptor);
 		ResourceID<WShader> CreateResource(const WShaderDescriptor& rDescriptor);
 		ResourceID<WPipeline> CreateResource(const WPipelineDescriptor& rDescriptor);
+		ResourceID<WMaterial> CreateResource(const WMaterialDescriptor& rDescriptor);
 
 		ResourceBlock<WTexture> CreateResourceBlock(WTextureDescriptor* pDescriptors, UINT numDescriptors);
 		ResourceBlock<WBuffer> CreateResourceBlock(WBufferDescriptor* pDescriptors, UINT numDescriptors);
@@ -50,6 +38,7 @@ namespace WaveE
 		WShader* GetResource(ResourceID<WShader> id) const;
 		WShader* GetShader(const std::string& shaderName) const;
 		WPipeline* GetResource(ResourceID<WPipeline> id) const;
+		WMaterial* GetResource(ResourceID<WMaterial> id) const;
 
 		void LoadShadersFromDirectory(const std::string& directoryPath);
 		void LoadShadersFromDirectory(const char* directoryPath);
@@ -61,6 +50,7 @@ namespace WaveE
 		std::vector<WMesh*> m_vpMeshes;
 		std::vector<WShader*> m_vpShaders;
 		std::vector<WPipeline*> m_vpPipelines;
+		std::vector<WMaterial*> m_vpMaterials;
 
 		std::unordered_map<std::string, UINT> m_shaderIndexMap;
 

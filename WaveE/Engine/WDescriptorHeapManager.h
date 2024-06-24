@@ -10,8 +10,13 @@ namespace WaveE
 		
 		struct Allocation
 		{
-			UINT index;
-			UINT size;
+			UINT index{ UINT_MAX };
+			UINT size{ 0 };
+
+			bool IsValid() const
+			{
+				return index != UINT_MAX;
+			}
 		};
 
 		WDescriptorHeapManager() = default;
