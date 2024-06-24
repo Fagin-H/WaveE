@@ -52,6 +52,7 @@ namespace WaveE
 		WPipeline* GetResource(ResourceID<WPipeline> id) const;
 
 		void LoadShadersFromDirectory(const std::string& directoryPath);
+		void LoadShadersFromDirectory(const char* directoryPath);
 
 	private:
 		std::vector<WTexture*> m_vpTextures;
@@ -63,7 +64,7 @@ namespace WaveE
 
 		std::unordered_map<std::string, UINT> m_shaderIndexMap;
 
-		UINT LoadShader(const std::string& filepath, WShaderDescriptor::ShaderType type);
+		UINT LoadShader(const char* filepath, WShaderDescriptor::ShaderType type);
 
 		WResourceManager();
 		~WResourceManager();

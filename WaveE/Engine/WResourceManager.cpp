@@ -207,6 +207,11 @@ namespace WaveE
 
 	void WResourceManager::LoadShadersFromDirectory(const std::string& directoryPath)
 	{
+		LoadShadersFromDirectory(directoryPath.c_str());
+	}
+
+	void WResourceManager::LoadShadersFromDirectory(const char* directoryPath)
+	{
 		namespace fs = std::filesystem;
 
 		for (const auto& entry : fs::recursive_directory_iterator(directoryPath))
@@ -221,22 +226,22 @@ namespace WaveE
 				{
 					if (filename.find("_VS") != std::string::npos)
 					{
-						m_shaderIndexMap[filename] = LoadShader(filepath, WShaderDescriptor::Vertex);
+						m_shaderIndexMap[filename] = LoadShader(filepath.c_str(), WShaderDescriptor::Vertex);
 					}
 					else if (filename.find("_PS") != std::string::npos)
 					{
-						m_shaderIndexMap[filename] = LoadShader(filepath, WShaderDescriptor::Pixel);
+						m_shaderIndexMap[filename] = LoadShader(filepath.c_str(), WShaderDescriptor::Pixel);
 					}
 					else if (filename.find("_CS") != std::string::npos)
 					{
-						m_shaderIndexMap[filename] = LoadShader(filepath, WShaderDescriptor::Compute);
+						m_shaderIndexMap[filename] = LoadShader(filepath.c_str(), WShaderDescriptor::Compute);
 					}
 				}
 			}
 		}
 	}
 
-	UINT WResourceManager::LoadShader(const std::string& filepath, WShaderDescriptor::ShaderType type)
+	UINT WResourceManager::LoadShader(const char* filepath, WShaderDescriptor::ShaderType type)
 	{
 		std::ifstream shaderFile{ filepath, std::ios::binary};
 		WAVEE_ASSERT_MESSAGE(shaderFile.is_open(), "Could not open shader file!");

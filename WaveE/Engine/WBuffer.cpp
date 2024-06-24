@@ -29,12 +29,12 @@ namespace WaveE
 		, m_doesOwnAllocation{ WDescriptorHeapManager::IsInvalidAllocation(allocation) }
 	{
 		bool initialData = rDescriptor.pInitalData;
-		m_sizeBytes = rDescriptor.m_sizeBytes;
+		m_sizeBytes = rDescriptor.sizeBytes;
 		m_type = rDescriptor.type;
 		m_state = GetResourceState(rDescriptor);
 
 		D3D12_HEAP_PROPERTIES heapProperties = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
-		size_t tmp = align_value(rDescriptor.m_sizeBytes, 256);
+		size_t tmp = align_value(rDescriptor.sizeBytes, 256);
 		D3D12_RESOURCE_DESC resourceDesc = CD3DX12_RESOURCE_DESC::Buffer(tmp);
 
 		WaveEDevice* pDevice = WaveManager::Instance()->GetDevice();

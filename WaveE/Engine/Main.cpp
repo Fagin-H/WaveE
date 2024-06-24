@@ -14,63 +14,129 @@
 
 #include "WMesh.h"
 #include "WResourceManager.h"
+#include "WMeshBuilder.h"
 using namespace WaveE;
 
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow)
 {
     WaveManager::Init({});
     
-    // Create mesh
-    ResourceID<WMesh> meshID;
+    // Create meshes
+    ResourceID<WMesh> cubeRedMeshID;
+    ResourceID<WMesh> cubeGreenMeshID;
+    ResourceID<WMesh> cubeBlueMeshID;
+    ResourceID<WMesh> cubeWhiteMeshID;
     {
-        DefaultVertex vertices[] = {
-                { { 0.0f, 0.25f, 0.5f}, {} , { 1.0f, 0.0f, 0.0f, 1.0f } },
-                { { 0.25f, -0.25f, 0.5f}, {} , { 0.0f, 1.0f, 0.0f, 1.0f } },
-                { { -0.25f, -0.25f, 0.5f}, {} , { 0.0f, 0.0f, 1.0f, 1.0f } }
-        };
-        WMeshDescriptor meshDesc;
-        meshDesc.pVertexData = vertices;
-        meshDesc.vertexCount = 3;
+		std::vector<DefaultVertex> vertices;
+		std::vector<UINT> indices;
 
-        meshID = WResourceManager::Instance()->CreateResource(meshDesc);
+		{
+			WMeshBuilder::CreateCubeMesh(vertices, indices, glm::vec3{ 1 }, glm::vec4{ 1, 0, 0, 1 });
+
+			WMeshDescriptor meshDesc;
+			meshDesc.pVertexData = vertices.data();
+			meshDesc.vertexCount = vertices.size();
+			meshDesc.pIndexData = indices.data();
+			meshDesc.indexCount = indices.size();
+
+			cubeRedMeshID = WResourceManager::Instance()->CreateResource(meshDesc);
+		}
+		{
+			WMeshBuilder::CreateCubeMesh(vertices, indices, glm::vec3{ 1 }, glm::vec4{ 0, 1, 0, 1 });
+
+			WMeshDescriptor meshDesc;
+			meshDesc.pVertexData = vertices.data();
+			meshDesc.vertexCount = vertices.size();
+			meshDesc.pIndexData = indices.data();
+			meshDesc.indexCount = indices.size();
+
+			cubeGreenMeshID = WResourceManager::Instance()->CreateResource(meshDesc);
+		}
+		{
+			WMeshBuilder::CreateCubeMesh(vertices, indices, glm::vec3{ 1 }, glm::vec4{ 0, 0, 1, 1 });
+
+			WMeshDescriptor meshDesc;
+			meshDesc.pVertexData = vertices.data();
+			meshDesc.vertexCount = vertices.size();
+			meshDesc.pIndexData = indices.data();
+			meshDesc.indexCount = indices.size();
+
+			cubeBlueMeshID = WResourceManager::Instance()->CreateResource(meshDesc);
+		}
+		{
+			WMeshBuilder::CreateCubeMesh(vertices, indices, glm::vec3{ 1 }, glm::vec4{ 1, 1, 1, 1 });
+
+			WMeshDescriptor meshDesc;
+			meshDesc.pVertexData = vertices.data();
+			meshDesc.vertexCount = vertices.size();
+			meshDesc.pIndexData = indices.data();
+			meshDesc.indexCount = indices.size();
+
+			cubeWhiteMeshID = WResourceManager::Instance()->CreateResource(meshDesc);
+		}
     }
 
-    // Create buffer
-    ResourceID<WBuffer> bufferID;
-    {
-        struct SceneConstBuffer
-        {
-            glm::vec4 offset;
-        };
-        SceneConstBuffer sceneBuffer{ {0.f,0.f,0.f,0.f} };
-        WBufferDescriptor bufferDesc;
-        bufferDesc.m_sizeBytes = sizeof(SceneConstBuffer);
-        bufferDesc.pInitalData = &sceneBuffer;
-        bufferID = WResourceManager::Instance()->CreateResource(bufferDesc);
-    }
+	// Create world matrices
+	glm::mat4 cubeRedWorldMatrix;
+	glm::mat4 cubeGreenWorldMatrix;
+	glm::mat4 cubeBlueWorldMatrix;
+	glm::mat4 cubeWhiteWorldMatrix;
+	{
+		WaveManager::WorldMatrixDescriptor worldMatrixDesc;
+		worldMatrixDesc.worldPos = glm::vec3{ 1, 0, 0 };
+		WaveInstance->CreateWorldMatrix(cubeRedWorldMatrix, worldMatrixDesc);
 
-    // Create pipeline state
-    ResourceID<WPipeline> pipelineID;
-    {
-        WPipelineDescriptor pipelineDesc;
-        pipelineDesc.pVertexShader = WResourceManager::Instance()->GetShader("testShaders_VS");
-        pipelineDesc.pPixelShader = WResourceManager::Instance()->GetShader("testShaders_PS");
-        pipelineDesc.depthStencilState.DepthEnable = false;
-        pipelineDesc.depthStencilState.StencilEnable = false;
-        pipelineID = WResourceManager::Instance()->CreateResource(pipelineDesc);
-    }
+		worldMatrixDesc.worldPos = glm::vec3{ -1, 0, 0 };
+		WaveInstance->CreateWorldMatrix(cubeGreenWorldMatrix, worldMatrixDesc);
+
+		worldMatrixDesc.worldPos = glm::vec3{ 0, 0, 1 };
+		WaveInstance->CreateWorldMatrix(cubeBlueWorldMatrix, worldMatrixDesc);
+
+		worldMatrixDesc.worldPos = glm::vec3{ 0, 0, -1 };
+		WaveInstance->CreateWorldMatrix(cubeWhiteWorldMatrix, worldMatrixDesc);
+	}
+
+	// Create per draw buffer
+	ResourceID<WBuffer> drawBuffer;
+	{
+		WBufferDescriptor drawBufferDesc;
+		drawBufferDesc.sizeBytes = sizeof(glm::mat4);
+
+		drawBuffer = WResourceManager::Instance()->CreateResource(drawBufferDesc);
+	}
+
+	WaveManager::Light light;
+	light.colour = glm::vec4{ 1, 1, 1, 1 };
+	light.position = glm::vec4{ 0, 2, 0, 0 };
+
+	WaveInstance->SetLight(light, 0);
+	WaveInstance->SetAmbientLight(glm::vec4{ 1, 1, 1, 0.1f });
 
     WaveManager::EndInit();
 
     while (WaveInstance->BeginFrame())
     {
+		WaveInstance->GetGameCamera().Rotate(1, 0);
+
         WaveInstance->SetDefaultRootSigniture();
 
         WaveInstance->ClearBackBuffer();
-        WaveInstance->BindBuffer(bufferID, WaveManager::GLOBAL_CBV_SRV);
-        WaveInstance->SetPipelineState(pipelineID);
+        WaveInstance->SetPipelineState(WaveInstance->GetDefaultPipelineState());
         WaveInstance->SetRenderTargetToSwapChain();
-        WaveInstance->DrawMeshWithCurrentParamaters(meshID);
+
+		WaveInstance->BindBuffer(drawBuffer, WaveManager::DRAW_CBV);
+
+		drawBuffer.GetResource()->UploadData(&cubeRedWorldMatrix, sizeof(glm::mat4));
+		WaveInstance->DrawMeshWithCurrentParamaters(cubeRedMeshID);
+
+		drawBuffer.GetResource()->UploadData(&cubeGreenWorldMatrix, sizeof(glm::mat4));
+		WaveInstance->DrawMeshWithCurrentParamaters(cubeGreenMeshID);
+
+		drawBuffer.GetResource()->UploadData(&cubeBlueWorldMatrix, sizeof(glm::mat4));
+		WaveInstance->DrawMeshWithCurrentParamaters(cubeBlueMeshID);
+
+		drawBuffer.GetResource()->UploadData(&cubeWhiteWorldMatrix, sizeof(glm::mat4));
+		WaveInstance->DrawMeshWithCurrentParamaters(cubeWhiteMeshID);
 
         WaveInstance->EndFrame();
 

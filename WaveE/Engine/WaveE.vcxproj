@@ -127,7 +127,9 @@
     </FxCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="WCamera.h" />
     <ClInclude Include="WMesh.h" />
+    <ClInclude Include="WMeshBuilder.h" />
     <ClInclude Include="WPipeline.h" />
     <ClInclude Include="WResource.h" />
     <ClInclude Include="WResourceManager.h" />
@@ -142,7 +144,9 @@
     <ClInclude Include="WTexture.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="WCamera.cpp" />
     <ClCompile Include="WMesh.cpp" />
+    <ClCompile Include="WMeshBuilder.cpp" />
     <ClCompile Include="WPipeline.cpp" />
     <ClCompile Include="WResourceManager.cpp" />
     <ClCompile Include="WRootSigniture.cpp" />

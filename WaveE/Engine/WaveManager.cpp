@@ -1,5 +1,6 @@
 #include "stdafx.h"
 #include "WaveManager.h"
+#include <glm/gtc/matrix_transform.hpp>
 #include <fstream>
 
 namespace WaveE
@@ -7,6 +8,7 @@ namespace WaveE
 	WAVEE_SINGLETON_CPP(WaveManager);
 
 	WaveManager::WaveManager(const WaveEDescriptor& rDescriptor)
+		: m_gameCamera{ {0, 0, 0}, {0, 1, 0}, 0, 0, 45, static_cast<float>(rDescriptor.width) / rDescriptor.height, 0.1f, 100.f }
 	{
 		ms_pInstance = this;
 
@@ -25,7 +27,7 @@ namespace WaveE
 		m_dsvHeap.Init(D3D12_DESCRIPTOR_HEAP_TYPE_DSV, D3D12_DESCRIPTOR_HEAP_FLAG_NONE, m_descriptorHeapCountDSV);
 		m_samplerHeap.Init(D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER, D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE, m_descriptorHeapCountSampler);
 
-		// Create render targer views for backbuffers
+		// Create render target views for backbuffers
 		for (UINT i = 0; i < m_frameCount; i++)
 		{
 			m_backBufferAllocations[i] = m_rtvHeap.Allocate(1);
@@ -38,6 +40,7 @@ namespace WaveE
 		CreateDefaultRootSigniture();
 		CreateSlotHLSLIFile();
 
+		// Default samplers
 		WSamplerDescriptor samplerDescriptors[4] = {
 			WSamplerDescriptor{ WSamplerDescriptor::Filter::Point, WSamplerDescriptor::AddressMode::Wrap },
 			WSamplerDescriptor{ WSamplerDescriptor::Filter::Linear, WSamplerDescriptor::AddressMode::Wrap },
@@ -53,6 +56,34 @@ namespace WaveE
 		m_defaultInputElements[2] = D3D12_INPUT_ELEMENT_DESC{ "COLOR", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 24, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 };
 
 		m_defaultInputLayout = { m_defaultInputElements, _countof(m_defaultInputElements) };
+		
+		// Default pipeline
+		WPipelineDescriptor pipelineDescriptor;
+		pipelineDescriptor.pVertexShader = WResourceManager::Instance()->GetShader(m_defaultVertexShaderName);
+		pipelineDescriptor.pPixelShader = WResourceManager::Instance()->GetShader(m_defaultPixelShaderName);
+		pipelineDescriptor.dsvFormat = m_defaultDepthType;
+		m_defaultPipeline3D = WResourceManager::Instance()->CreateResource(pipelineDescriptor);
+
+		// Default depth
+		WTextureDescriptor depthTextureDescriptor;
+		
+		depthTextureDescriptor.format = WTextureDescriptor::DepthStencilFloat;
+		depthTextureDescriptor.usage = WTextureDescriptor::RenderTarget;
+		depthTextureDescriptor.startAsShaderResource = false;
+		depthTextureDescriptor.width = GetWidth();
+		depthTextureDescriptor.height = GetHeight();
+		m_defaultDepthTexture = WResourceManager::Instance()->CreateResource(depthTextureDescriptor);
+
+		// Frame buffers
+		WBufferDescriptor bufferDescriptor;
+		bufferDescriptor.sizeBytes = sizeof(CameraBuffer);
+		m_cameraBuffer = WResourceManager::Instance()->CreateResource(bufferDescriptor);
+
+		bufferDescriptor.sizeBytes = sizeof(LightBuffer);
+		m_lightBuffer = WResourceManager::Instance()->CreateResource(bufferDescriptor);
+
+		// Time
+		InitTime();
 	}
 
 	void WaveManager::Init(const WaveEDescriptor& rDescriptor)
@@ -186,7 +217,7 @@ namespace WaveE
 			}
 			else
 			{
-				WAVEE_ASSERT_MESSAGE(false, "Failed to get debug interface!");
+				//WAVEE_ASSERT_MESSAGE(false, "Failed to get debug interface!");
 			}
 		}
 #endif
@@ -330,6 +361,8 @@ namespace WaveE
 			return false;
 		}
 
+		UpdateTime();
+
 		HRESULT hr = m_pCommandAllocators[m_frameIndex]->Reset();
 		WAVEE_ASSERT_MESSAGE(SUCCEEDED(hr), "Failed to reset command allocator!");
 
@@ -342,6 +375,11 @@ namespace WaveE
 		m_pCommandList->SetDescriptorHeaps(_countof(ppHeaps), ppHeaps);
 
 		BindSamplers(m_defaultSamplers, DEFAULT_SAMPLERS);
+
+		UpdateCameraBuffer();
+
+		m_cameraBuffer.GetResource()->UploadData(&m_camerBufferData, sizeof(CameraBuffer));
+		m_lightBuffer.GetResource()->UploadData(&m_lightBufferData, sizeof(LightBuffer));
 
 		return true;
 	}
@@ -403,6 +441,39 @@ namespace WaveE
 			break;
 		}
 		return  m_defaultSamplers.GetResorce(1);
+	}
+
+	void WaveManager::SetLight(Light light, UINT index)
+	{
+		WAVEE_ASSERT_MESSAGE(index < m_maxLights, "Light index out of range!");
+		m_lightBufferData.lights[index] = light;
+	}
+
+	void WaveManager::SetAmbientLight(glm::vec4 colour)
+	{
+		m_lightBufferData.ambientLight = colour;
+	}
+
+	void WaveManager::CreateWorldMatrix(glm::mat4x4& worldMatrix, const WorldMatrixDescriptor& rDescriptor)
+	{
+		// Initialize the world matrix as an identity matrix
+		worldMatrix = glm::mat4(1.0f);
+
+		// Apply scaling
+		glm::mat4 scaleMatrix = glm::scale(glm::mat4(1.0f), glm::vec3(rDescriptor.scale * rDescriptor.xScale, rDescriptor.scale * rDescriptor.yScale, rDescriptor.scale * rDescriptor.zScale));
+		worldMatrix = scaleMatrix * worldMatrix;
+
+		// Apply rotation
+		glm::mat4 rotationXMatrix = glm::rotate(glm::mat4(1.0f), glm::radians(rDescriptor.xRotation), glm::vec3(1.0f, 0.0f, 0.0f));
+		glm::mat4 rotationYMatrix = glm::rotate(glm::mat4(1.0f), glm::radians(rDescriptor.yRotation), glm::vec3(0.0f, 1.0f, 0.0f));
+		glm::mat4 rotationZMatrix = glm::rotate(glm::mat4(1.0f), glm::radians(rDescriptor.zRotation), glm::vec3(0.0f, 0.0f, 1.0f));
+
+		glm::mat4 rotationMatrix = rotationZMatrix * rotationYMatrix * rotationXMatrix;
+		worldMatrix = rotationMatrix * worldMatrix;
+
+		// Apply translation
+		glm::mat4 translationMatrix = glm::translate(glm::mat4(1.0f), rDescriptor.worldPos);
+		worldMatrix = translationMatrix * worldMatrix;
 	}
 
 	void WaveManager::SetPipelineState(ResourceID<WPipeline> id)
@@ -617,20 +688,26 @@ namespace WaveE
 
 	void WaveManager::CreateDefaultRootSigniture()
 	{
-		constexpr UINT numDescriptorTables = 5;
+		constexpr UINT numDescriptorTables = 7;
 		WRootSigniture::DescriptorTable descriptorTables[numDescriptorTables];
 		// Default Samplers
 		descriptorTables[0].numSamplers = m_defaultSamplerCount;
 		
+		// Per frame constants
+		descriptorTables[1].numCBVs = m_frameCVBCount;
+
+		// Per draw constants
+		descriptorTables[2].numCBVs = m_drawCBVCount;
+
 		// Global
-		descriptorTables[1].numCBVs = m_globalCBVCount;
-		descriptorTables[1].numSRVs = m_globalSRVCount;
-		descriptorTables[2].numSamplers = m_globalSamplerCount;
+		descriptorTables[3].numCBVs = m_globalCBVCount;
+		descriptorTables[3].numSRVs = m_globalSRVCount;
+		descriptorTables[4].numSamplers = m_globalSamplerCount;
 
 		// Material
-		descriptorTables[3].numCBVs = m_materialCBVCount;
-		descriptorTables[3].numSRVs = m_materialSRVCount;
-		descriptorTables[4].numSamplers = m_materialSamplerCount;
+		descriptorTables[5].numCBVs = m_materialCBVCount;
+		descriptorTables[5].numSRVs = m_materialSRVCount;
+		descriptorTables[6].numSamplers = m_materialSamplerCount;
 
 		WRootSigniture::RootSignatureDescriptor rootSignitureDescriptor;
 		rootSignitureDescriptor.descriptorTables = descriptorTables;
@@ -644,43 +721,69 @@ namespace WaveE
 		std::ofstream file("SlotMacros.hlsli");
 		WAVEE_ASSERT_MESSAGE(file.is_open(), "Could not create hlsli file");
 
+		file << "#pragma once\n";
+
+		UINT CBV_SRVCount = 0;
+		UINT samplerCount = 0;
+
 		// Writing default slots
 		for (UINT i = 0; i < m_defaultSamplerCount; ++i)
 		{
-			file << "#define DEFAULT_SAMPLER_" << i << " (DEFAULT_SAMPLER_SLOT_START + " << i << ")\n";
+			file << "#define DEFAULT_SAMPLER_" << i << " s" << i + samplerCount << "\n";
 		}
+		samplerCount += m_defaultSamplerCount;
+
+		// Writing per frame slots
+		for (UINT i = 0; i < m_frameCVBCount; ++i)
+		{
+			file << "#define FRAME_CBV_" << i << " b" << i + CBV_SRVCount << "\n";
+		}
+		CBV_SRVCount += m_frameCVBCount;
+
+		// Writing per draw slots
+		for (UINT i = 0; i < m_drawCBVCount; ++i)
+		{
+			file << "#define DRAW_CBV_" << i << " b" << i + CBV_SRVCount << "\n";
+		}
+		CBV_SRVCount += m_drawCBVCount;
 
 		// Writing global slots
 		for (UINT i = 0; i < m_globalCBVCount; ++i)
 		{
-			file << "#define GLOBAL_CBV_" << i << " b" << i << "\n";
+			file << "#define GLOBAL_CBV_" << i << " b" << i + CBV_SRVCount << "\n";
 		}
+		CBV_SRVCount += m_globalCBVCount;
 
 		for (UINT i = 0; i < m_globalSRVCount; ++i)
 		{
-			file << "#define GLOBAL_SRV_" << i << " t" << i << "\n";
+			file << "#define GLOBAL_SRV_" << i << " t" << i + CBV_SRVCount << "\n";
 		}
+		CBV_SRVCount += m_globalSRVCount;
 
 		for (UINT i = 0; i < m_globalSamplerCount; ++i)
 		{
-			file << "#define GLOBAL_SAMPLER_" << i << " s" << i + m_defaultSamplerCount << "\n";
+			file << "#define GLOBAL_SAMPLER_" << i << " s" << i + samplerCount << "\n";
 		}
+		samplerCount += m_globalSamplerCount;
 
 		// Writing material slots
 		for (UINT i = 0; i < m_materialCBVCount; ++i)
 		{
-			file << "#define MATERIAL_CBV_" << i << " b" << i + m_globalCBVCount << "\n";
+			file << "#define MATERIAL_CBV_" << i << " b" << i + CBV_SRVCount << "\n";
 		}
+		CBV_SRVCount += m_materialCBVCount;
 
 		for (UINT i = 0; i < m_materialSRVCount; ++i)
 		{
-			file << "#define MATERIAL_SRV_" << i << " t" << i + m_globalSRVCount << "\n";
+			file << "#define MATERIAL_SRV_" << i << " t" << i + CBV_SRVCount << "\n";
 		}
+		CBV_SRVCount += m_materialSRVCount;
 
 		for (UINT i = 0; i < m_materialSamplerCount; ++i)
 		{
-			file << "#define MATERIAL_SAMPLER_" << i << " s" << i + m_globalSamplerCount + m_defaultSamplerCount << "\n";
+			file << "#define MATERIAL_SAMPLER_" << i << " s" << i + samplerCount << "\n";
 		}
+		samplerCount += m_materialSamplerCount;
 
 		file.close();
 	}
@@ -709,7 +812,7 @@ namespace WaveE
 
 	bool WaveManager::IsCBV_SRV_UAVSlot(SlotIndex index)
 	{
-		return index == GLOBAL_CBV_SRV || index == MATERIAL_CBV_SRV;
+		return index == GLOBAL_CBV_SRV || index == MATERIAL_CBV_SRV|| index == FRAME_CBV || index == DRAW_CBV;
 	}
 
 	bool WaveManager::ChangeBackBufferState(BackBufferState state)
@@ -727,5 +830,47 @@ namespace WaveE
 			return true;
 		}
 		return false;
+	}
+
+	__int64 WaveManager::GetTime()
+	{
+		__int64 time;
+
+		QueryPerformanceCounter((LARGE_INTEGER*)& time);
+
+		return time;
+	}
+
+	void WaveManager::InitTime()
+	{
+		__int64 countsPerSec;
+		QueryPerformanceFrequency((LARGE_INTEGER*)&countsPerSec);
+		m_secondsPerCount = 1.0 / static_cast<double>(countsPerSec);
+
+		m_startTime = GetTime();
+	}
+
+	void WaveManager::UpdateTime()
+	{
+		__int64 newTime = GetTime();
+
+		m_deltaTime = (newTime - m_currentTime) * m_secondsPerCount;
+
+		m_currentTime = newTime;
+
+		if (m_deltaTime < 0.0)
+		{
+			m_deltaTime = 0.0;
+		}
+
+		m_gameTime = (m_currentTime - m_startTime) * m_secondsPerCount;
+	}
+
+	void WaveManager::UpdateCameraBuffer()
+	{
+		m_camerBufferData.viewMatrix = m_gameCamera.GetViewMatrix();
+		m_camerBufferData.projectionMatrix = m_gameCamera.GetProjectionMatrix();
+		m_camerBufferData.viewPos = glm::vec4{ m_gameCamera.GetPosition(), 0 };
+		m_camerBufferData.time[0] = static_cast<float>(GetGameTime());
 	}
 }

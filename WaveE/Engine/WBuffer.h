@@ -15,7 +15,7 @@ namespace WaveE
 		};
 
 		bool isDynamic{ false };
-		size_t m_sizeBytes{ 0 };
+		size_t sizeBytes{ 0 };
 		Type type{ Constant };
 		const void* pInitalData{ nullptr };
 	};

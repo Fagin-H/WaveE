@@ -19,8 +19,8 @@ namespace WaveE
 			RenderTarget = 1 << 0,
 		};
 
-		Format format;
-		Usage usage;
+		Format format{ RGBA };
+		Usage usage{ ShaderResource };
 		bool startAsShaderResource{ true };
 		UINT width;
 		UINT height;

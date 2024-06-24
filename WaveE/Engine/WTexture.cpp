@@ -59,11 +59,10 @@ namespace WaveE
 		return flags;
 	}
 
-	D3D12_RESOURCE_STATES GetResourceState(WTextureDescriptor::Usage usage, WTextureDescriptor::Format format, bool isShaderResource)
+	D3D12_RESOURCE_STATES GetResourceState(WTextureDescriptor::Format format, bool isShaderResource)
 	{
 		if (isShaderResource)
-		{
-			WAVEE_ASSERT_MESSAGE(usage & WTextureDescriptor::Usage::ShaderResource, "Invalid starting resource state!");
+		{;
 
 			switch (format)
 			{
@@ -77,7 +76,6 @@ namespace WaveE
 		}
 		else
 		{
-			WAVEE_ASSERT_MESSAGE(usage & WTextureDescriptor::Usage::RenderTarget, "Invalid starting resource state!");
 			switch (format)
 			{
 			case WaveE::WTextureDescriptor::RGBA: [[fallthrough]];
@@ -111,8 +109,8 @@ namespace WaveE
 
 		m_sizeBytes = m_width * m_height * GetBytesPerPixel(dxgiFormat);
 
-		m_renderTargetState = GetResourceState(rDescriptor.usage, rDescriptor.format, false);
-		m_shaderResourceState = GetResourceState(rDescriptor.usage, rDescriptor.format, true);
+		m_renderTargetState = GetResourceState(rDescriptor.format, false);
+		m_shaderResourceState = GetResourceState(rDescriptor.format, true);
 
 		D3D12_RESOURCE_DESC resourceDesc = CD3DX12_RESOURCE_DESC::Tex2D(dxgiFormat, rDescriptor.width, rDescriptor.height);
 		resourceDesc.Flags = resourceFlags;

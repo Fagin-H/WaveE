@@ -34,7 +34,7 @@ namespace WaveE
 		{
 			WBufferDescriptor vertexBufferDescriptor = {};
 			vertexBufferDescriptor.isDynamic = false;
-			vertexBufferDescriptor.m_sizeBytes = rDescriptor.vertexCount * rDescriptor.vertexStrideBytes;
+			vertexBufferDescriptor.sizeBytes = rDescriptor.vertexCount * rDescriptor.vertexStrideBytes;
 			vertexBufferDescriptor.type = WBufferDescriptor::Vertex;
 			vertexBufferDescriptor.pInitalData = rDescriptor.pVertexData;
 
@@ -50,7 +50,7 @@ namespace WaveE
 		{
 			WBufferDescriptor indexBufferDescriptor = {};
 			indexBufferDescriptor.isDynamic = false;
-			indexBufferDescriptor.m_sizeBytes = rDescriptor.indexCount * sizeof(UINT);
+			indexBufferDescriptor.sizeBytes = rDescriptor.indexCount * sizeof(UINT);
 			indexBufferDescriptor.type = WBufferDescriptor::Index;
 			indexBufferDescriptor.pInitalData = rDescriptor.pIndexData;
 

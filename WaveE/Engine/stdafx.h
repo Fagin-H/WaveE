@@ -95,6 +95,7 @@ namespace WaveE
 		assert(condition);
 
 	#define WAVEE_ASSERT_MESSAGE(condition, message) \
+		std::cerr << message << '\n';\
 		assert(condition);
 
 	#define WAVEE_ERROR_DWORD(errorCode)						\

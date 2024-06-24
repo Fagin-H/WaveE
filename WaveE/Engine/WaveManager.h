@@ -5,6 +5,7 @@
 #include "WRootSigniture.h"
 #include "WSampler.h"
 #include "WResourceManager.h"
+#include "WCamera.h"
 
 
 namespace WaveE
@@ -52,8 +53,17 @@ namespace WaveE
 
 		D3D12_INPUT_LAYOUT_DESC GetDefaultInputLayout() const { return m_defaultInputLayout; }
 
+		ResourceID<WPipeline> GetDefaultPipelineState() const { return m_defaultPipeline3D; }
+
+		ResourceID<WTexture> GetDefaultDepthTexture() const { return m_defaultDepthTexture; }
+
 		UINT GetWidth() const { return m_width; }
 		UINT GetHeight() const { return m_height; }
+
+		WCamera& GetGameCamera() { return m_gameCamera; }
+		
+		double GetDeltaTime() const { return m_deltaTime; }
+		double GetGameTime() const { return m_gameTime; }
 
 		enum SamplerType
 		{
@@ -64,12 +74,38 @@ namespace WaveE
 		};
 		ResourceID<WSampler> GetDefaultSampler(SamplerType type = WRAP_LINEAR);
 
-		// Drawing functions
-		void SetPipelineState(ResourceID<WPipeline> id);
+		// Game function
 
+		static constexpr UINT m_maxLights{ 4 };
+
+		struct Light
+		{
+			glm::vec4 position{ 0,0,0,0 };
+			glm::vec4 colour{ 0,0,0,0 };
+		};
+
+		void SetLight(Light light, UINT index);
+		void SetAmbientLight(glm::vec4 colour);
+
+		struct WorldMatrixDescriptor
+		{
+			glm::vec3 worldPos{ 0 };
+			float scale{ 1 };
+			float xScale{ 1 };
+			float yScale{ 1 };
+			float zScale{ 1 };
+			float xRotation{ 0 };
+			float yRotation{ 0 };
+			float zRotation{ 0 };
+		};
+		void CreateWorldMatrix(glm::mat4x4& worldMatrix, const WorldMatrixDescriptor& rDescriptor);
+
+		// Drawing functions
 		enum SlotIndex : UINT
 		{
 			DEFAULT_SAMPLERS = 0,
+			FRAME_CBV, // Camera and light buffers
+			DRAW_CBV, // World matrix
 			GLOBAL_CBV_SRV,
 			GLOBAL_SAMPLERS,
 			MATERIAL_CBV_SRV,
@@ -90,18 +126,33 @@ namespace WaveE
 		void ClearDepthStencilTarget(ResourceID<WTexture> id, float depth = 1, UINT stencil = 0);
 		void ClearBackBuffer(glm::vec4 colour = { 0,0,0,1 });
 
-		void DrawMeshWithCurrentParamaters(ResourceID<WMesh> id, UINT count = 1);
-		void DrawIndexedMeshWithCurrentParamaters(ResourceID<WMesh> id, UINT count = 1);
-
+		void SetPipelineState(ResourceID<WPipeline> id);
 
 		void SetDefaultRootSigniture() { SetRootSigniture(&m_defaultRootSigniture); }
 		void SetRootSigniture(WRootSigniture* pRootSigniture);
+
+		void DrawMeshWithCurrentParamaters(ResourceID<WMesh> id, UINT count = 1);
+		void DrawIndexedMeshWithCurrentParamaters(ResourceID<WMesh> id, UINT count = 1);
 
 	private:
 		enum BackBufferState
 		{
 			STATE_PRESENT,
 			STATE_TARGET
+		};
+
+		struct CameraBuffer
+		{
+			glm::mat4x4 viewMatrix;
+			glm::mat4x4 projectionMatrix;
+			glm::vec4 viewPos;
+			glm::vec4 time;
+		};
+
+		struct LightBuffer
+		{
+			glm::vec4 ambientLight;
+			Light lights[m_maxLights];
 		};
 
 		WaveManager(const WaveEDescriptor& rDescriptor);
@@ -131,6 +182,12 @@ namespace WaveE
 		bool IsCBV_SRV_UAVSlot(SlotIndex index);
 
 		bool ChangeBackBufferState(BackBufferState state);
+
+		__int64 GetTime();
+		void InitTime();
+		void UpdateTime();
+
+		void UpdateCameraBuffer();
 
 		// DX12 variables
 		static const UINT m_frameCount{ 2 };
@@ -168,11 +225,33 @@ namespace WaveE
 		D3D12_INPUT_ELEMENT_DESC m_defaultInputElements[3];
 		D3D12_INPUT_LAYOUT_DESC m_defaultInputLayout;
 
+		ResourceID<WPipeline> m_defaultPipeline3D;
+		ResourceID<WTexture> m_defaultDepthTexture;
+		static constexpr char* m_defaultPixelShaderName{ "SimpleLighting_PS" };
+		static constexpr char* m_defaultVertexShaderName{ "SimpleLighting_VS" };
+		static constexpr DXGI_FORMAT m_defaultDepthType{ DXGI_FORMAT_D32_FLOAT };
+
 		UINT m_width;
 		UINT m_height;
+		// #TODO Implement window size change logic
 		bool m_hasWindowSizeChanged{ false };
 
+		ResourceID<WBuffer> m_cameraBuffer;
+		ResourceID<WBuffer> m_lightBuffer;
 
+		// Game variables
+		double m_gameTime{ 0 };
+		double m_deltaTime{ 0 };
+		double m_secondsPerCount;
+		__int64  m_startTime{ 0 };
+		__int64 m_currentTime{ 0 };
+
+		WCamera m_gameCamera;
+
+		CameraBuffer m_camerBufferData;
+		LightBuffer m_lightBufferData;
+
+		// Constants
 		const UINT m_descriptorHeapCountCBV_SRV_UAV{ 1024 };
 		const UINT m_descriptorHeapCountRTV{ 16 };
 		const UINT m_descriptorHeapCountDSV{ 16 };
@@ -182,6 +261,8 @@ namespace WaveE
 		const UINT m_uploadBufferSize{ 1024 * 1024 * 32 };
 
 		const UINT m_defaultSamplerCount{ 4 };
+		const UINT m_frameCVBCount{ 2 };
+		const UINT m_drawCBVCount{ 1 };
 		const UINT m_globalCBVCount{ 1 };
 		const UINT m_globalSRVCount{ 4 };
 		const UINT m_globalSamplerCount{ m_globalSRVCount };
