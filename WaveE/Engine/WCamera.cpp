@@ -12,12 +12,33 @@ namespace WaveE
 
 	glm::mat4 WCamera::GetViewMatrix() const
 	{
-		return glm::lookAt(m_position, m_position + m_front, m_up);
+		glm::vec3 w = glm::normalize(m_front);
+		glm::vec3 u = glm::normalize(glm::cross(m_up, w));
+		glm::vec3 v = glm::cross(w, u);
+
+		glm::mat4 viewMat{
+			glm::vec4{u.x, v.x, w.x, 0},
+			glm::vec4{u.y, v.y, w.y, 0},
+			glm::vec4{u.z, v.z, w.z, 0},
+			glm::vec4{glm::dot(-m_position, u), glm::dot(-m_position, v), glm::dot(-m_position, w), 1}
+		};
+
+		return glm::transpose(viewMat);
 	}
 
 	glm::mat4 WCamera::GetProjectionMatrix() const
 	{
-		return glm::perspective(glm::radians(m_fov), m_aspectRatio, m_nearPlane, m_farPlane);
+		float a = 1.f / glm::tan(m_fov * 0.5f);
+		float b = m_farPlane / (m_farPlane - m_nearPlane);
+
+		glm::mat4 projMat{
+			glm::vec4{a / m_aspectRatio,0,0,0},
+			glm::vec4{0,a,0,0},
+			glm::vec4{0,0,b,1},
+			glm::vec4{0,0,-m_nearPlane * b,0}
+		};
+
+		return glm::transpose(projMat);
 	}
 
 	glm::vec3 WCamera::GetPosition() const

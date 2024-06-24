@@ -83,16 +83,17 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow)
 	glm::mat4 cubeWhiteWorldMatrix;
 	{
 		WaveManager::WorldMatrixDescriptor worldMatrixDesc;
-		worldMatrixDesc.worldPos = glm::vec3{ 1, 0, 0 };
+
+		worldMatrixDesc.worldPos = glm::vec3{ 5, 0, 0 };
 		WaveInstance->CreateWorldMatrix(cubeRedWorldMatrix, worldMatrixDesc);
 
-		worldMatrixDesc.worldPos = glm::vec3{ -1, 0, 0 };
+		worldMatrixDesc.worldPos = glm::vec3{ -5, 0, 0 };
 		WaveInstance->CreateWorldMatrix(cubeGreenWorldMatrix, worldMatrixDesc);
 
-		worldMatrixDesc.worldPos = glm::vec3{ 0, 0, 1 };
+		worldMatrixDesc.worldPos = glm::vec3{ 0, 0, 5 };
 		WaveInstance->CreateWorldMatrix(cubeBlueWorldMatrix, worldMatrixDesc);
 
-		worldMatrixDesc.worldPos = glm::vec3{ 0, 0, -1 };
+		worldMatrixDesc.worldPos = glm::vec3{ 0, 0, -5 };
 		WaveInstance->CreateWorldMatrix(cubeWhiteWorldMatrix, worldMatrixDesc);
 	}
 
@@ -107,10 +108,11 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow)
 
 	WaveManager::Light light;
 	light.colour = glm::vec4{ 1, 1, 1, 1 };
-	light.position = glm::vec4{ 0, 2, 0, 0 };
+	light.position = glm::vec4{ 0, 4, 0, 0 };
 
 	WaveInstance->SetLight(light, 0);
 	WaveInstance->SetAmbientLight(glm::vec4{ 1, 1, 1, 0.1f });
+
 
     WaveManager::EndInit();
 
@@ -121,22 +123,23 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow)
         WaveInstance->SetDefaultRootSigniture();
 
         WaveInstance->ClearBackBuffer();
+		WaveInstance->ClearDepthStencilTarget(WaveInstance->GetDefaultDepthTexture());
         WaveInstance->SetPipelineState(WaveInstance->GetDefaultPipelineState());
-        WaveInstance->SetRenderTargetToSwapChain();
+        WaveInstance->SetRenderTargetToSwapChain(WaveInstance->GetDefaultDepthTexture());
 
 		WaveInstance->BindBuffer(drawBuffer, WaveManager::DRAW_CBV);
 
 		drawBuffer.GetResource()->UploadData(&cubeRedWorldMatrix, sizeof(glm::mat4));
-		WaveInstance->DrawMeshWithCurrentParamaters(cubeRedMeshID);
+		WaveInstance->DrawIndexedMeshWithCurrentParamaters(cubeRedMeshID);
 
 		drawBuffer.GetResource()->UploadData(&cubeGreenWorldMatrix, sizeof(glm::mat4));
-		WaveInstance->DrawMeshWithCurrentParamaters(cubeGreenMeshID);
+		WaveInstance->DrawIndexedMeshWithCurrentParamaters(cubeGreenMeshID);
 
 		drawBuffer.GetResource()->UploadData(&cubeBlueWorldMatrix, sizeof(glm::mat4));
-		WaveInstance->DrawMeshWithCurrentParamaters(cubeBlueMeshID);
+		WaveInstance->DrawIndexedMeshWithCurrentParamaters(cubeBlueMeshID);
 
 		drawBuffer.GetResource()->UploadData(&cubeWhiteWorldMatrix, sizeof(glm::mat4));
-		WaveInstance->DrawMeshWithCurrentParamaters(cubeWhiteMeshID);
+		WaveInstance->DrawIndexedMeshWithCurrentParamaters(cubeWhiteMeshID);
 
         WaveInstance->EndFrame();
 

@@ -62,6 +62,7 @@ namespace WaveE
 		pipelineDescriptor.pVertexShader = WResourceManager::Instance()->GetShader(m_defaultVertexShaderName);
 		pipelineDescriptor.pPixelShader = WResourceManager::Instance()->GetShader(m_defaultPixelShaderName);
 		pipelineDescriptor.dsvFormat = m_defaultDepthType;
+		pipelineDescriptor.rasterizerState.CullMode = D3D12_CULL_MODE_NONE;
 		m_defaultPipeline3D = WResourceManager::Instance()->CreateResource(pipelineDescriptor);
 
 		// Default depth
@@ -75,12 +76,11 @@ namespace WaveE
 		m_defaultDepthTexture = WResourceManager::Instance()->CreateResource(depthTextureDescriptor);
 
 		// Frame buffers
-		WBufferDescriptor bufferDescriptor;
-		bufferDescriptor.sizeBytes = sizeof(CameraBuffer);
-		m_cameraBuffer = WResourceManager::Instance()->CreateResource(bufferDescriptor);
+		WBufferDescriptor cameraAndLightBufferDescriptors[2] = {};
+		cameraAndLightBufferDescriptors[0].sizeBytes = sizeof(CameraBuffer);
+		cameraAndLightBufferDescriptors[1].sizeBytes = sizeof(LightBuffer);
 
-		bufferDescriptor.sizeBytes = sizeof(LightBuffer);
-		m_lightBuffer = WResourceManager::Instance()->CreateResource(bufferDescriptor);
+		m_cameraAndLightBuffers = WResourceManager::Instance()->CreateResourceBlock(cameraAndLightBufferDescriptors, 2);
 
 		// Time
 		InitTime();
@@ -378,8 +378,10 @@ namespace WaveE
 
 		UpdateCameraBuffer();
 
-		m_cameraBuffer.GetResource()->UploadData(&m_camerBufferData, sizeof(CameraBuffer));
-		m_lightBuffer.GetResource()->UploadData(&m_lightBufferData, sizeof(LightBuffer));
+		m_cameraAndLightBuffers.GetResorce(0).GetResource()->UploadData(&m_camerBufferData, sizeof(CameraBuffer));
+		m_cameraAndLightBuffers.GetResorce(1).GetResource()->UploadData(&m_lightBufferData, sizeof(LightBuffer));
+
+		BindBuffers(m_cameraAndLightBuffers, FRAME_CBV);
 
 		return true;
 	}
@@ -474,6 +476,8 @@ namespace WaveE
 		// Apply translation
 		glm::mat4 translationMatrix = glm::translate(glm::mat4(1.0f), rDescriptor.worldPos);
 		worldMatrix = translationMatrix * worldMatrix;
+
+		worldMatrix = glm::transpose(worldMatrix);
 	}
 
 	void WaveManager::SetPipelineState(ResourceID<WPipeline> id)
@@ -864,6 +868,18 @@ namespace WaveE
 		}
 
 		m_gameTime = (m_currentTime - m_startTime) * m_secondsPerCount;
+
+		double timeToWait = (1.f / 30.f) - m_deltaTime;
+
+		if (timeToWait > 0.0)
+		{
+			// Convert time to wait from seconds to milliseconds
+			DWORD sleepTime = static_cast<DWORD>(timeToWait * 1000.0);
+
+			// Sleep for the remaining time
+			Sleep(sleepTime);
+		}
+
 	}
 
 	void WaveManager::UpdateCameraBuffer()

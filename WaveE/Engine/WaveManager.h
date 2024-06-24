@@ -236,8 +236,7 @@ namespace WaveE
 		// #TODO Implement window size change logic
 		bool m_hasWindowSizeChanged{ false };
 
-		ResourceID<WBuffer> m_cameraBuffer;
-		ResourceID<WBuffer> m_lightBuffer;
+		ResourceBlock<WBuffer> m_cameraAndLightBuffers;
 
 		// Game variables
 		double m_gameTime{ 0 };
