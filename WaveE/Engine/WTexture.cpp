@@ -120,6 +120,7 @@ namespace WaveE
 
 		D3D12_RESOURCE_DESC resourceDesc = CD3DX12_RESOURCE_DESC::Tex2D(dxgiFormat, rDescriptor.width, rDescriptor.height);
 		resourceDesc.Flags = resourceFlags;
+		resourceDesc.MipLevels = 1;
 
 		D3D12_CLEAR_VALUE clearValue = {};
 		clearValue.Format = dxgiFormat;

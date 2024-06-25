@@ -16,6 +16,9 @@
 #include "WResourceManager.h"
 #include "WMeshBuilder.h"
 #include "WMaterial.h"
+
+#include <glm/gtc/matrix_transform.hpp>
+
 using namespace WaveE;
 
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow)
@@ -47,7 +50,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow)
 	}
 
 	// Create textures
-	ResourceID<WTexture> albidoTexture = WResourceManager::Instance()->GetTextureID("WaveE_A_S");
+	ResourceID<WTexture> albidoTexture = WResourceManager::Instance()->GetTextureID("WaveE_A_L");
 	ResourceID<WTexture> normalTexture = WResourceManager::Instance()->GetTextureID("WaveE_N_L");
 
 	// Create material
@@ -72,15 +75,18 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow)
 	light.colour = glm::vec4{ 1, 1, 1, 1 };
 	light.position = glm::vec4{ 0, 0, 0, 0 };
 
-	WaveInstance->SetLight(light, 0);
-	WaveInstance->SetAmbientLight(glm::vec4{ 1, 1, 1, 0.1f });
+	//WaveInstance->SetLight(light, 0);
+	WaveInstance->SetAmbientLight(glm::vec4{ 1, 1, 1, 1.f });
 
 
     WaveManager::EndInit();
 
     while (WaveInstance->BeginFrame())
     {
-		WaveInstance->GetGameCamera().Rotate(50 * WaveInstance->GetDeltaTime(), 0);
+		//WaveInstance->GetGameCamera().Rotate(50 * WaveInstance->GetDeltaTime(), 0);
+		cube1WorldMatrix[0][3] = 0;
+		cube1WorldMatrix = glm::rotate(cube1WorldMatrix, (float)WaveInstance->GetDeltaTime(), glm::vec3{ 0,1.f,0 });
+		cube1WorldMatrix[0][3] = 5;
 
 		WaveInstance->SetDefaultRootSigniture();
 
