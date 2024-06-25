@@ -61,6 +61,7 @@ namespace WaveE
 
 	private:
 		size_t m_sizeBytes{ 0 };
+		UINT m_bytesPerPixel{ 0 };
 		UINT m_width;
 		UINT m_height;
 		bool m_isDepthType;

@@ -128,7 +128,7 @@ namespace WaveE
 	{
 		WAVEE_ASSERT_MESSAGE(sizeBytes <= m_sizeBytes, "Data too big for buffer!");
 
-		WaveManager::Instance()->GetUploadManager()->UploadData(m_pBuffer.Get(), pData, sizeBytes, m_state, m_state);
+		WaveManager::Instance()->GetUploadManager()->UploadDataToBuffer(m_pBuffer.Get(), pData, sizeBytes, m_state, m_state);
 	}
 
 	D3D12_CPU_DESCRIPTOR_HANDLE WBuffer::GetCPUDescriptorHandle() const

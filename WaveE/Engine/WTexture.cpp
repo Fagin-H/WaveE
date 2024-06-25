@@ -112,7 +112,8 @@ namespace WaveE
 		DXGI_FORMAT dxgiFormat = GetDXGIFormat(rDescriptor.format);
 		D3D12_RESOURCE_FLAGS resourceFlags = GetResourceFlags(rDescriptor.usage, rDescriptor.format);
 
-		m_sizeBytes = m_width * m_height * GetBytesPerPixel(dxgiFormat);
+		m_bytesPerPixel = GetBytesPerPixel(dxgiFormat);
+		m_sizeBytes = m_width * m_height * m_bytesPerPixel;
 
 		m_renderTargetState = GetResourceState(rDescriptor.format, false);
 		m_shaderResourceState = GetResourceState(rDescriptor.format, true);
@@ -262,12 +263,12 @@ namespace WaveE
 	void WTexture::UploadData(const void* pData)
 	{
 		D3D12_RESOURCE_STATES currentState = m_currentState == State::Input ? m_shaderResourceState : m_renderTargetState;
-		WaveManager::Instance()->GetUploadManager()->UploadData(m_pTexture.Get(), pData, m_sizeBytes, currentState, currentState);
+		UploadData(pData, currentState, currentState);
 	}
 
 	void WTexture::UploadData(const void* pData, D3D12_RESOURCE_STATES currentState, D3D12_RESOURCE_STATES finalState)
 	{
-		WaveManager::Instance()->GetUploadManager()->UploadData(m_pTexture.Get(), pData, m_sizeBytes, currentState, finalState);
+		WaveManager::Instance()->GetUploadManager()->UploadDataToTexture(m_pTexture.Get(), pData, m_bytesPerPixel, currentState, finalState);
 	}
 
 	bool WTexture::SetState(State state)
