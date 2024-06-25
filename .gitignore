@@ -396,3 +396,6 @@ FodyWeavers.xsd
 
 # JetBrains Rider
 *.sln.iml
+
+# Don't ignore mesh files
+!WaveE/Resources/**/*.obj
