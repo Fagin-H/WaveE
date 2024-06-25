@@ -24,8 +24,7 @@ PSInput VSMain(VSInput input)
     output.position = mul(output.position, projectionMatrix);
 
     // Sample the normal texture and transform it into world space
-    output.normal = normalize(mul((float3x3) worldMatrix, input.normal));
-    output.normal.y = 1 - output.normal.y;
+    output.normal = normalize(mul(input.normal, (float3x3) worldMatrix));
 
     // Pass through UV
     output.texCoord = input.texCoord;
@@ -35,33 +34,32 @@ PSInput VSMain(VSInput input)
 
 float4 PSMain(PSInput input) : SV_TARGET
 {
-    //float3 viewDir = normalize(viewPos.xyz - input.worldPos);
-    //float3 vertexNormal = normalize(input.normal);
-    //float3 normalMap = m_normal.Sample(g_samplerLinearWrap, input.texCoord);
-    //float3 normal = GetNormal(vertexNormal, normalMap, viewDir, input.texCoord);
+    float3 viewDir = normalize(viewPos.xyz - input.worldPos);
+    float3 vertexNormal = normalize(input.normal);
+    float3 normalMap = m_normal.Sample(g_samplerLinearWrap, input.texCoord);
+    float3 normal = GetNormal(vertexNormal, normalMap, viewDir, input.texCoord);
     float4 colour = m_albedo.Sample(g_samplerLinearWrap, input.texCoord);
     
-    return colour;
-    //return float4(vertexNormal, 1);
+    //return float4(vertexNormal * 2 + 1, 1);
     
-    //float3 lightColour = ambientColor.rgb * ambientColor.a;
+    float3 lightColour = ambientColor.rgb * ambientColor.a;
 
-    //for (int i = 0; i < MAX_LIGHT; ++i)
-    //{
-    //    float3 lightDir = normalize(lights[i].pos.xyz - input.worldPos);
-    //    float3 reflectDir = reflect(-lightDir, normal);
+    for (int i = 0; i < MAX_LIGHT; ++i)
+    {
+        float3 lightDir = normalize(lights[i].pos.xyz - input.worldPos);
+        float3 reflectDir = reflect(-lightDir, normal);
 
-    //    // Diffuse lighting
-    //    float diff = max(dot(normal, lightDir), 0.0);
-    //    float3 diffuse = diff * lights[i].colour.rgb * lights[i].colour.a;
+        // Diffuse lighting
+        float diff = max(dot(normal, lightDir), 0.0);
+        float3 diffuse = diff * lights[i].colour.rgb * lights[i].colour.a;
 
-    //    // Specular lighting
-    //    float spec = pow(max(dot(viewDir, reflectDir), 0.0), 32);
-    //    float3 specular = spec * lights[i].colour.rgb * lights[i].colour.a;
+        // Specular lighting
+        float spec = pow(max(dot(viewDir, reflectDir), 0.0), 32);
+        float3 specular = spec * lights[i].colour.rgb * lights[i].colour.a;
 
-    //    lightColour += (diffuse + specular);
-    //}
+        lightColour += (diffuse + specular);
+    }
     
     
-    //return colour * float4(lightColour, 1);
+    return colour * float4(lightColour, 1);
 }

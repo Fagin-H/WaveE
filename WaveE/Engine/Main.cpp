@@ -37,6 +37,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow)
 		WaveManager::WorldMatrixDescriptor worldMatrixDesc;
 
 		worldMatrixDesc.worldPos = glm::vec3{ 5, 0, 0 };
+		worldMatrixDesc.xRotation = 90;
 		WaveInstance->CreateWorldMatrix(cube1WorldMatrix, worldMatrixDesc);
 
 		worldMatrixDesc.worldPos = glm::vec3{ -5, 0, 0 };
@@ -75,8 +76,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow)
 	light.colour = glm::vec4{ 1, 1, 1, 1 };
 	light.position = glm::vec4{ 0, 0, 0, 0 };
 
-	//WaveInstance->SetLight(light, 0);
-	WaveInstance->SetAmbientLight(glm::vec4{ 1, 1, 1, 1.f });
+	WaveInstance->SetLight(light, 0);
+	WaveInstance->SetAmbientLight(glm::vec4{ 1, 1, 1, 0.1f });
 
 
     WaveManager::EndInit();
