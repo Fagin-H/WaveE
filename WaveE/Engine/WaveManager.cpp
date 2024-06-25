@@ -2,6 +2,7 @@
 #include "WaveManager.h"
 #include <glm/gtc/matrix_transform.hpp>
 #include <fstream>
+#include "WTextureLoader.h"
 
 namespace WaveE
 {
@@ -20,6 +21,7 @@ namespace WaveE
 		InitDX12(rDescriptor);
 
 		// Init all singletons
+		WTextureLoader::Init();
 		WResourceManager::Init();
 		WResourceManager::Instance()->LoadShadersFromDirectory(GetShaderDirectory());
 
@@ -133,6 +135,7 @@ namespace WaveE
 	WaveManager::~WaveManager()
 	{
 		// UnInit all singletons
+		WTextureLoader::Uninit();
 		WResourceManager::Uninit();
 	}
 
@@ -267,6 +270,8 @@ namespace WaveE
 			nullptr,
 			&swapChain
 		);
+
+		WAVEE_ASSERT_MESSAGE(SUCCEEDED(hr), "Failed to create swap chain!");
 
 		hr = swapChain.As(&m_pSwapChain);
 
@@ -558,8 +563,8 @@ namespace WaveE
 		D3D12_RECT scissorRect;
 		scissorRect.left = 0;
 		scissorRect.top = 0;
-		scissorRect.right = static_cast<float>(RTVId.GetResource()->GetWidth());;
-		scissorRect.bottom = static_cast<float>(RTVId.GetResource()->GetHeight());
+		scissorRect.right = static_cast<LONG>(RTVId.GetResource()->GetWidth());;
+		scissorRect.bottom = static_cast<LONG>(RTVId.GetResource()->GetHeight());
 
 		m_pCommandList->RSSetScissorRects(1, &scissorRect);
 
@@ -596,8 +601,8 @@ namespace WaveE
 		D3D12_RECT scissorRect;
 		scissorRect.left = 0;
 		scissorRect.top = 0;
-		scissorRect.right = static_cast<float>(GetWidth());;
-		scissorRect.bottom = static_cast<float>(GetHeight());
+		scissorRect.right = static_cast<LONG>(GetWidth());;
+		scissorRect.bottom = static_cast<LONG>(GetHeight());
 
 		m_pCommandList->RSSetScissorRects(1, &scissorRect);
 

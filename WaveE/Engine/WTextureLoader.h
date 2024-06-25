@@ -2,8 +2,6 @@
 
 namespace WaveE
 {
-	struct IWICImagingFactory;
-
 	class WTextureLoader
 	{
 		WAVEE_SINGLETON(WTextureLoader)
