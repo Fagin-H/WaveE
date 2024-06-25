@@ -263,9 +263,9 @@ namespace WaveE
 
 		// Constants
 		const UINT m_descriptorHeapCountCBV_SRV_UAV{ 1024 };
-		const UINT m_descriptorHeapCountRTV{ 16 };
-		const UINT m_descriptorHeapCountDSV{ 16 };
-		const UINT m_descriptorHeapCountSampler{ 16 };
+		const UINT m_descriptorHeapCountRTV{ 32 };
+		const UINT m_descriptorHeapCountDSV{ 32 };
+		const UINT m_descriptorHeapCountSampler{ 32 };
 
 		const UINT m_uploadBufferCount{ 10 };
 		const UINT m_uploadBufferSize{ 1024 * 1024 * 32 };

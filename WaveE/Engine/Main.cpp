@@ -92,16 +92,16 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow)
 		WaveInstance->BindBuffer(drawBuffer, WaveManager::DRAW_CBV);
 
 		drawBuffer.GetResource()->UploadData(&cube1WorldMatrix, sizeof(glm::mat4));
-		WaveInstance->DrawIndexedMesh(cubMeshID, cubeMaterial);
+		WaveInstance->DrawMesh(cubMeshID, cubeMaterial);
 
 		drawBuffer.GetResource()->UploadData(&cube2WorldMatrix, sizeof(glm::mat4));
-		WaveInstance->DrawIndexedMesh(cubMeshID, cubeMaterial);
+		WaveInstance->DrawMesh(cubMeshID, cubeMaterial);
 
 		drawBuffer.GetResource()->UploadData(&cube3WorldMatrix, sizeof(glm::mat4));
-		WaveInstance->DrawIndexedMesh(cubMeshID, cubeMaterial);
+		WaveInstance->DrawMesh(cubMeshID, cubeMaterial);
 
 		drawBuffer.GetResource()->UploadData(&cube4WorldMatrix, sizeof(glm::mat4));
-		WaveInstance->DrawIndexedMesh(cubMeshID, cubeMaterial);
+		WaveInstance->DrawMesh(cubMeshID, cubeMaterial);
 
         WaveInstance->EndFrame();
 

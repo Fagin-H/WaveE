@@ -438,6 +438,11 @@ namespace WaveE
 		m_fenceValues[m_frameIndex] = currentFenceValue + 1;
 
 		m_uploadManager.EndFrame();
+
+		// Reset current pipeline, material, and mesh
+		m_currentPipeline = {};
+		m_currentMaterial = {};
+		m_currentMesh = {};
 	}
 
 	ResourceID<WSampler> WaveManager::GetDefaultSampler(SamplerType type)

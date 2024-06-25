@@ -51,7 +51,7 @@ namespace WaveE
 		{
 			m_allocation = pSamplerHeapManager->Allocate();
 		}
-		D3D12_CPU_DESCRIPTOR_HANDLE cpuDescriptorHandle = pSamplerHeapManager->GetCPUHandle(m_allocation.index);
+		D3D12_CPU_DESCRIPTOR_HANDLE cpuDescriptorHandle = pSamplerHeapManager->GetCPUHandle(m_allocation.index + m_offset);
 		pDevice->CreateSampler(&samplerDesc, cpuDescriptorHandle);
 	}
 
