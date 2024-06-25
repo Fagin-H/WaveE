@@ -376,7 +376,7 @@ namespace WaveE
 	{
 		UINT width;
 		UINT height;
-		std::vector<glm::vec4> vPixelData;
+		std::vector<UINT> vPixelData;
 
 		int size = MultiByteToWideChar(CP_ACP, MB_PRECOMPOSED, filepath, -1, nullptr, 0);
 		std::wstring wFilePath((size_t)size, 't');

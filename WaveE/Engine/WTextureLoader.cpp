@@ -13,7 +13,7 @@ namespace WaveE
 		WAVEE_ASSERT_MESSAGE(SUCCEEDED(hr), "Failed to initialize com!");
 	}
 
-	void WTextureLoader::LoadPNGAndGetPixels(const wchar_t* filePath, std::vector<glm::vec4> vPixelData, UINT& width, UINT& height)
+	void WTextureLoader::LoadPNGAndGetPixels(const wchar_t* filePath, std::vector<UINT>& vPixelData, UINT& width, UINT& height)
 	{
         // Create WIC factory
         IWICImagingFactory* pFactory = nullptr;
@@ -38,7 +38,7 @@ namespace WaveE
         UINT totalPixels = width * height;
 
         // Prepare vector to hold pixel data
-        vPixelData.reserve(totalPixels);
+        vPixelData.resize(totalPixels);
 
         // Convert pixel data to format
         WICPixelFormatGUID format;
@@ -48,7 +48,7 @@ namespace WaveE
         if (IsEqualGUID(format, GUID_WICPixelFormat32bppRGBA))
         {
             // Directly copy pixels if format is 32bpp BGRA
-            hr = pFrame->CopyPixels(nullptr, width * sizeof(glm::vec4), totalPixels * sizeof(glm::vec4), reinterpret_cast<BYTE*>(vPixelData.data()));
+            hr = pFrame->CopyPixels(nullptr, width * sizeof(UINT), totalPixels * sizeof(UINT), reinterpret_cast<BYTE*>(vPixelData.data()));
             WAVEE_ASSERT_MESSAGE(SUCCEEDED(hr), "Failed to copy pixels!");
         }
         else
@@ -61,7 +61,7 @@ namespace WaveE
             WAVEE_ASSERT_MESSAGE(SUCCEEDED(hr), "Failed to initialize converter!");
 
             // Copy converted pixels
-            hr = pConverter->CopyPixels(nullptr, width * sizeof(glm::vec4), totalPixels * sizeof(glm::vec4), reinterpret_cast<BYTE*>(vPixelData.data()));
+            hr = pConverter->CopyPixels(nullptr, width * sizeof(UINT), totalPixels * sizeof(UINT), reinterpret_cast<BYTE*>(vPixelData.data()));
             WAVEE_ASSERT_MESSAGE(SUCCEEDED(hr), "Failed to copy pixels!");
             // Release the converter
             pConverter->Release();

@@ -70,7 +70,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow)
 
 	WaveManager::Light light;
 	light.colour = glm::vec4{ 1, 1, 1, 1 };
-	light.position = glm::vec4{ 0, 4, 0, 0 };
+	light.position = glm::vec4{ 0, 0, 0, 0 };
 
 	WaveInstance->SetLight(light, 0);
 	WaveInstance->SetAmbientLight(glm::vec4{ 1, 1, 1, 0.1f });
