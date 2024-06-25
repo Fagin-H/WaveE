@@ -32,7 +32,7 @@
 #include <wrl.h>
 #include <shellapi.h>
 
-#include <glm/glm.hpp>
+#include "WMaths.h"
 #include <strsafe.h>
 
 namespace WaveE

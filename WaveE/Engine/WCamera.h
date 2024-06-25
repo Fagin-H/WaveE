@@ -5,11 +5,11 @@ namespace WaveE
 	class WCamera
 	{
 	public:
-		WCamera(glm::vec3 position, glm::vec3 up, float yaw, float pitch, float fov, float aspectRatio, float nearPlane, float farPlane);
+		WCamera(wma::vec3 position, wma::vec3 up, float yaw, float pitch, float fov, float aspectRatio, float nearPlane, float farPlane);
 
-		glm::mat4 GetViewMatrix() const;
-		glm::mat4 GetProjectionMatrix() const;
-		glm::vec3 GetPosition() const;
+		wma::mat4 GetViewMatrix() const;
+		wma::mat4 GetProjectionMatrix() const;
+		wma::vec3 GetPosition() const;
 
 		void MoveForward(float delta);
 		void MoveRight(float delta);
@@ -17,17 +17,17 @@ namespace WaveE
 		void Rotate(float yaw, float pitch);
 		void SetAspectRatio(float aspectRatio);
 
-		void SetPosition(glm::vec3 pos);
-		void SetLootAt(glm::vec3 lookAt);
+		void SetPosition(wma::vec3 pos);
+		void SetLootAt(wma::vec3 lookAt);
 
 	private:
 		void UpdateCameraVectors();
 
-		glm::vec3 m_position;
-		glm::vec3 m_front;
-		glm::vec3 m_up;
-		glm::vec3 m_right;
-		glm::vec3 m_worldUp;
+		wma::vec3 m_position;
+		wma::vec3 m_front;
+		wma::vec3 m_up;
+		wma::vec3 m_right;
+		wma::vec3 m_worldUp;
 
 		float m_yaw;
 		float m_pitch;

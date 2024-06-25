@@ -79,16 +79,16 @@ namespace WaveE
 
 		struct Light
 		{
-			glm::vec4 position{ 0,0,0,0 };
-			glm::vec4 colour{ 0,0,0,0 };
+			wma::vec4 position{ 0,0,0,0 };
+			wma::vec4 colour{ 0,0,0,0 };
 		};
 
 		void SetLight(Light light, UINT index);
-		void SetAmbientLight(glm::vec4 colour);
+		void SetAmbientLight(wma::vec4 colour);
 
 		struct WorldMatrixDescriptor
 		{
-			glm::vec3 worldPos{ 0 };
+			wma::vec3 worldPos{ 0 };
 			float scale{ 1 };
 			float xScale{ 1 };
 			float yScale{ 1 };
@@ -97,7 +97,7 @@ namespace WaveE
 			float yRotation{ 0 };
 			float zRotation{ 0 };
 		};
-		void CreateWorldMatrix(glm::mat4x4& worldMatrix, const WorldMatrixDescriptor& rDescriptor);
+		void CreateWorldMatrix(wma::mat4& worldMatrix, const WorldMatrixDescriptor& rDescriptor);
 
 		// Drawing functions
 		enum SlotIndex : UINT
@@ -121,9 +121,9 @@ namespace WaveE
 		// Sets the render target, viewport, and scissor rect for drawing to the whole screen
 		void SetRenderTarget(ResourceID<WTexture> RTVId, ResourceID<WTexture> DSVId = {});
 		void SetRenderTargetToSwapChain(ResourceID<WTexture> DSVId = {});
-		void ClearRenderTarget(ResourceID<WTexture> id, glm::vec4 colour = { 0,0,0,1 });
+		void ClearRenderTarget(ResourceID<WTexture> id, wma::vec4 colour = { 0,0,0,1 });
 		void ClearDepthStencilTarget(ResourceID<WTexture> id, float depth = 1, UINT stencil = 0);
-		void ClearBackBuffer(glm::vec4 colour = { 0,0,0,1 });
+		void ClearBackBuffer(wma::vec4 colour = { 0,0,0,1 });
 
 		void SetPipelineState(ResourceID<WPipeline> id);
 
@@ -145,15 +145,15 @@ namespace WaveE
 
 		struct CameraBuffer
 		{
-			glm::mat4x4 viewMatrix;
-			glm::mat4x4 projectionMatrix;
-			glm::vec4 viewPos;
-			glm::vec4 time;
+			wma::mat4 viewMatrix;
+			wma::mat4 projectionMatrix;
+			wma::vec4 viewPos;
+			wma::vec4 time;
 		};
 
 		struct LightBuffer
 		{
-			glm::vec4 ambientLight;
+			wma::vec4 ambientLight;
 			Light lights[m_maxLights];
 		};
 

@@ -17,8 +17,6 @@
 #include "WMeshBuilder.h"
 #include "WMaterial.h"
 
-#include <glm/gtc/matrix_transform.hpp>
-
 using namespace WaveE;
 
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow)
@@ -29,24 +27,24 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow)
 	ResourceID<WMesh> cubMeshID = WResourceManager::Instance()->GetMeshID("cube");
 
 	// Create world matrices
-	glm::mat4 cube1WorldMatrix;
-	glm::mat4 cube2WorldMatrix;
-	glm::mat4 cube3WorldMatrix;
-	glm::mat4 cube4WorldMatrix;
+	wma::mat4 cube1WorldMatrix;
+	wma::mat4 cube2WorldMatrix;
+	wma::mat4 cube3WorldMatrix;
+	wma::mat4 cube4WorldMatrix;
 	{
 		WaveManager::WorldMatrixDescriptor worldMatrixDesc;
 
-		worldMatrixDesc.worldPos = glm::vec3{ 5, 0, 0 };
+		worldMatrixDesc.worldPos = wma::vec3{ 5, 0, 0 };
 		worldMatrixDesc.xRotation = 90;
 		WaveInstance->CreateWorldMatrix(cube1WorldMatrix, worldMatrixDesc);
 
-		worldMatrixDesc.worldPos = glm::vec3{ -5, 0, 0 };
+		worldMatrixDesc.worldPos = wma::vec3{ -5, 0, 0 };
 		WaveInstance->CreateWorldMatrix(cube2WorldMatrix, worldMatrixDesc);
 
-		worldMatrixDesc.worldPos = glm::vec3{ 0, 0, 5 };
+		worldMatrixDesc.worldPos = wma::vec3{ 0, 0, 5 };
 		WaveInstance->CreateWorldMatrix(cube3WorldMatrix, worldMatrixDesc);
 
-		worldMatrixDesc.worldPos = glm::vec3{ 0, 0, -5 };
+		worldMatrixDesc.worldPos = wma::vec3{ 0, 0, -5 };
 		WaveInstance->CreateWorldMatrix(cube4WorldMatrix, worldMatrixDesc);
 	}
 
@@ -67,17 +65,17 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow)
 	ResourceID<WBuffer> drawBuffer;
 	{
 		WBufferDescriptor drawBufferDesc;
-		drawBufferDesc.sizeBytes = sizeof(glm::mat4);
+		drawBufferDesc.sizeBytes = sizeof(wma::mat4);
 
 		drawBuffer = WResourceManager::Instance()->CreateResource(drawBufferDesc);
 	}
 
 	WaveManager::Light light;
-	light.colour = glm::vec4{ 1, 1, 1, 1 };
-	light.position = glm::vec4{ 0, 0, 0, 0 };
+	light.colour = wma::vec4{ 1, 1, 1, 1 };
+	light.position = wma::vec4{ 0, 0, 0, 0 };
 
 	WaveInstance->SetLight(light, 0);
-	WaveInstance->SetAmbientLight(glm::vec4{ 1, 1, 1, 0.1f });
+	WaveInstance->SetAmbientLight(wma::vec4{ 1, 1, 1, 0.1f });
 
 
     WaveManager::EndInit();
@@ -86,7 +84,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow)
     {
 		//WaveInstance->GetGameCamera().Rotate(50 * WaveInstance->GetDeltaTime(), 0);
 		cube1WorldMatrix[0][3] = 0;
-		cube1WorldMatrix = glm::rotate(cube1WorldMatrix, (float)WaveInstance->GetDeltaTime(), glm::vec3{ 0,1.f,0 });
+		cube1WorldMatrix = wma::rotate(cube1WorldMatrix, (float)WaveInstance->GetDeltaTime(), wma::vec3{ 0,1.f,0 });
 		cube1WorldMatrix[0][3] = 5;
 
 		WaveInstance->SetDefaultRootSigniture();
@@ -98,16 +96,16 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow)
 
 		WaveInstance->BindBuffer(drawBuffer, WaveManager::DRAW_CBV);
 
-		drawBuffer.GetResource()->UploadData(&cube1WorldMatrix, sizeof(glm::mat4));
+		drawBuffer.GetResource()->UploadData(&cube1WorldMatrix, sizeof(wma::mat4));
 		WaveInstance->DrawMesh(cubMeshID, cubeMaterial);
 
-		drawBuffer.GetResource()->UploadData(&cube2WorldMatrix, sizeof(glm::mat4));
+		drawBuffer.GetResource()->UploadData(&cube2WorldMatrix, sizeof(wma::mat4));
 		WaveInstance->DrawMesh(cubMeshID, cubeMaterial);
 
-		drawBuffer.GetResource()->UploadData(&cube3WorldMatrix, sizeof(glm::mat4));
+		drawBuffer.GetResource()->UploadData(&cube3WorldMatrix, sizeof(wma::mat4));
 		WaveInstance->DrawMesh(cubMeshID, cubeMaterial);
 
-		drawBuffer.GetResource()->UploadData(&cube4WorldMatrix, sizeof(glm::mat4));
+		drawBuffer.GetResource()->UploadData(&cube4WorldMatrix, sizeof(wma::mat4));
 		WaveInstance->DrawMesh(cubMeshID, cubeMaterial);
 
         WaveInstance->EndFrame();

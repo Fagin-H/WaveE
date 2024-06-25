@@ -6,9 +6,9 @@ namespace WaveE
 {
 	struct DefaultVertex
 	{
-		glm::vec3 position;
-		glm::vec3 normal;
-		glm::vec2 texCoord;
+		wma::vec3 position;
+		wma::vec3 normal;
+		wma::vec2 texCoord;
 	};
 
 	struct WMeshDescriptor

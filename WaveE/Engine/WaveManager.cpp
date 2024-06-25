@@ -1,6 +1,5 @@
 #include "stdafx.h"
 #include "WaveManager.h"
-#include <glm/gtc/matrix_transform.hpp>
 #include <fstream>
 #include "WTextureLoader.h"
 #include "WMeshLoader.h"
@@ -473,33 +472,33 @@ namespace WaveE
 		m_lightBufferData.lights[index] = light;
 	}
 
-	void WaveManager::SetAmbientLight(glm::vec4 colour)
+	void WaveManager::SetAmbientLight(wma::vec4 colour)
 	{
 		m_lightBufferData.ambientLight = colour;
 	}
 
-	void WaveManager::CreateWorldMatrix(glm::mat4x4& worldMatrix, const WorldMatrixDescriptor& rDescriptor)
+	void WaveManager::CreateWorldMatrix(wma::mat4& worldMatrix, const WorldMatrixDescriptor& rDescriptor)
 	{
 		// Initialize the world matrix as an identity matrix
-		worldMatrix = glm::mat4(1.0f);
+		worldMatrix = wma::mat4{};
 
 		// Apply scaling
-		glm::mat4 scaleMatrix = glm::scale(glm::mat4(1.0f), glm::vec3(rDescriptor.scale * rDescriptor.xScale, rDescriptor.scale * rDescriptor.yScale, rDescriptor.scale * rDescriptor.zScale));
+		wma::mat4 scaleMatrix = wma::scale(wma::mat4{}, wma::vec3(rDescriptor.scale * rDescriptor.xScale, rDescriptor.scale * rDescriptor.yScale, rDescriptor.scale * rDescriptor.zScale));
 		worldMatrix = scaleMatrix * worldMatrix;
 
 		// Apply rotation
-		glm::mat4 rotationXMatrix = glm::rotate(glm::mat4(1.0f), glm::radians(rDescriptor.xRotation), glm::vec3(1.0f, 0.0f, 0.0f));
-		glm::mat4 rotationYMatrix = glm::rotate(glm::mat4(1.0f), glm::radians(rDescriptor.yRotation), glm::vec3(0.0f, 1.0f, 0.0f));
-		glm::mat4 rotationZMatrix = glm::rotate(glm::mat4(1.0f), glm::radians(rDescriptor.zRotation), glm::vec3(0.0f, 0.0f, 1.0f));
+		wma::mat4 rotationXMatrix = wma::rotate(wma::mat4{}, wma::radians(rDescriptor.xRotation), wma::vec3(1.0f, 0.0f, 0.0f));
+		wma::mat4 rotationYMatrix = wma::rotate(wma::mat4{}, wma::radians(rDescriptor.yRotation), wma::vec3(0.0f, 1.0f, 0.0f));
+		wma::mat4 rotationZMatrix = wma::rotate(wma::mat4{}, wma::radians(rDescriptor.zRotation), wma::vec3(0.0f, 0.0f, 1.0f));
 
-		glm::mat4 rotationMatrix = rotationZMatrix * rotationYMatrix * rotationXMatrix;
+		wma::mat4 rotationMatrix = rotationZMatrix * rotationYMatrix * rotationXMatrix;
 		worldMatrix = rotationMatrix * worldMatrix;
 
 		// Apply translation
-		glm::mat4 translationMatrix = glm::translate(glm::mat4(1.0f), rDescriptor.worldPos);
+		wma::mat4 translationMatrix = wma::translate(wma::mat4{}, rDescriptor.worldPos);
 		worldMatrix = translationMatrix * worldMatrix;
 
-		worldMatrix = glm::transpose(worldMatrix);
+		worldMatrix = worldMatrix;
 	}
 
 	void WaveManager::SetPipelineState(ResourceID<WPipeline> id)
@@ -640,7 +639,7 @@ namespace WaveE
 		m_pCommandList->OMSetRenderTargets(1, &rtvHandle, FALSE, shouldSetDSV ? &dsvHandle : nullptr);
 	}
 
-	void WaveManager::ClearRenderTarget(ResourceID<WTexture> id, glm::vec4 colour)
+	void WaveManager::ClearRenderTarget(ResourceID<WTexture> id, wma::vec4 colour)
 	{
 		WAVEE_ASSERT_MESSAGE(!id.GetResource()->IsDepthType(), "Can't clear render target view on depth texture!");
 
@@ -656,7 +655,7 @@ namespace WaveE
 		m_pCommandList->ClearDepthStencilView(handle, D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, depth, stencil, 0, nullptr);
 	}
 
-	void WaveManager::ClearBackBuffer(glm::vec4 colour)
+	void WaveManager::ClearBackBuffer(wma::vec4 colour)
 	{
 		// Transition the back buffer to target state
 		ChangeBackBufferState(STATE_TARGET);
@@ -991,7 +990,7 @@ namespace WaveE
 	{
 		m_camerBufferData.viewMatrix = m_gameCamera.GetViewMatrix();
 		m_camerBufferData.projectionMatrix = m_gameCamera.GetProjectionMatrix();
-		m_camerBufferData.viewPos = glm::vec4{ m_gameCamera.GetPosition(), 0 };
+		m_camerBufferData.viewPos = wma::vec4{ m_gameCamera.GetPosition(), 0 };
 		m_camerBufferData.time[0] = static_cast<float>(GetGameTime());
 	}
 }
