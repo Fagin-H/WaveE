@@ -3,6 +3,7 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <fstream>
 #include "WTextureLoader.h"
+#include "WMeshLoader.h"
 
 namespace WaveE
 {
@@ -23,6 +24,7 @@ namespace WaveE
 		// Init all singletons
 		WTextureLoader::Init();
 		WResourceManager::Init();
+		WMeshLoader::Init();
 
 		m_cbvSrvUavHeap.Init(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE, m_descriptorHeapCountCBV_SRV_UAV);
 		m_rtvHeap.Init(D3D12_DESCRIPTOR_HEAP_TYPE_RTV, D3D12_DESCRIPTOR_HEAP_FLAG_NONE, m_descriptorHeapCountRTV);
@@ -49,6 +51,7 @@ namespace WaveE
 		// Load Resources
 		WResourceManager::Instance()->LoadShadersFromDirectory(GetShaderDirectory());
 		WResourceManager::Instance()->LoadTexturesFromDirectory(GetTextureDirectory());
+		WResourceManager::Instance()->LoadMeshesFromDirectory(GetMeshDirectory());
 
 		// Default samplers
 		WSamplerDescriptor samplerDescriptors[4] = {
@@ -145,6 +148,7 @@ namespace WaveE
 		// UnInit all singletons
 		WTextureLoader::Uninit();
 		WResourceManager::Uninit();
+		WMeshLoader::Uninit();
 	}
 
 	void WaveManager::InitWindow(const WaveEDescriptor& rDescriptor)
@@ -881,6 +885,14 @@ namespace WaveE
 	{
 		std::string pathString{ GetResourceDirectory() };
 		pathString += "\\Textures";
+
+		return m_resourceDirectory;
+	}
+
+	std::string WaveManager::GetMeshDirectory()
+	{
+		std::string pathString{ GetResourceDirectory() };
+		pathString += "\\Meshes";
 
 		return m_resourceDirectory;
 	}

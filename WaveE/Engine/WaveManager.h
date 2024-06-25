@@ -181,6 +181,7 @@ namespace WaveE
 		std::string GetResourceDirectory();
 		std::string GetShaderDirectory();
 		std::string GetTextureDirectory();
+		std::string GetMeshDirectory();
 		std::string m_resourceDirectory;
 
 		bool IsSamplerSlot(SlotIndex index);

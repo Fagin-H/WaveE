@@ -13,7 +13,7 @@ namespace WaveE
 		WAVEE_ASSERT_MESSAGE(SUCCEEDED(hr), "Failed to initialize com!");
 	}
 
-	void WTextureLoader::LoadPNGAndGetPixels(const wchar_t* filename, std::vector<glm::vec4> vPixelData, UINT& width, UINT& height)
+	void WTextureLoader::LoadPNGAndGetPixels(const wchar_t* filePath, std::vector<glm::vec4> vPixelData, UINT& width, UINT& height)
 	{
         // Create WIC factory
         IWICImagingFactory* pFactory = nullptr;
@@ -22,7 +22,7 @@ namespace WaveE
 
         // Create decoder for the PNG file
         IWICBitmapDecoder* pDecoder = nullptr;
-        hr = pFactory->CreateDecoderFromFilename(filename, nullptr, GENERIC_READ, WICDecodeMetadataCacheOnLoad, &pDecoder);
+        hr = pFactory->CreateDecoderFromFilename(filePath, nullptr, GENERIC_READ, WICDecodeMetadataCacheOnLoad, &pDecoder);
         WAVEE_ASSERT_MESSAGE(SUCCEEDED(hr), "Failed to create decoder!");
 
         // Get frame from decoder (assuming single frame PNG)

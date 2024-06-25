@@ -15,6 +15,7 @@
 #include "WMesh.h"
 #include "WResourceManager.h"
 #include "WMeshBuilder.h"
+#include "WMaterial.h"
 using namespace WaveE;
 
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow)
@@ -22,79 +23,40 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow)
     WaveManager::Init({});
     
     // Create meshes
-    ResourceID<WMesh> cubeRedMeshID;
-    ResourceID<WMesh> cubeGreenMeshID;
-    ResourceID<WMesh> cubeBlueMeshID;
-    ResourceID<WMesh> cubeWhiteMeshID;
-    {
-		std::vector<DefaultVertex> vertices;
-		std::vector<UINT> indices;
-
-		{
-			WMeshBuilder::CreateCubeMesh(vertices, indices, glm::vec3{ 1 }, glm::vec4{ 1, 0, 0, 1 });
-
-			WMeshDescriptor meshDesc;
-			meshDesc.pVertexData = vertices.data();
-			meshDesc.vertexCount = vertices.size();
-			meshDesc.pIndexData = indices.data();
-			meshDesc.indexCount = indices.size();
-
-			cubeRedMeshID = WResourceManager::Instance()->CreateResource(meshDesc);
-		}
-		{
-			WMeshBuilder::CreateCubeMesh(vertices, indices, glm::vec3{ 1 }, glm::vec4{ 0, 1, 0, 1 });
-
-			WMeshDescriptor meshDesc;
-			meshDesc.pVertexData = vertices.data();
-			meshDesc.vertexCount = vertices.size();
-			meshDesc.pIndexData = indices.data();
-			meshDesc.indexCount = indices.size();
-
-			cubeGreenMeshID = WResourceManager::Instance()->CreateResource(meshDesc);
-		}
-		{
-			WMeshBuilder::CreateCubeMesh(vertices, indices, glm::vec3{ 1 }, glm::vec4{ 0, 0, 1, 1 });
-
-			WMeshDescriptor meshDesc;
-			meshDesc.pVertexData = vertices.data();
-			meshDesc.vertexCount = vertices.size();
-			meshDesc.pIndexData = indices.data();
-			meshDesc.indexCount = indices.size();
-
-			cubeBlueMeshID = WResourceManager::Instance()->CreateResource(meshDesc);
-		}
-		{
-			WMeshBuilder::CreateCubeMesh(vertices, indices, glm::vec3{ 1 }, glm::vec4{ 1, 1, 1, 1 });
-
-			WMeshDescriptor meshDesc;
-			meshDesc.pVertexData = vertices.data();
-			meshDesc.vertexCount = vertices.size();
-			meshDesc.pIndexData = indices.data();
-			meshDesc.indexCount = indices.size();
-
-			cubeWhiteMeshID = WResourceManager::Instance()->CreateResource(meshDesc);
-		}
-    }
+	ResourceID<WMesh> cubMeshID = WResourceManager::Instance()->GetMeshID("cube");
 
 	// Create world matrices
-	glm::mat4 cubeRedWorldMatrix;
-	glm::mat4 cubeGreenWorldMatrix;
-	glm::mat4 cubeBlueWorldMatrix;
-	glm::mat4 cubeWhiteWorldMatrix;
+	glm::mat4 cube1WorldMatrix;
+	glm::mat4 cube2WorldMatrix;
+	glm::mat4 cube3WorldMatrix;
+	glm::mat4 cube4WorldMatrix;
 	{
 		WaveManager::WorldMatrixDescriptor worldMatrixDesc;
 
 		worldMatrixDesc.worldPos = glm::vec3{ 5, 0, 0 };
-		WaveInstance->CreateWorldMatrix(cubeRedWorldMatrix, worldMatrixDesc);
+		WaveInstance->CreateWorldMatrix(cube1WorldMatrix, worldMatrixDesc);
 
 		worldMatrixDesc.worldPos = glm::vec3{ -5, 0, 0 };
-		WaveInstance->CreateWorldMatrix(cubeGreenWorldMatrix, worldMatrixDesc);
+		WaveInstance->CreateWorldMatrix(cube2WorldMatrix, worldMatrixDesc);
 
 		worldMatrixDesc.worldPos = glm::vec3{ 0, 0, 5 };
-		WaveInstance->CreateWorldMatrix(cubeBlueWorldMatrix, worldMatrixDesc);
+		WaveInstance->CreateWorldMatrix(cube3WorldMatrix, worldMatrixDesc);
 
 		worldMatrixDesc.worldPos = glm::vec3{ 0, 0, -5 };
-		WaveInstance->CreateWorldMatrix(cubeWhiteWorldMatrix, worldMatrixDesc);
+		WaveInstance->CreateWorldMatrix(cube4WorldMatrix, worldMatrixDesc);
+	}
+
+	// Create textures
+	ResourceID<WTexture> albidoTexture = WResourceManager::Instance()->GetTextureID("WaveE_A_S");
+	ResourceID<WTexture> normalTexture = WResourceManager::Instance()->GetTextureID("WaveE_N_L");
+
+	// Create material
+	ResourceID<WMaterial> cubeMaterial;
+	{
+		WMaterialDescriptor materialDesc;
+		cubeMaterial = WResourceManager::Instance()->CreateResource(materialDesc);
+		cubeMaterial.GetResource()->SwapTexture(albidoTexture, 0);
+		cubeMaterial.GetResource()->SwapTexture(normalTexture, 1);
 	}
 
 	// Create per draw buffer
@@ -118,7 +80,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow)
 
     while (WaveInstance->BeginFrame())
     {
-		/*WaveInstance->GetGameCamera().Rotate(50 * WaveInstance->GetDeltaTime(), 0);
+		WaveInstance->GetGameCamera().Rotate(50 * WaveInstance->GetDeltaTime(), 0);
 
 		WaveInstance->SetDefaultRootSigniture();
 
@@ -129,17 +91,17 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow)
 
 		WaveInstance->BindBuffer(drawBuffer, WaveManager::DRAW_CBV);
 
-		drawBuffer.GetResource()->UploadData(&cubeRedWorldMatrix, sizeof(glm::mat4));
-		WaveInstance->DrawIndexedMeshWithCurrentParamaters(cubeRedMeshID);
+		drawBuffer.GetResource()->UploadData(&cube1WorldMatrix, sizeof(glm::mat4));
+		WaveInstance->DrawIndexedMesh(cubMeshID, cubeMaterial);
 
-		drawBuffer.GetResource()->UploadData(&cubeGreenWorldMatrix, sizeof(glm::mat4));
-		WaveInstance->DrawIndexedMeshWithCurrentParamaters(cubeGreenMeshID);
+		drawBuffer.GetResource()->UploadData(&cube2WorldMatrix, sizeof(glm::mat4));
+		WaveInstance->DrawIndexedMesh(cubMeshID, cubeMaterial);
 
-		drawBuffer.GetResource()->UploadData(&cubeBlueWorldMatrix, sizeof(glm::mat4));
-		WaveInstance->DrawIndexedMeshWithCurrentParamaters(cubeBlueMeshID);
+		drawBuffer.GetResource()->UploadData(&cube3WorldMatrix, sizeof(glm::mat4));
+		WaveInstance->DrawIndexedMesh(cubMeshID, cubeMaterial);
 
-		drawBuffer.GetResource()->UploadData(&cubeWhiteWorldMatrix, sizeof(glm::mat4));
-		WaveInstance->DrawIndexedMeshWithCurrentParamaters(cubeWhiteMeshID);*/
+		drawBuffer.GetResource()->UploadData(&cube4WorldMatrix, sizeof(glm::mat4));
+		WaveInstance->DrawIndexedMesh(cubMeshID, cubeMaterial);
 
         WaveInstance->EndFrame();
 

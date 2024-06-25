@@ -52,6 +52,7 @@
     <ClCompile Include="WTextureLoader.cpp">
       <Filter>Private\WaveGraphics</Filter>
     </ClCompile>
+    <ClCompile Include="WMeshLoader.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="stdafx.h">
@@ -105,6 +106,10 @@
     <ClInclude Include="WTextureLoader.h">
       <Filter>Public\WaveGraphics</Filter>
     </ClInclude>
+    <ClInclude Include="TinyObjLoader\tiny_obj_loader.h">
+      <Filter>Public\WaveGraphics</Filter>
+    </ClInclude>
+    <ClInclude Include="WMeshLoader.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />

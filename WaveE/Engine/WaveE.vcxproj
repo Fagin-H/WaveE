@@ -127,10 +127,12 @@
     </FxCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="TinyObjLoader\tiny_obj_loader.h" />
     <ClInclude Include="WCamera.h" />
     <ClInclude Include="WMaterial.h" />
     <ClInclude Include="WMesh.h" />
     <ClInclude Include="WMeshBuilder.h" />
+    <ClInclude Include="WMeshLoader.h" />
     <ClInclude Include="WPipeline.h" />
     <ClInclude Include="WResource.h" />
     <ClInclude Include="WResourceManager.h" />
@@ -150,6 +152,7 @@
     <ClCompile Include="WMaterial.cpp" />
     <ClCompile Include="WMesh.cpp" />
     <ClCompile Include="WMeshBuilder.cpp" />
+    <ClCompile Include="WMeshLoader.cpp" />
     <ClCompile Include="WPipeline.cpp" />
     <ClCompile Include="WResourceManager.cpp" />
     <ClCompile Include="WRootSigniture.cpp" />

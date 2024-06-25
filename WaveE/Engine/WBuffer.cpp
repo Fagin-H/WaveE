@@ -34,8 +34,7 @@ namespace WaveE
 		m_state = GetResourceState(rDescriptor);
 
 		D3D12_HEAP_PROPERTIES heapProperties = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
-		size_t tmp = align_value(rDescriptor.sizeBytes, 256);
-		D3D12_RESOURCE_DESC resourceDesc = CD3DX12_RESOURCE_DESC::Buffer(tmp);
+		D3D12_RESOURCE_DESC resourceDesc = CD3DX12_RESOURCE_DESC::Buffer(align_value(rDescriptor.sizeBytes, 256));
 
 		WaveEDevice* pDevice = WaveManager::Instance()->GetDevice();
 
