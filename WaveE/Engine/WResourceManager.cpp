@@ -3,6 +3,7 @@
 #include "WaveManager.h"
 #include <fstream>
 #include <filesystem>
+#include "WTextureLoader.h"
 
 namespace WaveE
 {
@@ -204,6 +205,20 @@ namespace WaveE
 		return m_vpMaterials[id.id];
 	}
 
+	WTexture* WResourceManager::GetTexture(const std::string& textureName) const
+	{
+		auto it = m_textureIndexMap.find(textureName);
+		WAVEE_ASSERT_MESSAGE(it != m_textureIndexMap.end(), "Texture not found!");
+		WAVEE_ASSERT_MESSAGE(it->second < m_vpTextures.size(), "Texture index out of range!");
+
+		if (it != m_textureIndexMap.end())
+		{
+			return m_vpTextures[it->second];
+		}
+
+		return nullptr;
+	}
+
 	WShader* WResourceManager::GetShader(const std::string& shaderName) const
 	{
 		auto it = m_shaderIndexMap.find(shaderName);
@@ -254,6 +269,38 @@ namespace WaveE
 		}
 	}
 
+	void WResourceManager::LoadTexturesFromDirectory(const std::string& directoryPath)
+	{
+		LoadTexturesFromDirectory(directoryPath.c_str());
+	}
+
+	void WResourceManager::LoadTexturesFromDirectory(const char* directoryPath)
+	{
+		namespace fs = std::filesystem;
+
+		for (const auto& entry : fs::recursive_directory_iterator(directoryPath))
+		{
+			if (entry.is_regular_file())
+			{
+				const std::string& filepath = entry.path().string();
+				const std::string& filename = entry.path().stem().string();
+				const std::string& extension = entry.path().extension().string();
+
+				if (extension == ".png")
+				{
+					if (filename.find("_S") != std::string::npos)
+					{
+						m_textureIndexMap[filename] = LoadTexture(filepath.c_str(), WTextureDescriptor::SRGBA);
+					}
+					else if (filename.find("_L") != std::string::npos)
+					{
+						m_textureIndexMap[filename] = LoadTexture(filepath.c_str(), WTextureDescriptor::RGBA);
+					}
+				}
+			}
+		}
+	}
+
 	UINT WResourceManager::LoadShader(const char* filepath, WShaderDescriptor::ShaderType type)
 	{
 		std::ifstream shaderFile{ filepath, std::ios::binary};
@@ -274,9 +321,34 @@ namespace WaveE
 
 		UINT shaderID = CreateResource(descriptor).id;
 
-		delete shaderBytecode;
+		delete[] shaderBytecode;
 
 		return shaderID;
+	}
+
+	UINT WResourceManager::LoadTexture(const char* filepath, WTextureDescriptor::Format format)
+	{
+		UINT width;
+		UINT height;
+		std::vector<glm::vec4> vPixelData;
+
+		int size = MultiByteToWideChar(CP_ACP, MB_PRECOMPOSED, filepath, -1, nullptr, 0);
+		std::wstring wFilePath((size_t)size, 't');
+		MultiByteToWideChar(CP_ACP, MB_PRECOMPOSED, filepath, -1, wFilePath.data(), size);
+
+		WTextureLoader::Instance()->LoadPNGAndGetPixels(wFilePath.c_str(), vPixelData, width, height);
+
+		WTextureDescriptor textureDescriptor;
+		textureDescriptor.format = format;
+		textureDescriptor.usage = WTextureDescriptor::ShaderResource;
+		textureDescriptor.startAsShaderResource = true;
+		textureDescriptor.width = width;
+		textureDescriptor.height = height;
+		textureDescriptor.pInitalData = vPixelData.data();
+
+		UINT textureID = CreateResource(textureDescriptor).id;
+
+		return textureID;
 	}
 
 }

@@ -8,6 +8,7 @@ namespace WaveE
 		enum Format
 		{
 			RGBA,
+			SRGBA,
 			RGBAF16,
 			DepthStencilFloat,
 			DepthStencilTypeless,

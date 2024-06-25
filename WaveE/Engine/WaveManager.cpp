@@ -23,7 +23,6 @@ namespace WaveE
 		// Init all singletons
 		WTextureLoader::Init();
 		WResourceManager::Init();
-		WResourceManager::Instance()->LoadShadersFromDirectory(GetShaderDirectory());
 
 		m_cbvSrvUavHeap.Init(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE, m_descriptorHeapCountCBV_SRV_UAV);
 		m_rtvHeap.Init(D3D12_DESCRIPTOR_HEAP_TYPE_RTV, D3D12_DESCRIPTOR_HEAP_FLAG_NONE, m_descriptorHeapCountRTV);
@@ -46,6 +45,10 @@ namespace WaveE
 
 		CreateDefaultRootSigniture();
 		CreateSlotHLSLIFile();
+
+		// Load Resources
+		WResourceManager::Instance()->LoadShadersFromDirectory(GetShaderDirectory());
+		WResourceManager::Instance()->LoadTexturesFromDirectory(GetTextureDirectory());
 
 		// Default samplers
 		WSamplerDescriptor samplerDescriptors[4] = {
@@ -90,6 +93,7 @@ namespace WaveE
 
 		// Time
 		InitTime();
+
 	}
 
 	void WaveManager::Init(const WaveEDescriptor& rDescriptor)
@@ -846,14 +850,24 @@ namespace WaveE
 		file.close();
 	}
 
+	std::string WaveManager::GetResourceDirectory()
+	{
+		if (m_resourceDirectory.size() == 0)
+		{
+			char pathBuffer[MAX_PATH];
+			GetModuleFileNameA(nullptr, pathBuffer, MAX_PATH);
+			m_resourceDirectory = std::string{ pathBuffer };
+			size_t lastSlashIndex = m_resourceDirectory.find_last_of("\\/");
+			m_resourceDirectory = m_resourceDirectory.substr(0, lastSlashIndex);
+			m_resourceDirectory += "\\..\\..\\..\\..\\Resources";
+		}
+		return m_resourceDirectory;
+	}
+
 	std::string WaveManager::GetShaderDirectory()
 	{
-		char pathBuffer[MAX_PATH];
-		GetModuleFileNameA(nullptr, pathBuffer, MAX_PATH);
-		std::string pathString{ pathBuffer };
-		size_t lastSlashIndex = pathString.find_last_of("\\/");
-		pathString = pathString.substr(0, lastSlashIndex);
-		pathString += "\\..\\..\\..\\..\\Resources\\Shaders";
+		std::string pathString{ GetResourceDirectory() };
+		pathString += "\\Shaders";
 		
 #ifdef _DEBUG
 		pathString += "\\Debug";
@@ -861,6 +875,14 @@ namespace WaveE
 		pathString += "\\Release";
 #endif
 		return pathString;
+	}
+
+	std::string WaveManager::GetTextureDirectory()
+	{
+		std::string pathString{ GetResourceDirectory() };
+		pathString += "\\Textures";
+
+		return m_resourceDirectory;
 	}
 
 	bool WaveManager::IsSamplerSlot(SlotIndex index)

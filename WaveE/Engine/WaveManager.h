@@ -178,7 +178,10 @@ namespace WaveE
 		// Just replace the old hlsli file with the new one and recompile
 		void CreateSlotHLSLIFile();
 
+		std::string GetResourceDirectory();
 		std::string GetShaderDirectory();
+		std::string GetTextureDirectory();
+		std::string m_resourceDirectory;
 
 		bool IsSamplerSlot(SlotIndex index);
 		bool IsCBV_SRV_UAVSlot(SlotIndex index);

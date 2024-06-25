@@ -32,6 +32,7 @@ namespace WaveE
 		ResourceBlock<WSampler> CreateResourceBlock(WSamplerDescriptor* pDescriptors, UINT numDescriptors);
 
 		WTexture* GetResource(ResourceID<WTexture> id) const;
+		WTexture* GetTexture(const std::string& textureName) const;
 		WBuffer* GetResource(ResourceID<WBuffer> id) const;
 		WSampler* GetResource(ResourceID<WSampler> id) const;
 		WMesh* GetResource(ResourceID<WMesh> id) const;
@@ -43,6 +44,9 @@ namespace WaveE
 		void LoadShadersFromDirectory(const std::string& directoryPath);
 		void LoadShadersFromDirectory(const char* directoryPath);
 
+		void LoadTexturesFromDirectory(const std::string& directoryPath);
+		void LoadTexturesFromDirectory(const char* directoryPath);
+
 	private:
 		std::vector<WTexture*> m_vpTextures;
 		std::vector<WBuffer*> m_vpBuffers;
@@ -53,8 +57,10 @@ namespace WaveE
 		std::vector<WMaterial*> m_vpMaterials;
 
 		std::unordered_map<std::string, UINT> m_shaderIndexMap;
+		std::unordered_map<std::string, UINT> m_textureIndexMap;
 
 		UINT LoadShader(const char* filepath, WShaderDescriptor::ShaderType type);
+		UINT LoadTexture(const char* filepath, WTextureDescriptor::Format format);
 
 		WResourceManager();
 		~WResourceManager();

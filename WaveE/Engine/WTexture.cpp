@@ -10,6 +10,8 @@ namespace WaveE
 		{
 		case WTextureDescriptor::RGBA:
 			return DXGI_FORMAT_R8G8B8A8_UNORM;
+		case WTextureDescriptor::SRGBA:
+			return DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
 		case WTextureDescriptor::RGBAF16:
 			return DXGI_FORMAT_R16G16B16A16_FLOAT;
 		case WTextureDescriptor::DepthStencilFloat:
@@ -26,6 +28,7 @@ namespace WaveE
 		switch (format)
 		{
 		case DXGI_FORMAT_R8G8B8A8_UNORM: [[fallthrough]];
+		case DXGI_FORMAT_R8G8B8A8_UNORM_SRGB: [[fallthrough]];
 		case DXGI_FORMAT_D32_FLOAT: [[fallthrough]];
 		case DXGI_FORMAT_R32_TYPELESS: return 4;
 		case DXGI_FORMAT_R16G16B16A16_FLOAT: return 8;
@@ -67,6 +70,7 @@ namespace WaveE
 			switch (format)
 			{
 			case WaveE::WTextureDescriptor::RGBA: [[fallthrough]];
+			case WaveE::WTextureDescriptor::SRGBA: [[fallthrough]];
 			case WaveE::WTextureDescriptor::RGBAF16:
 				return D3D12_RESOURCE_STATE_GENERIC_READ;
 			case WaveE::WTextureDescriptor::DepthStencilFloat: [[fallthrough]];
@@ -79,6 +83,7 @@ namespace WaveE
 			switch (format)
 			{
 			case WaveE::WTextureDescriptor::RGBA: [[fallthrough]];
+			case WaveE::WTextureDescriptor::SRGBA: [[fallthrough]];
 			case WaveE::WTextureDescriptor::RGBAF16:
 				return D3D12_RESOURCE_STATE_RENDER_TARGET;
 			case WaveE::WTextureDescriptor::DepthStencilFloat: [[fallthrough]];

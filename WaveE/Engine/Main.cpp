@@ -118,14 +118,14 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow)
 
     while (WaveInstance->BeginFrame())
     {
-		WaveInstance->GetGameCamera().Rotate(50 * WaveInstance->GetDeltaTime(), 0);
+		/*WaveInstance->GetGameCamera().Rotate(50 * WaveInstance->GetDeltaTime(), 0);
 
-        WaveInstance->SetDefaultRootSigniture();
+		WaveInstance->SetDefaultRootSigniture();
 
-        WaveInstance->ClearBackBuffer();
+		WaveInstance->ClearBackBuffer();
 		WaveInstance->ClearDepthStencilTarget(WaveInstance->GetDefaultDepthTexture());
-        WaveInstance->SetPipelineState(WaveInstance->GetDefaultPipelineState());
-        WaveInstance->SetRenderTargetToSwapChain(WaveInstance->GetDefaultDepthTexture());
+		WaveInstance->SetPipelineState(WaveInstance->GetDefaultPipelineState());
+		WaveInstance->SetRenderTargetToSwapChain(WaveInstance->GetDefaultDepthTexture());
 
 		WaveInstance->BindBuffer(drawBuffer, WaveManager::DRAW_CBV);
 
@@ -139,7 +139,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow)
 		WaveInstance->DrawIndexedMeshWithCurrentParamaters(cubeBlueMeshID);
 
 		drawBuffer.GetResource()->UploadData(&cubeWhiteWorldMatrix, sizeof(glm::mat4));
-		WaveInstance->DrawIndexedMeshWithCurrentParamaters(cubeWhiteMeshID);
+		WaveInstance->DrawIndexedMeshWithCurrentParamaters(cubeWhiteMeshID);*/
 
         WaveInstance->EndFrame();
 
