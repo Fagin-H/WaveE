@@ -35,6 +35,10 @@ namespace WaveE
 		{
 			m_backBufferAllocations[i] = m_rtvHeap.Allocate(1);
 
+			D3D12_RENDER_TARGET_VIEW_DESC renderTargetViewDesc;
+			renderTargetViewDesc.Format = DXGI_FORMAT_B8G8R8A8_UNORM_SRGB;
+			renderTargetViewDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
+
 			m_pDevice->CreateRenderTargetView(m_pBackBuffers[i].Get(), nullptr, m_rtvHeap.GetCPUHandle(m_backBufferAllocations[i]));
 		}
 
@@ -56,7 +60,7 @@ namespace WaveE
 		// Define the default vertex input layout.
 		m_defaultInputElements[0] = D3D12_INPUT_ELEMENT_DESC{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 };
 		m_defaultInputElements[1] = D3D12_INPUT_ELEMENT_DESC{ "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 12, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 };
-		m_defaultInputElements[2] = D3D12_INPUT_ELEMENT_DESC{ "TEXCOORD0", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 24, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 };
+		m_defaultInputElements[2] = D3D12_INPUT_ELEMENT_DESC{ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 24, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 };
 
 		m_defaultInputLayout = { m_defaultInputElements, _countof(m_defaultInputElements) };
 		
@@ -256,7 +260,7 @@ namespace WaveE
 		swapChainDesc.BufferCount = m_frameCount;
 		swapChainDesc.Width = m_width;
 		swapChainDesc.Height = m_height;
-		swapChainDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB; // Automatic gamma correction
+		swapChainDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
 		swapChainDesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
 		swapChainDesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
 		swapChainDesc.SampleDesc.Count = 1;
@@ -776,7 +780,8 @@ namespace WaveE
 
 		file << "#pragma once\n";
 
-		UINT CBV_SRVCount = 0;
+		UINT CBVCount = 0;
+		UINT SRVCount = 0;
 		UINT samplerCount = 0;
 
 		// Writing default slots
@@ -789,29 +794,29 @@ namespace WaveE
 		// Writing per frame slots
 		for (UINT i = 0; i < m_frameCVBCount; ++i)
 		{
-			file << "#define FRAME_CBV_" << i << " b" << i + CBV_SRVCount << "\n";
+			file << "#define FRAME_CBV_" << i << " b" << i + CBVCount << "\n";
 		}
-		CBV_SRVCount += m_frameCVBCount;
+		CBVCount += m_frameCVBCount;
 
 		// Writing per draw slots
 		for (UINT i = 0; i < m_drawCBVCount; ++i)
 		{
-			file << "#define DRAW_CBV_" << i << " b" << i + CBV_SRVCount << "\n";
+			file << "#define DRAW_CBV_" << i << " b" << i + CBVCount << "\n";
 		}
-		CBV_SRVCount += m_drawCBVCount;
+		CBVCount += m_drawCBVCount;
 
 		// Writing global slots
 		for (UINT i = 0; i < m_globalCBVCount; ++i)
 		{
-			file << "#define GLOBAL_CBV_" << i << " b" << i + CBV_SRVCount << "\n";
+			file << "#define GLOBAL_CBV_" << i << " b" << i + CBVCount << "\n";
 		}
-		CBV_SRVCount += m_globalCBVCount;
+		CBVCount += m_globalCBVCount;
 
 		for (UINT i = 0; i < m_globalSRVCount; ++i)
 		{
-			file << "#define GLOBAL_SRV_" << i << " t" << i + CBV_SRVCount << "\n";
+			file << "#define GLOBAL_SRV_" << i << " t" << i + SRVCount << "\n";
 		}
-		CBV_SRVCount += m_globalSRVCount;
+		SRVCount += m_globalSRVCount;
 
 		for (UINT i = 0; i < m_globalSamplerCount; ++i)
 		{
@@ -822,15 +827,15 @@ namespace WaveE
 		// Writing material slots
 		for (UINT i = 0; i < m_materialCBVCount; ++i)
 		{
-			file << "#define MATERIAL_CBV_" << i << " b" << i + CBV_SRVCount << "\n";
+			file << "#define MATERIAL_CBV_" << i << " b" << i + CBVCount << "\n";
 		}
-		CBV_SRVCount += m_materialCBVCount;
+		CBVCount += m_materialCBVCount;
 
 		for (UINT i = 0; i < m_materialSRVCount; ++i)
 		{
-			file << "#define MATERIAL_SRV_" << i << " t" << i + CBV_SRVCount << "\n";
+			file << "#define MATERIAL_SRV_" << i << " t" << i + SRVCount << "\n";
 		}
-		CBV_SRVCount += m_materialSRVCount;
+		SRVCount += m_materialSRVCount;
 
 		for (UINT i = 0; i < m_materialSamplerCount; ++i)
 		{
