@@ -588,11 +588,11 @@ namespace WaveE
 
 		if (shouldSetRTV)
 		{
-			rtvHandle = m_rtvHeap.GetCPUHandle(RTVId.id);
+			rtvHandle = m_rtvHeap.GetCPUHandle(RTVId.GetResource()->GetAllocationRTV_DSV());
 		}
 		if (shouldSetDSV)
 		{
-			dsvHandle = m_dsvHeap.GetCPUHandle(DSVId.id);
+			dsvHandle = m_dsvHeap.GetCPUHandle(DSVId.GetResource()->GetAllocationRTV_DSV());
 		}
 
 		m_pCommandList->OMSetRenderTargets(1, shouldSetRTV ? &rtvHandle : nullptr, FALSE, shouldSetDSV ? &dsvHandle : nullptr);
@@ -626,7 +626,7 @@ namespace WaveE
 		bool shouldSetDSV = DSVId.id != UINT_MAX;
 		if (shouldSetDSV)
 		{
-			dsvHandle = m_dsvHeap.GetCPUHandle(DSVId.id);
+			dsvHandle = m_dsvHeap.GetCPUHandle(DSVId.GetResource()->GetAllocationRTV_DSV());
 		}
 
 		// Transition the back buffer to a render target
@@ -639,7 +639,7 @@ namespace WaveE
 	{
 		WAVEE_ASSERT_MESSAGE(!id.GetResource()->IsDepthType(), "Can't clear render target view on depth texture!");
 
-		CD3DX12_CPU_DESCRIPTOR_HANDLE handle = m_rtvHeap.GetCPUHandle(id.id);
+		CD3DX12_CPU_DESCRIPTOR_HANDLE handle = m_rtvHeap.GetCPUHandle(id.GetResource()->GetAllocationRTV_DSV());
 		m_pCommandList->ClearRenderTargetView(handle, &colour[0], 0, nullptr);
 	}
 
@@ -647,7 +647,7 @@ namespace WaveE
 	{
 		WAVEE_ASSERT_MESSAGE(id.GetResource()->IsDepthType(), "Can't clear depth stencil target view on non depth texture!");
 
-		CD3DX12_CPU_DESCRIPTOR_HANDLE handle = m_dsvHeap.GetCPUHandle(id.id);
+		CD3DX12_CPU_DESCRIPTOR_HANDLE handle = m_dsvHeap.GetCPUHandle(id.GetResource()->GetAllocationRTV_DSV());
 		m_pCommandList->ClearDepthStencilView(handle, D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, depth, stencil, 0, nullptr);
 	}
 
