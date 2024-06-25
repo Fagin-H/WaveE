@@ -663,7 +663,7 @@ namespace WaveE
 		m_pCommandList->DrawIndexedInstanced(id.GetResource()->GetIndexCount(), count, 0, 0, 0);
 	}
 
-	void WaveManager::DrawMesh(ResourceID<WMesh> mesh, ResourceID<WMaterial> material, UINT count = 1)
+	void WaveManager::DrawMesh(ResourceID<WMesh> mesh, ResourceID<WMaterial> material, UINT count)
 	{
 		if (mesh.id != m_currentMesh.id)
 		{
@@ -678,7 +678,7 @@ namespace WaveE
 		m_pCommandList->DrawInstanced(mesh.GetResource()->GetVertexCount(), count, 0, 0);
 	}
 
-	void WaveManager::DrawIndexedMesh(ResourceID<WMesh> mesh, ResourceID<WMaterial> material, UINT count = 1)
+	void WaveManager::DrawIndexedMesh(ResourceID<WMesh> mesh, ResourceID<WMaterial> material, UINT count)
 	{
 		if (mesh.id != m_currentMesh.id)
 		{
