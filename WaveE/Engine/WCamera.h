@@ -5,7 +5,7 @@ namespace WaveE
 	class WCamera
 	{
 	public:
-		WCamera(wma::vec3 position, wma::vec3 up, float yaw, float pitch, float fov, float aspectRatio, float nearPlane, float farPlane);
+		WCamera(wma::vec3 position, float yaw, float pitch, float fov, float aspectRatio, float nearPlane, float farPlane);
 
 		wma::mat4 GetViewMatrix() const;
 		wma::mat4 GetProjectionMatrix() const;

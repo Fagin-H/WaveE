@@ -15,7 +15,7 @@ namespace WaveE
 {
 	struct CameraControls
 	{
-		float mouseSensitivity{ 2.f };
+		float mouseSensitivity{ 3.f };
 		float moveSpeed{ 5 };
 		UINT forward{ 'W' };
 		UINT backwards{ 'S' };

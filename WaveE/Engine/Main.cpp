@@ -26,13 +26,14 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow)
     // Create meshes
 	ResourceID<WMesh> cubMeshID = WResourceManager::Instance()->GetMeshID("cube");
 	ResourceID<WMesh> planeMeshID = WResourceManager::Instance()->GetMeshID("plane");
+	ResourceID<WMesh> icosphereMeshID = WResourceManager::Instance()->GetMeshID("icosphere");
 
 	// Create world matrices
 	wma::mat4 cubeWorldMatrix;
 	{
 		WaveManager::WorldMatrixDescriptor worldMatrixDesc;
 
-		worldMatrixDesc.worldPos = wma::vec3{ 0, 1, 5 };
+		worldMatrixDesc.worldPos = wma::vec3{ 2, 1, 10 };
 		worldMatrixDesc.xRotation = 90;
 
 		WaveInstance->CreateWorldMatrix(cubeWorldMatrix, worldMatrixDesc);
@@ -40,19 +41,43 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow)
 	wma::mat4 planeWorldMatrix;
 	{
 		WaveManager::WorldMatrixDescriptor worldMatrixDesc;
-
+		worldMatrixDesc.worldPos = wma::vec3{ 0, 0, 5 };
 		worldMatrixDesc.scale = 10;
 
 		WaveInstance->CreateWorldMatrix(planeWorldMatrix, worldMatrixDesc);
+	}
+	wma::mat4 icosphereWorldMatrix;
+	{
+		WaveManager::WorldMatrixDescriptor worldMatrixDesc;
+
+		worldMatrixDesc.worldPos = wma::vec3{ -2, 1, 10 };
+
+		WaveInstance->CreateWorldMatrix(icosphereWorldMatrix, worldMatrixDesc);
+	}
+	wma::mat4 glassIcosphereWorldMatrix;
+	{
+		WaveManager::WorldMatrixDescriptor worldMatrixDesc;
+
+		worldMatrixDesc.worldPos = wma::vec3{ 0, 3, 5 };
+
+		WaveInstance->CreateWorldMatrix(glassIcosphereWorldMatrix, worldMatrixDesc);
 	}
 
 	// Create textures
 	ResourceID<WTexture> waveAlbidoTexture = WResourceManager::Instance()->GetTextureID("WaveE_A_L");
 	ResourceID<WTexture> waveNormalTexture = WResourceManager::Instance()->GetTextureID("WaveE_N_L");
 	ResourceID<WTexture> tilesAlbidoTexture = WResourceManager::Instance()->GetTextureID("Tiles_A_L");
-	ResourceID<WTexture> tilesNormalTexture = WResourceManager::Instance()->GetTextureID("Tiles_N_L.");
+	ResourceID<WTexture> tilesNormalTexture = WResourceManager::Instance()->GetTextureID("Tiles_N_L");	
+	ResourceID<WTexture> iceAlbidoTexture = WResourceManager::Instance()->GetTextureID("Ice_A_L");
+	ResourceID<WTexture> iceNormalTexture = WResourceManager::Instance()->GetTextureID("Ice_N_L");
 
-	// Create material
+	ResourceID<WTexture> glassNormalTexture;
+	{
+		WTextureDescriptor textureDesc;
+		
+	}
+
+	// Create materials
 	ResourceID<WMaterial> waveMaterial;
 	{
 		WMaterialDescriptor materialDesc;
@@ -66,6 +91,24 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow)
 		tilesMaterial = WResourceManager::Instance()->CreateResource(materialDesc);
 		tilesMaterial.GetResource()->SwapTexture(tilesAlbidoTexture, 0);
 		tilesMaterial.GetResource()->SwapTexture(tilesNormalTexture, 1);
+	}
+	ResourceID<WMaterial> iceMaterial;
+	{
+		WMaterialDescriptor materialDesc;
+		iceMaterial = WResourceManager::Instance()->CreateResource(materialDesc);
+		iceMaterial.GetResource()->SwapTexture(iceAlbidoTexture, 0);
+		iceMaterial.GetResource()->SwapTexture(iceNormalTexture, 1);
+	}
+
+	// Create pipeline states
+	ResourceID<WPipeline> normalPipeline;
+	{
+		WPipelineDescriptor pipelineDescriptor;
+		pipelineDescriptor.pVertexShader = WResourceManager::Instance()->GetShader("glassNormalShader_VS");
+		pipelineDescriptor.pPixelShader = WResourceManager::Instance()->GetShader("glassNormalShader_PS");
+		//pipelineDescriptor.rtvFormats[0] = DXGI_FORMAT_R16G16B16A16_FLOAT;
+		pipelineDescriptor.dsvFormat = DXGI_FORMAT_D32_FLOAT;
+		normalPipeline = WResourceManager::Instance()->CreateResource(pipelineDescriptor);
 	}
 
 	// Create per draw buffer
@@ -97,10 +140,11 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow)
     while (WaveInstance->BeginFrame())
     {
 		cubeWorldMatrix = wma::rotate(cubeWorldMatrix, (float)WaveInstance->GetDeltaTime(), wma::vec3{ 0.f, 0.f, 1.f });
+		icosphereWorldMatrix = wma::rotate(icosphereWorldMatrix, -(float)WaveInstance->GetDeltaTime(), wma::vec3{ 0.f, 0.f, 1.f });
 
 		WaveInstance->SetDefaultRootSigniture();
 
-		WaveInstance->ClearBackBuffer();
+		WaveInstance->ClearBackBuffer({ 0.5f, 0.8f, 0.9f });
 		WaveInstance->ClearDepthStencilTarget(WaveInstance->GetDefaultDepthTexture());
 		WaveInstance->SetPipelineState(WaveInstance->GetDefaultPipelineState());
 		WaveInstance->SetRenderTargetToSwapChain(WaveInstance->GetDefaultDepthTexture());
@@ -110,8 +154,15 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow)
 		drawBuffer.GetResource()->UploadData(&cubeWorldMatrix, sizeof(wma::mat4));
 		WaveInstance->DrawMesh(cubMeshID, waveMaterial);
 
+		drawBuffer.GetResource()->UploadData(&icosphereWorldMatrix, sizeof(wma::mat4));
+		WaveInstance->DrawMesh(icosphereMeshID, iceMaterial);
+
 		drawBuffer.GetResource()->UploadData(&planeWorldMatrix, sizeof(wma::mat4));
 		WaveInstance->DrawMesh(planeMeshID, tilesMaterial);
+
+		WaveInstance->SetPipelineState(normalPipeline);
+		drawBuffer.GetResource()->UploadData(&glassIcosphereWorldMatrix, sizeof(wma::mat4));
+		WaveInstance->DrawMeshWithCurrentParamaters(icosphereMeshID);
 
         WaveInstance->EndFrame();
 
