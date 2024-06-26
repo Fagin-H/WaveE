@@ -58,6 +58,7 @@
     <ClCompile Include="WMaths.cpp">
       <Filter>Private</Filter>
     </ClCompile>
+    <ClCompile Include="WInput.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="stdafx.h">
@@ -120,6 +121,7 @@
     <ClInclude Include="WMaths.h">
       <Filter>Public</Filter>
     </ClInclude>
+    <ClInclude Include="WInput.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />

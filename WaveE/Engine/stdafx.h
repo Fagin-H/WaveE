@@ -20,6 +20,9 @@
 #endif
 
 #include <windows.h>
+#include <atlbase.h>
+#include <atlwin.h>
+#include "hidusage.h"
 
 #include <d3d12.h>
 #include <dxgi1_6.h>

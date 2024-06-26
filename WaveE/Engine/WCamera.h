@@ -24,7 +24,7 @@ namespace WaveE
 		void UpdateCameraVectors();
 
 		wma::vec3 m_position;
-		wma::vec3 m_front;
+		wma::vec3 m_forwards;
 		wma::vec3 m_up;
 		wma::vec3 m_right;
 		wma::vec3 m_worldUp;

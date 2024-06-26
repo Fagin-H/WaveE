@@ -34,7 +34,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow)
 	{
 		WaveManager::WorldMatrixDescriptor worldMatrixDesc;
 
-		worldMatrixDesc.worldPos = wma::vec3{ 5, 0, 0 };
+		worldMatrixDesc.worldPos = wma::vec3{ 5, 5, 0 };
 		worldMatrixDesc.xRotation = 90;
 		WaveInstance->CreateWorldMatrix(cube1WorldMatrix, worldMatrixDesc);
 

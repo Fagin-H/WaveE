@@ -3,6 +3,7 @@
 #include <fstream>
 #include "WTextureLoader.h"
 #include "WMeshLoader.h"
+#include "WInput.h"
 
 namespace WaveE
 {
@@ -12,6 +13,8 @@ namespace WaveE
 		: m_gameCamera{ {0, 0, 0}, {0, 1, 0}, 0, 0, 45, static_cast<float>(rDescriptor.width) / rDescriptor.height, 0.1f, 100.f }
 	{
 		ms_pInstance = this;
+
+		m_gameCameraControls = rDescriptor.cameraControls;
 
 		m_height = rDescriptor.height;
 		m_width = rDescriptor.width;
@@ -24,6 +27,7 @@ namespace WaveE
 		WTextureLoader::Init();
 		WResourceManager::Init();
 		WMeshLoader::Init();
+		WInput::Init();
 
 		m_cbvSrvUavHeap.Init(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE, m_descriptorHeapCountCBV_SRV_UAV);
 		m_rtvHeap.Init(D3D12_DESCRIPTOR_HEAP_TYPE_RTV, D3D12_DESCRIPTOR_HEAP_FLAG_NONE, m_descriptorHeapCountRTV);
@@ -148,6 +152,7 @@ namespace WaveE
 		WTextureLoader::Uninit();
 		WResourceManager::Uninit();
 		WMeshLoader::Uninit();
+		WInput::Uninit();
 	}
 
 	void WaveManager::InitWindow(const WaveEDescriptor& rDescriptor)
@@ -204,6 +209,13 @@ namespace WaveE
 		SetWindowTextA(m_hwnd, rDescriptor.title);
 		ShowWindow(m_hwnd, SW_SHOWNORMAL);
 		UpdateWindow(m_hwnd);
+
+		RAWINPUTDEVICE rid;
+		rid.usUsagePage = HID_USAGE_PAGE_GENERIC;
+		rid.usUsage = HID_USAGE_GENERIC_MOUSE;
+		rid.dwFlags = RIDEV_INPUTSINK;
+		rid.hwndTarget = m_hwnd;
+		WAVEE_ASSERT_MESSAGE(RegisterRawInputDevices(&rid, 1, sizeof(rid)), "Failed to register raw input!");
 	}
 
 	void WaveManager::InitDX12(const WaveEDescriptor& rDescriptor)
@@ -346,10 +358,121 @@ namespace WaveE
 				}
 				return 0;
 			}
+			case WM_INPUT:
+			{
+				if (pWaveManager)
+				{
+					pWaveManager->HandleRawInput(lParam);
+				}
+				return 0;
+			}
+			case WM_KEYDOWN: [[fallthrough]];
+			case WM_KEYUP:
+			{
+				if (pWaveManager)
+				{
+					pWaveManager->HandleKeyEvent(wParam, message == WM_KEYDOWN);
+				}
+				return 0;
+			}
+			case WM_LBUTTONDOWN: [[fallthrough]];
+			case WM_LBUTTONUP: [[fallthrough]];
+			case WM_RBUTTONDOWN: [[fallthrough]];
+			case WM_RBUTTONUP: [[fallthrough]];
+			case WM_MBUTTONDOWN: [[fallthrough]];
+			case WM_MBUTTONUP: [[fallthrough]];
+			case WM_MOUSEMOVE: [[fallthrough]];
+			{
+				if (pWaveManager)
+				{
+					pWaveManager->HandleMouseMove(message, wParam, lParam);
+				}
+				return 0;
+			}
 		}
 
 		// Handle any messages the switch statement didn't.
 		return DefWindowProc(hWnd, message, wParam, lParam);
+	}
+
+	void WaveManager::HideCursor()
+	{
+		::ShowCursor(FALSE);
+	}
+
+	void WaveManager::ShowCursor()
+	{
+		::ShowCursor(TRUE);
+	}
+
+	void WaveManager::ConfineCursor()
+	{
+		RECT rect;
+		GetClientRect(m_hwnd, &rect);
+		MapWindowPoints(m_hwnd, nullptr, reinterpret_cast<POINT*>(&rect), 2);
+		ClipCursor(&rect);
+	}
+
+	void WaveManager::ReleaseCursor()
+	{
+		ClipCursor(nullptr);
+	}
+
+	void WaveManager::HandleKeyEvent(WPARAM wParam, bool isDown)
+	{
+		if (wParam < 256)
+		{
+			m_currentKeyState.set(wParam, isDown);
+		}
+	}
+
+	void WaveManager::HandleMouseMove(UINT message, WPARAM wParam, LPARAM lParam)
+	{
+		// Update mouse button states
+		switch (message)
+		{
+		case WM_LBUTTONDOWN:
+			m_currentMouseState.leftMouseButton = true;
+			break;
+		case WM_LBUTTONUP:
+			m_currentMouseState.leftMouseButton = false;
+			break;
+		case WM_RBUTTONDOWN:
+			m_currentMouseState.rightMouseButton = true;
+			break;
+		case WM_RBUTTONUP:
+			m_currentMouseState.rightMouseButton = false;
+			break;
+		case WM_MBUTTONDOWN:
+			m_currentMouseState.middleMouseButton = true;
+			break;
+		case WM_MBUTTONUP:
+			m_currentMouseState.middleMouseButton = false;
+			break;
+		}
+
+		// Update mouse position
+		if (message == WM_MOUSEMOVE)
+		{
+			POINTS points = MAKEPOINTS(lParam);
+			m_currentMouseState.mousePosition.x = points.x;
+			m_currentMouseState.mousePosition.y = points.y;
+		}
+	}
+
+	void WaveManager::HandleRawInput(LPARAM lParam)
+	{
+		UINT dwSize = 0;
+		GetRawInputData(reinterpret_cast<HRAWINPUT>(lParam), RID_INPUT, nullptr, &dwSize, sizeof(RAWINPUTHEADER));
+		std::vector<BYTE> lpb(dwSize);
+		WAVEE_ASSERT_MESSAGE(GetRawInputData(reinterpret_cast<HRAWINPUT>(lParam), RID_INPUT, lpb.data(), &dwSize, sizeof(RAWINPUTHEADER)) == dwSize, "Failed to get raw input data!");
+
+		RAWINPUT* raw = reinterpret_cast<RAWINPUT*>(lpb.data());
+		if (raw->header.dwType == RIM_TYPEMOUSE)
+		{
+			m_currentMouseState.delta.x = raw->data.mouse.lLastX;
+			m_currentMouseState.delta.y = raw->data.mouse.lLastY;
+		}
 	}
 
 	bool WaveManager::UpdateWindowLoop()
@@ -378,6 +501,22 @@ namespace WaveE
 		}
 
 		UpdateTime();
+
+		// Mouse input and camera movement
+		if (WInput::Instance()->WasMouseButtonPressed(MOUSE_RIGHT))
+		{
+			HideCursor();
+			ConfineCursor();
+		}
+		else if (WInput::Instance()->WasMouseButtonReleased(MOUSE_RIGHT))
+		{
+			ShowCursor();
+			ReleaseCursor();
+		}
+		if (WInput::Instance()->IsMouseButtonDown(MOUSE_RIGHT))
+		{
+			UpdateGameCamera();
+		}
 
 		HRESULT hr = m_pCommandAllocators[m_frameIndex]->Reset();
 		WAVEE_ASSERT_MESSAGE(SUCCEEDED(hr), "Failed to reset command allocator!");
@@ -437,11 +576,15 @@ namespace WaveE
 		m_fenceValues[m_frameIndex] = currentFenceValue + 1;
 
 		m_uploadManager.EndFrame();
+		WInput::Instance()->EndFrameUpdate();
 
 		// Reset current pipeline, material, and mesh
 		m_currentPipeline = {};
 		m_currentMaterial = {};
 		m_currentMesh = {};
+
+		// Reset input states
+		UpdateInputStates();
 	}
 
 	ResourceID<WSampler> WaveManager::GetDefaultSampler(SamplerType type)
@@ -987,5 +1130,43 @@ namespace WaveE
 		m_camerBufferData.projectionMatrix = m_gameCamera.GetProjectionMatrix();
 		m_camerBufferData.viewPos = wma::vec4{ m_gameCamera.GetPosition(), 0 };
 		m_camerBufferData.time[0] = static_cast<float>(GetGameTime());
+	}
+
+	void WaveManager::UpdateInputStates()
+	{
+		m_previousMouseState = m_currentMouseState;
+		m_previousKeyState = m_currentKeyState;
+
+		m_currentMouseState.delta.x = 0;
+		m_currentMouseState.delta.y = 0;
+	}
+
+	void WaveManager::UpdateGameCamera()
+	{
+		if (WInput::Instance()->IsKeyDown(m_gameCameraControls.forward))
+		{
+			m_gameCamera.MoveForward(m_gameCameraControls.moveSpeed * GetDeltaTime());
+		}
+		if (WInput::Instance()->IsKeyDown(m_gameCameraControls.backwards))
+		{
+			m_gameCamera.MoveForward(-m_gameCameraControls.moveSpeed * GetDeltaTime());
+		}
+		if (WInput::Instance()->IsKeyDown(m_gameCameraControls.right))
+		{
+			m_gameCamera.MoveRight(m_gameCameraControls.moveSpeed * GetDeltaTime());
+		}
+		if (WInput::Instance()->IsKeyDown(m_gameCameraControls.left))
+		{
+			m_gameCamera.MoveRight(-m_gameCameraControls.moveSpeed * GetDeltaTime());
+		}
+		if (WInput::Instance()->IsKeyDown(m_gameCameraControls.up))
+		{
+			m_gameCamera.MoveUp(m_gameCameraControls.moveSpeed * GetDeltaTime());
+		}
+		if (WInput::Instance()->IsKeyDown(m_gameCameraControls.down))
+		{
+			m_gameCamera.MoveUp(-m_gameCameraControls.moveSpeed * GetDeltaTime());
+		}
+		m_gameCamera.Rotate(WInput::Instance()->GetMouseDelta().x * m_gameCameraControls.mouseSensitivity, WInput::Instance()->GetMouseDelta().y * m_gameCameraControls.mouseSensitivity);
 	}
 }

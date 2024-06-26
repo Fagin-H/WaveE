@@ -1,6 +1,8 @@
 #pragma once
-#include "WDescriptorHeapManager.h"
 #include <functional>
+#include <bitset>
+
+#include "WDescriptorHeapManager.h"
 #include "WUploadManager.h"
 #include "WRootSigniture.h"
 #include "WSampler.h"
@@ -11,12 +13,25 @@
 
 namespace WaveE
 {
+	struct CameraControls
+	{
+		float mouseSensitivity{ 2.f };
+		float moveSpeed{ 5 };
+		UINT forward{ 'W' };
+		UINT backwards{ 'S' };
+		UINT left{ 'A' };
+		UINT right{ 'D' };
+		UINT up{ 'Q' };
+		UINT down{ 'E' };
+	};
+
 	struct WaveEDescriptor
 	{
 		UINT width{ 1280 };
 		UINT height{ 720 };
 		float targetFrameRate{ 60.f };
 		const char* title{ "WaveE" };
+		CameraControls cameraControls{};
 	};
 
 	// Manager class for WaveE
@@ -36,6 +51,15 @@ namespace WaveE
 		static WaveManager* ms_pInstance;
 
 	public:
+		struct MouseState
+		{
+			POINTS mousePosition;
+			wma::vec2 delta;
+			bool leftMouseButton;
+			bool middleMouseButton;
+			bool rightMouseButton;
+		};
+
 		bool BeginFrame();
 		void EndFrame();
 
@@ -63,6 +87,9 @@ namespace WaveE
 		
 		double GetDeltaTime() const { return m_deltaTime; }
 		double GetGameTime() const { return m_gameTime; }
+
+		const MouseState& GetMouseState(bool getPrevious = false) const{ return getPrevious ? m_previousMouseState : m_currentMouseState; }
+		const std::bitset<256>& GetKeyState(bool getPrevious = false) const{ return getPrevious ? m_previousKeyState : m_currentKeyState; }
 
 		enum SamplerType
 		{
@@ -166,6 +193,16 @@ namespace WaveE
 		// Updates the window loop, return true if the program should quit
 		bool UpdateWindowLoop();
 		static LRESULT CALLBACK WindowProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
+
+		void HideCursor();
+		void ShowCursor();
+		void ConfineCursor();
+		void ReleaseCursor();
+
+		void HandleKeyEvent(WPARAM wParam, bool isDown);
+		void HandleMouseMove(UINT message, WPARAM wParam, LPARAM lParam);
+		void HandleRawInput(LPARAM lParam);
+
 		void GetHardwareAdapter(
 			IDXGIFactory1* pFactory,
 			IDXGIAdapter1** ppAdapter,
@@ -195,6 +232,9 @@ namespace WaveE
 
 		void UpdateCameraBuffer();
 
+		void UpdateInputStates();
+		void UpdateGameCamera();
+
 		// DX12 variables
 		static const UINT m_frameCount{ 2 };
 
@@ -215,6 +255,14 @@ namespace WaveE
 		// Windows variables
 		HWND m_hwnd{ NULL };
 		HINSTANCE m_hInstance{ GetModuleHandle(NULL) };
+
+		// Input
+		// Keyboard state
+		std::bitset<256> m_currentKeyState;
+		std::bitset<256> m_previousKeyState;
+		// Mouse State
+		MouseState m_currentMouseState;
+		MouseState m_previousMouseState;
 
 		// WaveE variables
 		WDescriptorHeapManager m_cbvSrvUavHeap;
@@ -256,6 +304,7 @@ namespace WaveE
 		__int64 m_currentTime{ 0 };
 		float m_targetFrameTime;
 
+		CameraControls m_gameCameraControls;
 		WCamera m_gameCamera;
 
 		CameraBuffer m_camerBufferData;

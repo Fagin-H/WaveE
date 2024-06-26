@@ -11,7 +11,7 @@ namespace WaveE
 
 	wma::mat4 WCamera::GetViewMatrix() const
 	{
-		wma::mat4 viewMat = wma::lookAt(m_position, m_position + m_front, m_up);
+		wma::mat4 viewMat = wma::lookAt(m_position, m_position + m_forwards, m_up);
 
 		return viewMat;
 	}
@@ -30,7 +30,7 @@ namespace WaveE
 
 	void WCamera::MoveForward(float delta)
 	{
-		m_position += m_front * delta;
+		m_position += m_forwards * delta;
 	}
 
 	void WCamera::MoveRight(float delta)
@@ -50,9 +50,13 @@ namespace WaveE
 
 		// Constrain the pitch
 		if (m_pitch > 89.0f)
+		{
 			m_pitch = 89.0f;
+		}
 		if (m_pitch < -89.0f)
+		{
 			m_pitch = -89.0f;
+		}
 
 		UpdateCameraVectors();
 	}
@@ -79,13 +83,14 @@ namespace WaveE
 	void WCamera::UpdateCameraVectors()
 	{
 		// Calculate the new Front vector
-		wma::vec3 front;
-		front.x = cos(wma::radians(m_yaw)) * cos(wma::radians(m_pitch));
-		front.y = sin(wma::radians(m_pitch));
-		front.z = sin(wma::radians(m_yaw)) * cos(wma::radians(m_pitch));
-		m_front = wma::normalize(front);
-		// Also re-calculate the Right and Up vector
-		m_right = wma::normalize(wma::cross(m_front, m_worldUp));  // Normalize the vectors, because their length gets closer to 0 the more you look up or down which results in slower movement.
-		m_up = wma::normalize(wma::cross(m_right, m_front));
+
+		float cosYaw = cos(wma::radians(m_yaw));
+		float sinYaw = sin(wma::radians(m_yaw));
+		float cosPitch = cos(wma::radians(m_pitch));
+		float sinPitch = sin(wma::radians(m_pitch));
+
+		m_forwards = wma::vec3{ sinYaw * cosPitch, -sinPitch, cosYaw * cosPitch };
+		m_right = wma::vec3{ cosYaw, 0.f, -sinYaw };
+		m_up = wma::vec3{ sinYaw * sinPitch, cosPitch, cosYaw * sinPitch };
 	}
 }

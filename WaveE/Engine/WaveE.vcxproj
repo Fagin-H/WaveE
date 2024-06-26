@@ -129,6 +129,7 @@
   <ItemGroup>
     <ClInclude Include="TinyObjLoader\tiny_obj_loader.h" />
     <ClInclude Include="WCamera.h" />
+    <ClInclude Include="WInput.h" />
     <ClInclude Include="WMaterial.h" />
     <ClInclude Include="WMaths.h" />
     <ClInclude Include="WMesh.h" />
@@ -150,6 +151,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="WCamera.cpp" />
+    <ClCompile Include="WInput.cpp" />
     <ClCompile Include="WMaterial.cpp" />
     <ClCompile Include="WMaths.cpp" />
     <ClCompile Include="WMesh.cpp" />
