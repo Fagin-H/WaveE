@@ -14,9 +14,9 @@ namespace WaveE
 			return DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
 		case WTextureDescriptor::RGBAF16:
 			return DXGI_FORMAT_R16G16B16A16_FLOAT;
-		case WTextureDescriptor::DepthStencilFloat:
+		case WTextureDescriptor::DepthFloat:
 			return DXGI_FORMAT_D32_FLOAT;
-		case WTextureDescriptor::DepthStencilTypeless:
+		case WTextureDescriptor::DepthTypeless:
 			return DXGI_FORMAT_R32_TYPELESS;
 		default:
 			return DXGI_FORMAT_UNKNOWN;
@@ -45,7 +45,7 @@ namespace WaveE
 
 		if (usage & WTextureDescriptor::Usage::RenderTarget)
 		{
-			if (format == WTextureDescriptor::Format::DepthStencilFloat || format == WTextureDescriptor::Format::DepthStencilTypeless)
+			if (format == WTextureDescriptor::Format::DepthFloat || format == WTextureDescriptor::Format::DepthTypeless)
 			{
 				flags |= D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
 			}
@@ -73,8 +73,8 @@ namespace WaveE
 			case WaveE::WTextureDescriptor::SRGBA: [[fallthrough]];
 			case WaveE::WTextureDescriptor::RGBAF16:
 				return D3D12_RESOURCE_STATE_GENERIC_READ;
-			case WaveE::WTextureDescriptor::DepthStencilFloat: [[fallthrough]];
-			case WaveE::WTextureDescriptor::DepthStencilTypeless:
+			case WaveE::WTextureDescriptor::DepthFloat: [[fallthrough]];
+			case WaveE::WTextureDescriptor::DepthTypeless:
 				return D3D12_RESOURCE_STATE_DEPTH_READ;
 			}
 		}
@@ -86,8 +86,8 @@ namespace WaveE
 			case WaveE::WTextureDescriptor::SRGBA: [[fallthrough]];
 			case WaveE::WTextureDescriptor::RGBAF16:
 				return D3D12_RESOURCE_STATE_RENDER_TARGET;
-			case WaveE::WTextureDescriptor::DepthStencilFloat: [[fallthrough]];
-			case WaveE::WTextureDescriptor::DepthStencilTypeless:
+			case WaveE::WTextureDescriptor::DepthFloat: [[fallthrough]];
+			case WaveE::WTextureDescriptor::DepthTypeless:
 				return D3D12_RESOURCE_STATE_DEPTH_WRITE;
 			}
 		}
@@ -106,7 +106,7 @@ namespace WaveE
 		m_height = rDescriptor.height;
 		m_currentState = rDescriptor.startAsShaderResource ? State::Input : State::Output;
 
-		m_isDepthType = rDescriptor.format == WTextureDescriptor::Format::DepthStencilFloat || rDescriptor.format == WTextureDescriptor::Format::DepthStencilTypeless;
+		m_isDepthType = rDescriptor.format == WTextureDescriptor::Format::DepthFloat || rDescriptor.format == WTextureDescriptor::Format::DepthTypeless;
 
 		D3D12_HEAP_PROPERTIES heapProperties = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
 		DXGI_FORMAT dxgiFormat = GetDXGIFormat(rDescriptor.format);

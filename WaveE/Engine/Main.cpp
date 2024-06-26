@@ -71,10 +71,18 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow)
 	ResourceID<WTexture> iceAlbidoTexture = WResourceManager::Instance()->GetTextureID("Ice_A_L");
 	ResourceID<WTexture> iceNormalTexture = WResourceManager::Instance()->GetTextureID("Ice_N_L");
 
-	ResourceID<WTexture> glassNormalTexture;
+	ResourceID<WTexture> glassFrountNormalTexture;
+	ResourceID<WTexture> glassBackNormalTexture;
+	//WDescriptorHeapManager::Allocation glassNormalTexturesAllocation = WDescriptorHeapManager::Instance()->Allocate(2);
 	{
 		WTextureDescriptor textureDesc;
-		
+		textureDesc.format = WTextureDescriptor::RGBAF16;
+		textureDesc.usage = WTextureDescriptor::ResourceAndTarget;
+		textureDesc.startAsShaderResource = false;
+		textureDesc.width = WaveInstance->GetWidth();
+		textureDesc.height = WaveInstance->GetHeight();
+		glassFrountNormalTexture = WResourceManager::Instance()->CreateResource(textureDesc);
+		glassBackNormalTexture = WResourceManager::Instance()->CreateResource(textureDesc);
 	}
 
 	// Create materials
@@ -101,14 +109,17 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow)
 	}
 
 	// Create pipeline states
-	ResourceID<WPipeline> normalPipeline;
+	ResourceID<WPipeline> frountNormalPipeline;
+	ResourceID<WPipeline> backNormalPipeline;
 	{
 		WPipelineDescriptor pipelineDescriptor;
 		pipelineDescriptor.pVertexShader = WResourceManager::Instance()->GetShader("glassNormalShader_VS");
 		pipelineDescriptor.pPixelShader = WResourceManager::Instance()->GetShader("glassNormalShader_PS");
-		//pipelineDescriptor.rtvFormats[0] = DXGI_FORMAT_R16G16B16A16_FLOAT;
-		pipelineDescriptor.dsvFormat = DXGI_FORMAT_D32_FLOAT;
-		normalPipeline = WResourceManager::Instance()->CreateResource(pipelineDescriptor);
+		pipelineDescriptor.depthStencilState.DepthEnable = FALSE;
+		pipelineDescriptor.depthStencilState.StencilEnable = FALSE;
+		frountNormalPipeline = WResourceManager::Instance()->CreateResource(pipelineDescriptor);
+		pipelineDescriptor.rasterizerState.CullMode = D3D12_CULL_MODE_FRONT;
+		backNormalPipeline = WResourceManager::Instance()->CreateResource(pipelineDescriptor);
 	}
 
 	// Create per draw buffer
@@ -160,7 +171,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow)
 		drawBuffer.GetResource()->UploadData(&planeWorldMatrix, sizeof(wma::mat4));
 		WaveInstance->DrawMesh(planeMeshID, tilesMaterial);
 
-		WaveInstance->SetPipelineState(normalPipeline);
+		WaveInstance->SetPipelineState(frountNormalPipeline);
 		drawBuffer.GetResource()->UploadData(&glassIcosphereWorldMatrix, sizeof(wma::mat4));
 		WaveInstance->DrawMeshWithCurrentParamaters(icosphereMeshID);
 

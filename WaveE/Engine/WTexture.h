@@ -10,14 +10,15 @@ namespace WaveE
 			RGBA,
 			SRGBA,
 			RGBAF16,
-			DepthStencilFloat,
-			DepthStencilTypeless,
+			DepthFloat,
+			DepthTypeless,
 		};
 
 		enum Usage : UINT
 		{
-			ShaderResource = 0,
-			RenderTarget = 1 << 0,
+			ShaderResource = 1,
+			RenderTarget = 1 << 1,
+			ResourceAndTarget = ShaderResource | RenderTarget,
 		};
 
 		Format format{ RGBA };
