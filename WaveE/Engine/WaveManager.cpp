@@ -482,21 +482,16 @@ namespace WaveE
 		// Initialize the world matrix as an identity matrix
 		worldMatrix = wma::mat4{};
 
-		// Apply scaling
-		wma::mat4 scaleMatrix = wma::scale(wma::mat4{}, wma::vec3(rDescriptor.scale * rDescriptor.xScale, rDescriptor.scale * rDescriptor.yScale, rDescriptor.scale * rDescriptor.zScale));
-		worldMatrix = scaleMatrix * worldMatrix;
+		// Apply translation
+		worldMatrix = wma::translate(worldMatrix, rDescriptor.worldPos);
 
 		// Apply rotation
-		wma::mat4 rotationXMatrix = wma::rotate(wma::mat4{}, wma::radians(rDescriptor.xRotation), wma::vec3(1.0f, 0.0f, 0.0f));
-		wma::mat4 rotationYMatrix = wma::rotate(wma::mat4{}, wma::radians(rDescriptor.yRotation), wma::vec3(0.0f, 1.0f, 0.0f));
-		wma::mat4 rotationZMatrix = wma::rotate(wma::mat4{}, wma::radians(rDescriptor.zRotation), wma::vec3(0.0f, 0.0f, 1.0f));
+		worldMatrix = wma::rotate(worldMatrix, wma::radians(rDescriptor.xRotation), wma::vec3(1.0f, 0.0f, 0.0f));
+		worldMatrix = wma::rotate(worldMatrix, wma::radians(rDescriptor.yRotation), wma::vec3(0.0f, 1.0f, 0.0f));
+		worldMatrix = wma::rotate(worldMatrix, wma::radians(rDescriptor.zRotation), wma::vec3(0.0f, 0.0f, 1.0f));
 
-		wma::mat4 rotationMatrix = rotationZMatrix * rotationYMatrix * rotationXMatrix;
-		worldMatrix = rotationMatrix * worldMatrix;
-
-		// Apply translation
-		wma::mat4 translationMatrix = wma::translate(wma::mat4{}, rDescriptor.worldPos);
-		worldMatrix = translationMatrix * worldMatrix;
+		// Apply scaling
+		worldMatrix = wma::scale(worldMatrix, wma::vec3(rDescriptor.scale * rDescriptor.xScale, rDescriptor.scale * rDescriptor.yScale, rDescriptor.scale * rDescriptor.zScale));
 
 		worldMatrix = worldMatrix;
 	}

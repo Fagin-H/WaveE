@@ -40,8 +40,6 @@ float4 PSMain(PSInput input) : SV_TARGET
     float3 normal = GetNormal(vertexNormal, normalMap, viewDir, input.texCoord);
     float4 colour = m_albedo.Sample(g_samplerLinearWrap, input.texCoord);
     
-    //return float4(vertexNormal * 2 + 1, 1);
-    
     float3 lightColour = ambientColor.rgb * ambientColor.a;
 
     for (int i = 0; i < MAX_LIGHT; ++i)

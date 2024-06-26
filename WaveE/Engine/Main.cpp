@@ -82,10 +82,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow)
 
     while (WaveInstance->BeginFrame())
     {
-		//WaveInstance->GetGameCamera().Rotate(50 * WaveInstance->GetDeltaTime(), 0);
-		cube1WorldMatrix[0][3] = 0;
-		cube1WorldMatrix = wma::rotate(cube1WorldMatrix, (float)WaveInstance->GetDeltaTime(), wma::vec3{ 0,1.f,0 });
-		cube1WorldMatrix[0][3] = 5;
+		cube1WorldMatrix = wma::rotate(cube1WorldMatrix, (float)WaveInstance->GetDeltaTime(), wma::vec3{ 0.f, 0.f, 1.f });
+		wma::mat4 newcube1WorldMatrix = wma::scale(cube1WorldMatrix, wma::vec3{ 1, sin((float)WaveInstance->GetGameTime()) * 0.5f + 1.25f, cos((float)WaveInstance->GetGameTime()) * 0.5f + 1.25f });
 
 		WaveInstance->SetDefaultRootSigniture();
 
@@ -96,7 +94,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow)
 
 		WaveInstance->BindBuffer(drawBuffer, WaveManager::DRAW_CBV);
 
-		drawBuffer.GetResource()->UploadData(&cube1WorldMatrix, sizeof(wma::mat4));
+		drawBuffer.GetResource()->UploadData(&newcube1WorldMatrix, sizeof(wma::mat4));
 		WaveInstance->DrawMesh(cubMeshID, cubeMaterial);
 
 		drawBuffer.GetResource()->UploadData(&cube2WorldMatrix, sizeof(wma::mat4));

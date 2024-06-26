@@ -1,6 +1,8 @@
 #pragma once
 #include "SlotMacros.hlsli"
 
+#pragma pack_matrix( row_major )
+
 #define MAX_LIGHT 4
 
 SamplerState g_samplerPointWrap : register(DEFAULT_SAMPLER_0);
@@ -68,5 +70,5 @@ float3 GetNormal(float3 vertexNormal, float3 normalMap, float3 viewDirection, fl
     normalMap.y = -normalMap.y;
     
     float3x3 TBN = CalculateTangentFrame(vertexNormal, -viewDirection, texcoord);
-    return normalize(mul(TBN, normalMap));
+    return normalize(mul(normalMap, TBN));
 }
