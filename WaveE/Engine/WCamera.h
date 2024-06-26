@@ -27,7 +27,6 @@ namespace WaveE
 		wma::vec3 m_forwards;
 		wma::vec3 m_up;
 		wma::vec3 m_right;
-		wma::vec3 m_worldUp;
 
 		float m_yaw;
 		float m_pitch;

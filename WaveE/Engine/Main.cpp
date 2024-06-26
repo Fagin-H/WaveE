@@ -25,40 +25,47 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow)
     
     // Create meshes
 	ResourceID<WMesh> cubMeshID = WResourceManager::Instance()->GetMeshID("cube");
+	ResourceID<WMesh> planeMeshID = WResourceManager::Instance()->GetMeshID("plane");
 
 	// Create world matrices
-	wma::mat4 cube1WorldMatrix;
-	wma::mat4 cube2WorldMatrix;
-	wma::mat4 cube3WorldMatrix;
-	wma::mat4 cube4WorldMatrix;
+	wma::mat4 cubeWorldMatrix;
 	{
 		WaveManager::WorldMatrixDescriptor worldMatrixDesc;
 
-		worldMatrixDesc.worldPos = wma::vec3{ 5, 5, 0 };
+		worldMatrixDesc.worldPos = wma::vec3{ 0, 1, 5 };
 		worldMatrixDesc.xRotation = 90;
-		WaveInstance->CreateWorldMatrix(cube1WorldMatrix, worldMatrixDesc);
 
-		worldMatrixDesc.worldPos = wma::vec3{ -5, 0, 0 };
-		WaveInstance->CreateWorldMatrix(cube2WorldMatrix, worldMatrixDesc);
+		WaveInstance->CreateWorldMatrix(cubeWorldMatrix, worldMatrixDesc);
+	}
+	wma::mat4 planeWorldMatrix;
+	{
+		WaveManager::WorldMatrixDescriptor worldMatrixDesc;
 
-		worldMatrixDesc.worldPos = wma::vec3{ 0, 0, 5 };
-		WaveInstance->CreateWorldMatrix(cube3WorldMatrix, worldMatrixDesc);
+		worldMatrixDesc.scale = 10;
 
-		worldMatrixDesc.worldPos = wma::vec3{ 0, 0, -5 };
-		WaveInstance->CreateWorldMatrix(cube4WorldMatrix, worldMatrixDesc);
+		WaveInstance->CreateWorldMatrix(planeWorldMatrix, worldMatrixDesc);
 	}
 
 	// Create textures
-	ResourceID<WTexture> albidoTexture = WResourceManager::Instance()->GetTextureID("WaveE_A_L");
-	ResourceID<WTexture> normalTexture = WResourceManager::Instance()->GetTextureID("WaveE_N_L");
+	ResourceID<WTexture> waveAlbidoTexture = WResourceManager::Instance()->GetTextureID("WaveE_A_L");
+	ResourceID<WTexture> waveNormalTexture = WResourceManager::Instance()->GetTextureID("WaveE_N_L");
+	ResourceID<WTexture> tilesAlbidoTexture = WResourceManager::Instance()->GetTextureID("Tiles_A_L");
+	ResourceID<WTexture> tilesNormalTexture = WResourceManager::Instance()->GetTextureID("Tiles_N_L.");
 
 	// Create material
-	ResourceID<WMaterial> cubeMaterial;
+	ResourceID<WMaterial> waveMaterial;
 	{
 		WMaterialDescriptor materialDesc;
-		cubeMaterial = WResourceManager::Instance()->CreateResource(materialDesc);
-		cubeMaterial.GetResource()->SwapTexture(albidoTexture, 0);
-		cubeMaterial.GetResource()->SwapTexture(normalTexture, 1);
+		waveMaterial = WResourceManager::Instance()->CreateResource(materialDesc);
+		waveMaterial.GetResource()->SwapTexture(waveAlbidoTexture, 0);
+		waveMaterial.GetResource()->SwapTexture(waveNormalTexture, 1);
+	}
+	ResourceID<WMaterial> tilesMaterial;
+	{
+		WMaterialDescriptor materialDesc;
+		tilesMaterial = WResourceManager::Instance()->CreateResource(materialDesc);
+		tilesMaterial.GetResource()->SwapTexture(tilesAlbidoTexture, 0);
+		tilesMaterial.GetResource()->SwapTexture(tilesNormalTexture, 1);
 	}
 
 	// Create per draw buffer
@@ -70,11 +77,18 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow)
 		drawBuffer = WResourceManager::Instance()->CreateResource(drawBufferDesc);
 	}
 
-	WaveManager::Light light;
-	light.colour = wma::vec4{ 1, 1, 1, 1 };
-	light.position = wma::vec4{ 0, 0, 0, 0 };
+	WaveManager::Light light1;
+	WaveManager::Light light2;
+	light1.colour = wma::vec4{ 1, 1, 1, 1 };
+	light1.position = wma::vec4{ 0, 0, 0, 0 };
 
-	WaveInstance->SetLight(light, 0);
+	light2.colour = wma::vec4{ 0.9f, 0.8f, 0.6f, 1 };
+	light2.position = wma::vec4{ 0, 10, 0, 0 };
+
+	WaveInstance->SetLight(light1, 0);
+	WaveInstance->SetLight(light2, 1);
+
+
 	WaveInstance->SetAmbientLight(wma::vec4{ 1, 1, 1, 0.1f });
 
 
@@ -82,8 +96,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow)
 
     while (WaveInstance->BeginFrame())
     {
-		cube1WorldMatrix = wma::rotate(cube1WorldMatrix, (float)WaveInstance->GetDeltaTime(), wma::vec3{ 0.f, 0.f, 1.f });
-		wma::mat4 newcube1WorldMatrix = wma::scale(cube1WorldMatrix, wma::vec3{ 1, sin((float)WaveInstance->GetGameTime()) * 0.5f + 1.25f, cos((float)WaveInstance->GetGameTime()) * 0.5f + 1.25f });
+		cubeWorldMatrix = wma::rotate(cubeWorldMatrix, (float)WaveInstance->GetDeltaTime(), wma::vec3{ 0.f, 0.f, 1.f });
 
 		WaveInstance->SetDefaultRootSigniture();
 
@@ -94,17 +107,11 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow)
 
 		WaveInstance->BindBuffer(drawBuffer, WaveManager::DRAW_CBV);
 
-		drawBuffer.GetResource()->UploadData(&newcube1WorldMatrix, sizeof(wma::mat4));
-		WaveInstance->DrawMesh(cubMeshID, cubeMaterial);
+		drawBuffer.GetResource()->UploadData(&cubeWorldMatrix, sizeof(wma::mat4));
+		WaveInstance->DrawMesh(cubMeshID, waveMaterial);
 
-		drawBuffer.GetResource()->UploadData(&cube2WorldMatrix, sizeof(wma::mat4));
-		WaveInstance->DrawMesh(cubMeshID, cubeMaterial);
-
-		drawBuffer.GetResource()->UploadData(&cube3WorldMatrix, sizeof(wma::mat4));
-		WaveInstance->DrawMesh(cubMeshID, cubeMaterial);
-
-		drawBuffer.GetResource()->UploadData(&cube4WorldMatrix, sizeof(wma::mat4));
-		WaveInstance->DrawMesh(cubMeshID, cubeMaterial);
+		drawBuffer.GetResource()->UploadData(&planeWorldMatrix, sizeof(wma::mat4));
+		WaveInstance->DrawMesh(planeMeshID, tilesMaterial);
 
         WaveInstance->EndFrame();
 

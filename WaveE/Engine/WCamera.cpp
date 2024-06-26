@@ -4,7 +4,7 @@
 namespace WaveE
 {
 	WCamera::WCamera(wma::vec3 position, wma::vec3 up, float yaw, float pitch, float fov, float aspectRatio, float nearPlane, float farPlane)
-		: m_position(position), m_worldUp(up), m_yaw(yaw), m_pitch(pitch), m_fov(fov), m_aspectRatio(aspectRatio), m_nearPlane(nearPlane), m_farPlane(farPlane)
+		: m_position(position), m_yaw(yaw), m_pitch(pitch), m_fov(fov), m_aspectRatio(aspectRatio), m_nearPlane(nearPlane), m_farPlane(farPlane)
 	{
 		UpdateCameraVectors();
 	}
@@ -40,7 +40,7 @@ namespace WaveE
 
 	void WCamera::MoveUp(float delta)
 	{
-		m_position += m_worldUp * delta;
+		m_position += m_up * delta;
 	}
 
 	void WCamera::Rotate(float yaw, float pitch)
