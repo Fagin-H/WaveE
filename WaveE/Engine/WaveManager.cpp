@@ -4,7 +4,6 @@
 #include "WaveManager.h"
 #include "WTextureLoader.h"
 #include "WMeshLoader.h"
-#include "WInput.h"
 
 namespace WaveE
 {
@@ -471,8 +470,8 @@ namespace WaveE
 		RAWINPUT* raw = reinterpret_cast<RAWINPUT*>(lpb.data());
 		if (raw->header.dwType == RIM_TYPEMOUSE)
 		{
-			m_currentMouseState.delta.x = raw->data.mouse.lLastX;
-			m_currentMouseState.delta.y = raw->data.mouse.lLastY;
+			m_currentMouseState.delta.x += raw->data.mouse.lLastX;
+			m_currentMouseState.delta.y += raw->data.mouse.lLastY;
 		}
 	}
 
