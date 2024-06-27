@@ -13,6 +13,15 @@ namespace WaveE
 	{
 		m_bufferSize = bufferSize;
 
+		WaveEDevice* pDevice = WaveManager::Instance()->GetDevice();
+
+		// Create a fence for synchronization
+		HRESULT hr = pDevice->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&m_pFence));
+		WAVEE_ASSERT_MESSAGE(SUCCEEDED(hr), "Failed to create fence!");
+
+		m_fenceEvent = CreateEvent(nullptr, FALSE, FALSE, nullptr);
+		WAVEE_ASSERT_MESSAGE(m_fenceEvent, "Failed to create fence event!");
+
 		for (UINT i = 0; i < bufferCount; ++i)
 		{
 			CreateUploadBuffer();
@@ -123,23 +132,48 @@ namespace WaveE
 
 	void WUploadManager::EndFrame()
 	{
-		for (int i = 0; i < m_vInUseBuffers.size(); )
+		std::vector<UINT> bufferIndicesToRelease;
+		for (UINT i = 0; i < m_vInUseBuffers.size(); i++)
 		{
 			UINT bufferIndex = m_vInUseBuffers[i];
+
+			if (m_pFence->GetCompletedValue() >= m_vUploadBuffers[bufferIndex].fenceValue)
+			{
+				bufferIndicesToRelease.push_back(bufferIndex);
+			}
+		}
+		for (UINT bufferIndex : bufferIndicesToRelease)
+		{
 			ReleaseUploadBuffer(bufferIndex);
 		}
 	}
 
 	UINT WUploadManager::RequestUploadBuffer()
 	{
+		WaveECommandQueue* pCommandQueue = WaveManager::Instance()->GetCommandQueue();
+
+		// Signal and increment the fence value
+		const UINT64 fenceToWaitFor = m_fenceValue;
+		HRESULT hr = pCommandQueue->Signal(m_pFence.Get(), fenceToWaitFor);
+		WAVEE_ASSERT_MESSAGE(SUCCEEDED(hr), "Failed to signal fence!");
+
+		m_fenceValue++;
+
+		UINT bufferIndex;
+
 		if (m_qAvailableBuffers.empty())
 		{
-			return CreateUploadBuffer();
+			bufferIndex = CreateUploadBuffer(false);
+		}
+		else
+		{
+			bufferIndex = m_qAvailableBuffers.front();
+			m_qAvailableBuffers.pop();
+			m_vInUseBuffers.push_back(bufferIndex);
 		}
 
-		UINT bufferIndex = m_qAvailableBuffers.front();
-		m_qAvailableBuffers.pop();
-		m_vInUseBuffers.push_back(bufferIndex);
+		m_vUploadBuffers[bufferIndex].fenceValue = fenceToWaitFor;
+
 		return bufferIndex;
 	}
 
@@ -157,7 +191,7 @@ namespace WaveE
 		m_qAvailableBuffers.push(bufferIndex);
 	}
 
-	UINT WUploadManager::CreateUploadBuffer()
+	UINT WUploadManager::CreateUploadBuffer(bool addToAvailableBuffers)
 	{
 		UploadBuffer newBuffer;
 
@@ -174,8 +208,17 @@ namespace WaveE
 		WAVEE_ASSERT_MESSAGE(SUCCEEDED(hr), "Failed to create upload buffer!");
 
 		m_vUploadBuffers.push_back(std::move(newBuffer));
-		UINT newBefferIndex = static_cast<UINT>(m_vUploadBuffers.size()) - 1;
-		m_qAvailableBuffers.push(newBefferIndex);
-		return newBefferIndex;
+		UINT newBufferIndex = static_cast<UINT>(m_vUploadBuffers.size()) - 1;
+		
+		if (addToAvailableBuffers)
+		{
+			m_qAvailableBuffers.push(newBufferIndex);
+		}
+		else
+		{
+			m_vInUseBuffers.push_back(newBufferIndex);
+		}
+
+		return newBufferIndex;
 	}
 }

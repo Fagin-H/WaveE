@@ -23,6 +23,25 @@ namespace WaveE
 		return resourceState;
 	}
 
+	D3D12_RESOURCE_STATES GetInitialResourceState(const WBufferDescriptor& rDescriptor)
+	{
+		D3D12_RESOURCE_STATES resourceState = D3D12_RESOURCE_STATE_GENERIC_READ;
+
+		if (!rDescriptor.isDynamic)
+		{
+			switch (rDescriptor.type)
+			{
+			case WBufferDescriptor::Constant: [[fallthrough]];
+			case WBufferDescriptor::Vertex: resourceState = D3D12_RESOURCE_STATE_COMMON; break;
+			case WBufferDescriptor::Index: resourceState = D3D12_RESOURCE_STATE_INDEX_BUFFER; break;
+			case WBufferDescriptor::SRV: resourceState = D3D12_RESOURCE_STATE_ALL_SHADER_RESOURCE; break;
+			case WBufferDescriptor::UAV: resourceState = D3D12_RESOURCE_STATE_UNORDERED_ACCESS; break;
+			}
+		}
+
+		return resourceState;
+	}
+
 	WBuffer::WBuffer(const WBufferDescriptor& rDescriptor, WDescriptorHeapManager::Allocation allocation, UINT offset)
 		: m_allocation{ allocation }
 		, m_offset{offset}
@@ -32,6 +51,7 @@ namespace WaveE
 		m_sizeBytes = rDescriptor.sizeBytes;
 		m_type = rDescriptor.type;
 		m_state = GetResourceState(rDescriptor);
+		D3D12_RESOURCE_STATES initialState = GetInitialResourceState(rDescriptor);
 
 		D3D12_HEAP_PROPERTIES heapProperties = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
 		D3D12_RESOURCE_DESC resourceDesc = CD3DX12_RESOURCE_DESC::Buffer(align_value(rDescriptor.sizeBytes, 256));
@@ -43,11 +63,20 @@ namespace WaveE
 		HRESULT hr = pDevice->CreateCommittedResource(&heapProperties,
 			D3D12_HEAP_FLAG_NONE,
 			&resourceDesc,
-			m_state,
+			initialState,
 			nullptr,
 			IID_PPV_ARGS(&m_pBuffer));
 
 		WAVEE_ASSERT_MESSAGE(SUCCEEDED(hr), "Failed to create committed resource for buffer!");
+
+		if (m_state != initialState)
+		{
+			// Transition state to D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER
+			WaveECommandList* pCommandList = WaveManager::Instance()->GetCommandList();
+
+			CD3DX12_RESOURCE_BARRIER barrierTransition = CD3DX12_RESOURCE_BARRIER::Transition(m_pBuffer.Get(), initialState, m_state);
+			pCommandList->ResourceBarrier(1, &barrierTransition);
+		}
 
 		WDescriptorHeapManager* pCBVDescriptorHeapManager = WaveManager::Instance()->GetCBV_SRV_UAVHeap();
 		if (m_doesOwnAllocation)
@@ -59,13 +88,16 @@ namespace WaveE
 
 		switch (m_type)
 		{
-		case WBufferDescriptor::Constant: [[fallthrough]];
-		case WBufferDescriptor::Vertex:
+		case WBufferDescriptor::Constant:
 		{
 			D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc = {};
 			cbvDesc.BufferLocation = m_pBuffer->GetGPUVirtualAddress();
 			cbvDesc.SizeInBytes = static_cast<UINT>(align_value(m_sizeBytes, 256));
 			pDevice->CreateConstantBufferView(&cbvDesc, cpuDescriptorHandle);
+			break;
+		}
+		case WBufferDescriptor::Vertex:
+		{
 			break;
 		}
 		// #TODO update WBufferDescriptor to pass in more data to update the creation of views

@@ -27,7 +27,16 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow)
 	ResourceID<WMesh> cubMeshID = WResourceManager::Instance()->GetMeshID("cube");
 	ResourceID<WMesh> planeMeshID = WResourceManager::Instance()->GetMeshID("plane");
 	ResourceID<WMesh> icosphereMeshID = WResourceManager::Instance()->GetMeshID("icosphere");
-	ResourceID<WMesh> glassMesh = cubMeshID;
+	ResourceID<WMesh> sphereMeshID = WResourceManager::Instance()->GetMeshID("sphere");
+	ResourceID<WMesh> concaveLensMeshID = WResourceManager::Instance()->GetMeshID("concaveLens");
+	ResourceID<WMesh> convexLenseMeshID = WResourceManager::Instance()->GetMeshID("convexLense");
+
+	ResourceID<WMesh>* allMeshes[] = { &cubMeshID, &planeMeshID, &icosphereMeshID, &sphereMeshID, &concaveLensMeshID, &convexLenseMeshID };
+	UINT numMeshes = _countof(allMeshes);
+	UINT glassMeshIndex = 3;
+
+	ResourceID<WMesh> glassMesh;
+
 	// Create world matrices
 	wma::mat4 cubeWorldMatrix;
 	{
@@ -171,7 +180,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow)
 	glassBufferData.colourAbsorption = { 1, 1, 1, 0 };
 	glassBufferData.useInternalReflections = { 1, 0, 0, 0 };
 	glassBufferData.screenRes = { static_cast<float>(WaveInstance->GetWidth()), static_cast<float>(WaveInstance->GetHeight()) };
-	glassBufferData.refractionIndex = 1.1f;
+	glassBufferData.refractionIndex = 1.5f;
 	glassBufferData.maxItterations = 500;
 
 	ResourceID<WBuffer> glassBuffer;
@@ -202,6 +211,14 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow)
 
     while (WaveInstance->BeginFrame())
     {
+		if (WInput::Instance()->WasKeyPressed(VK_SPACE))
+		{
+			glassMeshIndex++;
+			glassMeshIndex %= numMeshes;
+		}
+
+		glassMesh = *allMeshes[glassMeshIndex];
+
 		cubeWorldMatrix = wma::rotate(cubeWorldMatrix, (float)WaveInstance->GetDeltaTime(), wma::vec3{ 0.f, 0.f, 1.f });
 		icosphereWorldMatrix = wma::rotate(icosphereWorldMatrix, -(float)WaveInstance->GetDeltaTime(), wma::vec3{ 0.f, 0.f, 1.f });
 		glassWorldMatrix = wma::rotate(glassWorldMatrix, -(float)WaveInstance->GetDeltaTime(), wma::vec3{ 0.f, 1.f, 0.f });

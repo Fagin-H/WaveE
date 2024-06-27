@@ -2,6 +2,7 @@
 #include <functional>
 #include <bitset>
 
+#include "WInput.h"
 #include "WDescriptorHeapManager.h"
 #include "WUploadManager.h"
 #include "WRootSigniture.h"
@@ -15,7 +16,7 @@ namespace WaveE
 {
 	struct CameraControls
 	{
-		float mouseSensitivity{ 3.f };
+		float mouseSensitivity{ 1.f };
 		float moveSpeed{ 5 };
 		UINT forward{ 'W' };
 		UINT backwards{ 'S' };
@@ -317,7 +318,7 @@ namespace WaveE
 		const UINT m_descriptorHeapCountDSV{ 32 };
 		const UINT m_descriptorHeapCountSampler{ 32 };
 
-		const UINT m_uploadBufferCount{ 10 };
+		const UINT m_uploadBufferCount{ 20 };
 		const UINT m_uploadBufferSize{ 1024 * 1024 * 32 };
 
 		const UINT m_defaultSamplerCount{ 4 };

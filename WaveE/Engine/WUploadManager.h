@@ -22,6 +22,7 @@ namespace WaveE
 		struct UploadBuffer
 		{
 			ComPtr<ID3D12Resource> pResource;
+			UINT64 fenceValue;
 		};
 
 		size_t m_bufferSize;
@@ -29,9 +30,13 @@ namespace WaveE
 		std::queue<UINT> m_qAvailableBuffers;
 		std::vector<UINT> m_vInUseBuffers;
 
+		HANDLE m_fenceEvent;
+		ComPtr<ID3D12Fence> m_pFence;
+		UINT64 m_fenceValue;
+
 		UINT RequestUploadBuffer();
 		void ReleaseUploadBuffer(UINT bufferIndex);
-		UINT CreateUploadBuffer();
+		UINT CreateUploadBuffer(bool addToAvailableBuffers = true);
 		
 		friend class WaveManager;
 		void EndFrame();
