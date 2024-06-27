@@ -27,16 +27,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow)
 	ResourceID<WMesh> cubMeshID = WResourceManager::Instance()->GetMeshID("cube");
 	ResourceID<WMesh> planeMeshID = WResourceManager::Instance()->GetMeshID("plane");
 	ResourceID<WMesh> icosphereMeshID = WResourceManager::Instance()->GetMeshID("icosphere");
-	ResourceID<WMesh> sphereMeshID = WResourceManager::Instance()->GetMeshID("sphere");
-	ResourceID<WMesh> concaveLensMeshID = WResourceManager::Instance()->GetMeshID("concaveLens");
-	ResourceID<WMesh> convexLenseMeshID = WResourceManager::Instance()->GetMeshID("convexLense");
-
-	ResourceID<WMesh>* allMeshes[] = { &cubMeshID, &planeMeshID, &icosphereMeshID, &sphereMeshID, &concaveLensMeshID, &convexLenseMeshID };
-	UINT numMeshes = _countof(allMeshes);
-	UINT glassMeshIndex = 3;
-
-	ResourceID<WMesh> glassMesh;
-
+	ResourceID<WMesh> glassMesh = cubMeshID;
 	// Create world matrices
 	wma::mat4 cubeWorldMatrix;
 	{
@@ -180,7 +171,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow)
 	glassBufferData.colourAbsorption = { 1, 1, 1, 0 };
 	glassBufferData.useInternalReflections = { 1, 0, 0, 0 };
 	glassBufferData.screenRes = { static_cast<float>(WaveInstance->GetWidth()), static_cast<float>(WaveInstance->GetHeight()) };
-	glassBufferData.refractionIndex = 1.5f;
+	glassBufferData.refractionIndex = 1.1f;
 	glassBufferData.maxItterations = 500;
 
 	ResourceID<WBuffer> glassBuffer;
@@ -211,14 +202,6 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow)
 
     while (WaveInstance->BeginFrame())
     {
-		if (WInput::Instance()->WasKeyPressed(VK_SPACE))
-		{
-			glassMeshIndex++;
-			glassMeshIndex %= numMeshes;
-		}
-
-		glassMesh = *allMeshes[glassMeshIndex];
-
 		cubeWorldMatrix = wma::rotate(cubeWorldMatrix, (float)WaveInstance->GetDeltaTime(), wma::vec3{ 0.f, 0.f, 1.f });
 		icosphereWorldMatrix = wma::rotate(icosphereWorldMatrix, -(float)WaveInstance->GetDeltaTime(), wma::vec3{ 0.f, 0.f, 1.f });
 		glassWorldMatrix = wma::rotate(glassWorldMatrix, -(float)WaveInstance->GetDeltaTime(), wma::vec3{ 0.f, 1.f, 0.f });
@@ -273,24 +256,32 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow)
 			WaveInstance->DrawMeshWithCurrentParamaters(glassMesh);
 		}
 
-		// Draw scene again. Hack until copy implemented
+		// Copy scene to swap chain
 		{
-			WaveInstance->ClearBackBuffer({ 0.5f, 0.8f, 0.9f });
-			WaveInstance->ClearDepthStencilTarget(WaveInstance->GetDefaultDepthTexture());
 			WaveInstance->SetRenderTargetToSwapChain(WaveInstance->GetDefaultDepthTexture());
 
-			WaveInstance->SetPipelineState(WaveInstance->GetDefaultPipelineState());
+			ID3D12Resource* pBackBuffer = WaveInstance->GetCurrentBackBuffer();
+			ID3D12Resource* pDefaultDepth = WaveInstance->GetDefaultDepthTexture().GetResource()->GetTexture();
+			ID3D12Resource* pGlassAlbedo = glassScreenAlbedoTexture.GetResource()->GetTexture();
+			ID3D12Resource* pGlassDepth = glassScreenDepthTexture.GetResource()->GetTexture();
 
-			WaveInstance->BindBuffer(drawBuffer, WaveManager::DRAW_CBV);
+			D3D12_TEXTURE_COPY_LOCATION copyLocationDestination;
+			D3D12_TEXTURE_COPY_LOCATION copyLocationSource;
 
-			drawBuffer.GetResource()->UploadData(&cubeWorldMatrix, sizeof(wma::mat4));
-			WaveInstance->DrawMesh(cubMeshID, waveMaterial);
+			copyLocationDestination.pResource = pBackBuffer;
+			copyLocationDestination.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
+			copyLocationDestination.SubresourceIndex = 0;
 
-			drawBuffer.GetResource()->UploadData(&icosphereWorldMatrix, sizeof(wma::mat4));
-			WaveInstance->DrawMesh(icosphereMeshID, iceMaterial);
+			copyLocationSource.pResource = pGlassAlbedo;
+			copyLocationSource.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
+			copyLocationSource.SubresourceIndex = 0;
 
-			drawBuffer.GetResource()->UploadData(&planeWorldMatrix, sizeof(wma::mat4));
-			WaveInstance->DrawMesh(planeMeshID, tilesMaterial);
+			WaveInstance->CopyTexture(&copyLocationDestination, &copyLocationSource);
+
+			copyLocationDestination.pResource = pDefaultDepth;
+			copyLocationSource.pResource = pGlassDepth;
+
+			WaveInstance->CopyTexture(&copyLocationDestination, &copyLocationSource);
 		}
 
 		// Glass

@@ -639,6 +639,27 @@ namespace WaveE
 		worldMatrix = worldMatrix;
 	}
 
+	void WaveManager::CopyTexture(ResourceID<WTexture> destination, ResourceID<WTexture> source)
+	{
+		D3D12_TEXTURE_COPY_LOCATION copyLocationDestination;
+		D3D12_TEXTURE_COPY_LOCATION copyLocationSource;
+
+		copyLocationDestination.pResource = destination.GetResource()->GetTexture();
+		copyLocationDestination.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
+		copyLocationDestination.SubresourceIndex = 0;
+
+		copyLocationSource.pResource = source.GetResource()->GetTexture();
+		copyLocationSource.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
+		copyLocationSource.SubresourceIndex = 0;
+
+		CopyTexture(&copyLocationDestination, &copyLocationSource);
+	}
+
+	void WaveManager::CopyTexture(const D3D12_TEXTURE_COPY_LOCATION* pDst, const D3D12_TEXTURE_COPY_LOCATION* pSrc)
+	{
+		m_pCommandList->CopyTextureRegion(pDst, 0, 0, 0, pSrc, nullptr);
+	}
+
 	void WaveManager::SetPipelineState(ResourceID<WPipeline> id)
 	{
 		WAVEE_ASSERT_MESSAGE(id.IsValid(), "Invalid pipeline!");

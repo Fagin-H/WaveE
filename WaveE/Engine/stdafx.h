@@ -60,6 +60,7 @@ namespace WaveE
 	using WaveEDevice = ID3D12Device1;
 	using WaveECommandList = ID3D12GraphicsCommandList;
 	using WaveECommandQueue = ID3D12CommandQueue;
+	using WaveESwapChain = IDXGISwapChain3;
 
 	// Useful Macros
 

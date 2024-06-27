@@ -68,6 +68,8 @@ namespace WaveE
 		WaveEDevice* GetDevice() const { return m_pDevice.Get(); }
 		WaveECommandList* GetCommandList() const { return m_pCommandList.Get(); }
 		WaveECommandQueue* GetCommandQueue() const { return m_pCommandQueue.Get(); }
+		WaveESwapChain* GetSwapChain() const { return m_pSwapChain.Get(); }
+		ID3D12Resource* GetCurrentBackBuffer() const { return m_pBackBuffers[m_frameIndex].Get(); }
 
 		WDescriptorHeapManager* GetCBV_SRV_UAVHeap() { return &m_cbvSrvUavHeap; }
 		WDescriptorHeapManager* GetRTVHeap() { return &m_rtvHeap; }
@@ -152,6 +154,9 @@ namespace WaveE
 		void ClearRenderTarget(ResourceID<WTexture> id, wma::vec4 colour = { 0,0,0,1 });
 		void ClearDepthStencilTarget(ResourceID<WTexture> id, float depth = 1, UINT stencil = 0);
 		void ClearBackBuffer(wma::vec4 colour = { 0,0,0,1 });
+
+		void CopyTexture(ResourceID<WTexture> destination, ResourceID<WTexture> source);
+		void CopyTexture(const D3D12_TEXTURE_COPY_LOCATION* pDst, const D3D12_TEXTURE_COPY_LOCATION* pSrc);
 
 		void SetPipelineState(ResourceID<WPipeline> id);
 
@@ -243,7 +248,7 @@ namespace WaveE
 		ComPtr<WaveEDevice> m_pDevice;
 		ComPtr<WaveECommandList> m_pCommandList;
 		ComPtr<WaveECommandQueue> m_pCommandQueue;
-		ComPtr<IDXGISwapChain3> m_pSwapChain;
+		ComPtr<WaveESwapChain> m_pSwapChain;
 		ComPtr<ID3D12CommandAllocator> m_pCommandAllocators[m_frameCount];
 		ComPtr<ID3D12Resource> m_pBackBuffers[m_frameCount];
 		WDescriptorHeapManager::Allocation m_backBufferAllocations[m_frameCount];
