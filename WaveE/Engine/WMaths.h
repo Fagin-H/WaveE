@@ -61,6 +61,9 @@ namespace WaveE
 					float y;
 					float z;
 				};
+				struct {
+					vec2 xy;
+				};
 				DirectX::XMFLOAT3 float3;
 			};
 
@@ -108,6 +111,14 @@ namespace WaveE
 					float y;
 					float z;
 					float w;
+				};
+				struct 
+				{
+					vec3 xyz;
+				};
+				struct 
+				{
+					vec2 xy;
 				};
 				DirectX::XMFLOAT4 float4;
 			};
@@ -160,6 +171,8 @@ namespace WaveE
 
 			mat3(const DirectX::XMMATRIX& mat);
 
+			mat3(const vec3 row0, const vec3 row1, const vec3 row2, const vec3 row3);
+
 			// Operators
 			mat3 operator*(const mat3& rhs) const;
 
@@ -195,6 +208,8 @@ namespace WaveE
 			mat4();
 
 			mat4(const DirectX::XMMATRIX& mat);
+
+			mat4(const vec4 row0, const vec4 row1, const vec4 row2, const vec4 row3);
 
 			// Operators
 			mat4 operator*(const mat4& rhs) const;

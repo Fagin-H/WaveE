@@ -28,6 +28,21 @@ namespace WaveE
 		return m_position;
 	}
 
+	wma::vec3 WCamera::GetForwards() const
+	{
+		return m_forwards;
+	}
+
+	wma::vec3 WCamera::GetRight() const
+	{
+		return m_right;
+	}
+
+	wma::vec3 WCamera::GetUp() const
+	{
+		return m_up;
+	}
+
 	void WCamera::MoveForward(float delta)
 	{
 		m_position += m_forwards * delta;

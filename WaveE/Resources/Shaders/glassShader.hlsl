@@ -186,7 +186,7 @@ float3 ViewSpaceToClipSpaceRay(float3 posVS, float3 directionVS)
     float3 startPosVS;
     float3 endPosVS;
     
-    if (directionVS.z > 0)
+    if (directionVS.z < 0)
     {
         startPosVS = posVS - directionVS * 100;
         endPosVS = posVS;

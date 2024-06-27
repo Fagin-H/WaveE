@@ -363,6 +363,13 @@ namespace WaveE
 			DirectX::XMStoreFloat3x3(&data, DirectX::XMMatrixIdentity());
 		}
 
+		mat3::mat3(const vec3 row0, const vec3 row1, const vec3 row2, const vec3 row3)
+		{
+			rowData[0] = row0;
+			rowData[1] = row1;
+			rowData[2] = row2;
+		}
+
 		vec3 mat3::operator*(const vec3& rhs) const
 		{
 			DirectX::XMMATRIX mat = DirectX::XMLoadFloat3x3(&data);
@@ -444,6 +451,14 @@ namespace WaveE
 		mat4::mat4()
 		{
 			DirectX::XMStoreFloat4x4(&data, DirectX::XMMatrixIdentity());
+		}
+
+		mat4::mat4(const vec4 row0, const vec4 row1, const vec4 row2, const vec4 row3)
+		{
+			rowData[0] = row0;
+			rowData[1] = row1;
+			rowData[2] = row2;
+			rowData[3] = row3;
 		}
 
 		vec3 mat4::operator*(const vec3& rhs) const

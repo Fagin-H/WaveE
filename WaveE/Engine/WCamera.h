@@ -10,6 +10,9 @@ namespace WaveE
 		wma::mat4 GetViewMatrix() const;
 		wma::mat4 GetProjectionMatrix() const;
 		wma::vec3 GetPosition() const;
+		wma::vec3 GetForwards() const;
+		wma::vec3 GetRight() const;
+		wma::vec3 GetUp() const;
 
 		void MoveForward(float delta);
 		void MoveRight(float delta);
