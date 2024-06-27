@@ -256,6 +256,12 @@ namespace WaveE
 
 		float dot(const vec4& lhs, const vec4& rhs);
 
+		vec4 operator*(float scalar, const vec4& vec);
+
+		vec3 operator*(float scalar, const vec3& vec);
+
+		vec2 operator*(float scalar, const vec2& vec);
+
 		mat4 rotate(const mat4& matrix, float angle, vec3 axis);
 
 		mat3 rotate(const mat3& matrix, float angle, vec3 axis);
@@ -273,6 +279,8 @@ namespace WaveE
 		mat4 perspective(float fovY, float aspect, float nearZ, float farZ);
 
 		mat4 orthographic(float width, float height, float nearZ, float farZ);
+
+		mat4 rotation(float pitch, float yaw, float roll = 0);
 
 		// Convert radians to degrees
 		float degrees(float radians);

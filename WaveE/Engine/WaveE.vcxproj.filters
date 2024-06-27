@@ -58,7 +58,9 @@
     <ClCompile Include="WMaths.cpp">
       <Filter>Private</Filter>
     </ClCompile>
-    <ClCompile Include="WInput.cpp" />
+    <ClCompile Include="WInput.cpp">
+      <Filter>Private\WaveGraphics</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="stdafx.h">
@@ -121,7 +123,9 @@
     <ClInclude Include="WMaths.h">
       <Filter>Public</Filter>
     </ClInclude>
-    <ClInclude Include="WInput.h" />
+    <ClInclude Include="WInput.h">
+      <Filter>Public\WaveGraphics</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />

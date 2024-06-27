@@ -652,7 +652,39 @@ namespace WaveE
 		copyLocationSource.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
 		copyLocationSource.SubresourceIndex = 0;
 
+		bool stateChangeSource = false;
+		if (source.GetResource()->GetCurrentState() != D3D12_RESOURCE_STATE_COPY_SOURCE)
+		{
+			stateChangeSource = true;
+			CD3DX12_RESOURCE_BARRIER barrierBeforeCopy = CD3DX12_RESOURCE_BARRIER::Transition(
+				source.GetResource()->GetTexture(), source.GetResource()->GetCurrentState(), D3D12_RESOURCE_STATE_COPY_SOURCE);
+			m_pCommandList->ResourceBarrier(1, &barrierBeforeCopy);
+		}
+
+		bool stateChangeDestination = false;
+		if (destination.GetResource()->GetCurrentState() != D3D12_RESOURCE_STATE_COPY_DEST)
+		{
+			stateChangeDestination = true;
+			CD3DX12_RESOURCE_BARRIER barrierBeforeCopy = CD3DX12_RESOURCE_BARRIER::Transition(
+				destination.GetResource()->GetTexture(), destination.GetResource()->GetCurrentState(), D3D12_RESOURCE_STATE_COPY_DEST);
+			m_pCommandList->ResourceBarrier(1, &barrierBeforeCopy);
+		}
+
 		CopyTexture(&copyLocationDestination, &copyLocationSource);
+
+		if (stateChangeSource)
+		{
+			CD3DX12_RESOURCE_BARRIER barrierAfterCopy = CD3DX12_RESOURCE_BARRIER::Transition(
+				source.GetResource()->GetTexture(), D3D12_RESOURCE_STATE_COPY_SOURCE, source.GetResource()->GetCurrentState());
+			m_pCommandList->ResourceBarrier(1, &barrierAfterCopy);
+		}
+
+		if (stateChangeDestination)
+		{
+			CD3DX12_RESOURCE_BARRIER barrierAfterCopy = CD3DX12_RESOURCE_BARRIER::Transition(
+				destination.GetResource()->GetTexture(), D3D12_RESOURCE_STATE_COPY_DEST, destination.GetResource()->GetCurrentState());
+			m_pCommandList->ResourceBarrier(1, &barrierAfterCopy);
+		}
 	}
 
 	void WaveManager::CopyTexture(const D3D12_TEXTURE_COPY_LOCATION* pDst, const D3D12_TEXTURE_COPY_LOCATION* pSrc)

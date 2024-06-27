@@ -43,6 +43,11 @@ namespace WaveE
 		return m_up;
 	}
 
+	wma::mat4 WCamera::GetRotation() const
+	{
+		return wma::rotation(wma::radians(m_pitch), wma::radians(m_yaw));
+	}
+
 	void WCamera::MoveForward(float delta)
 	{
 		m_position += m_forwards * delta;

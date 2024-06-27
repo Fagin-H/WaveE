@@ -30,7 +30,6 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow)
 	ResourceID<WMesh> sphereMeshID = WResourceManager::Instance()->GetMeshID("sphere");
 	ResourceID<WMesh> concaveLensMeshID = WResourceManager::Instance()->GetMeshID("concaveLens");
 	ResourceID<WMesh> convexLenseMeshID = WResourceManager::Instance()->GetMeshID("convexLense");
-	ResourceID<WMesh> glassMesh;
 
 	// Create world matrices
 	wma::mat4 cubeWorldMatrix;
@@ -227,8 +226,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow)
 		wma::mat4::identity(),
 		wma::mat4::identity(),
 		wma::mat4::identity(),
-		wma::scale(wma::mat4::identity(), wma::vec3{0.2f, 0.2f, 0.2f}),
-		wma::rotate(wma::scale(wma::mat4::identity(), wma::vec3{0.2f, 0.2f, 0.2f}), 90, wma::vec3{1, 0, 0})
+		wma::scale(wma::mat4::identity(), wma::vec3{0.4f, 0.4f, 0.4f}),
+		wma::rotate(wma::scale(wma::mat4::identity(), wma::vec3{1.5f, 1.5f, 1.5f}), wma::radians(90), wma::vec3{1, 0, 0})
 	};
 
 	std::vector<ResourceID<WMesh>> onScreenMeshes{ sphereMeshID };
@@ -236,7 +235,13 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow)
 	std::vector<GlassBuffer> onScreenMeshData{ glassBufferData };
 
 	UINT numMeshes = _countof(vAllMeshesForGlass);
-	UINT glassMeshIndex = 3;
+
+	float deltaTime;
+	float rotSpeed = 1;
+	float moveSpeed = 1;
+	float multiplicativeSpeed = 0.5f;
+	float absorbChangeFactor = 0.2f;
+	float refractionIndexChangeFactor = 0.003f;
 
 	float maxItterations = 500;
 	float redAbsorb = 1;
@@ -250,16 +255,16 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow)
 	wma::vec3 camForwards = WaveInstance->GetGameCamera().GetForwards();
 	wma::vec3 camRight = WaveInstance->GetGameCamera().GetRight();
 	wma::vec3 camUp = WaveInstance->GetGameCamera().GetUp();
-	float distFromCamera = 2;
+	float distFromCamera = 5;
 	float glassScale = 1.f;
-	int meshIndex = 0;
+	int glassMeshIndex = 0;
 	float xRot = 0;
 	float yRot = 0;
 	bool makeMeshFollowCamera{ true };
 	bool showDeubgText{ true };
 	wma::vec3 glassPos = camPos + camForwards * distFromCamera;
 
-	wma::mat4 glassRotation;
+	wma::mat4 glassRotation{};
 
 	wma::mat4 identityMatrix{};
 
@@ -271,15 +276,198 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow)
 			break;
 		}
 
+		deltaTime = WaveInstance->GetDeltaTime();
+
 		//Input
 		{
-			if (WInput::Instance()->WasKeyPressed(VK_SPACE))
+			if (WInput::Instance()->IsKeyDown(VK_SHIFT))
 			{
-				glassMeshIndex++;
-				glassMeshIndex %= numMeshes;
+				if (WInput::Instance()->IsKeyDown(VK_UP))
+				{
+					xRot += rotSpeed * deltaTime;
+				}
+				if (WInput::Instance()->IsKeyDown(VK_DOWN))
+				{
+					xRot -= rotSpeed * deltaTime;
+				}
+				if (WInput::Instance()->IsKeyDown(VK_RIGHT))
+				{
+					yRot -= rotSpeed * deltaTime;
+				}
+				if (WInput::Instance()->IsKeyDown(VK_LEFT))
+				{
+					yRot += rotSpeed * deltaTime;
+				}
+
+				if (WInput::Instance()->IsKeyDown('R'))
+				{
+					redAbsorb -= absorbChangeFactor * deltaTime;
+				}
+				if (WInput::Instance()->IsKeyDown('G'))
+				{
+					greenAbsorb -= absorbChangeFactor * deltaTime;
+				}
+				if (WInput::Instance()->IsKeyDown('B'))
+				{
+					blueAbsorb -= absorbChangeFactor * deltaTime;
+				}
+				if (WInput::Instance()->IsKeyDown('F'))
+				{
+					absorbfactor -= absorbChangeFactor * deltaTime;
+				}
+
+				if (WInput::Instance()->WasKeyPressed(VK_SPACE))
+				{
+					glassMeshIndex = glassMeshIndex - 1;
+					if (glassMeshIndex < 0)
+					{
+						glassMeshIndex = numMeshes - 1;
+					}
+				}
+			}
+			else if (WInput::Instance()->IsKeyDown(VK_CONTROL))
+			{
+				if (!makeMeshFollowCamera)
+				{
+					if (WInput::Instance()->IsKeyDown(VK_UP))
+					{
+						glassPos.y += moveSpeed * deltaTime;
+					}
+					if (WInput::Instance()->IsKeyDown(VK_DOWN))
+					{
+						glassPos.y -= moveSpeed * deltaTime;
+					}
+					if (WInput::Instance()->IsKeyDown(VK_RIGHT))
+					{
+						glassPos -= moveSpeed * camRight * deltaTime;
+					}
+					if (WInput::Instance()->IsKeyDown(VK_LEFT))
+					{
+						glassPos += moveSpeed * camRight * deltaTime;
+					}
+				}
+			}
+			else
+			{
+				if (WInput::Instance()->IsKeyDown(VK_UP) && makeMeshFollowCamera)
+				{
+					distFromCamera *= 1 + multiplicativeSpeed * deltaTime;
+				}
+				if (WInput::Instance()->IsKeyDown(VK_DOWN) && makeMeshFollowCamera)
+				{
+					distFromCamera /= 1 + multiplicativeSpeed * deltaTime;
+				}
+				if (WInput::Instance()->IsKeyDown(VK_RIGHT))
+				{
+					glassScale *= 1 + multiplicativeSpeed * deltaTime;
+				}
+				if (WInput::Instance()->IsKeyDown(VK_LEFT))
+				{
+					glassScale /= 1 + multiplicativeSpeed * deltaTime;
+				}
+
+				if (WInput::Instance()->IsKeyDown('R'))
+				{
+					redAbsorb += absorbChangeFactor * deltaTime;
+				}
+				if (WInput::Instance()->IsKeyDown('G'))
+				{
+					greenAbsorb += absorbChangeFactor * deltaTime;
+				}
+				if (WInput::Instance()->IsKeyDown('B'))
+				{
+					blueAbsorb += absorbChangeFactor * deltaTime;
+				}
+				if (WInput::Instance()->IsKeyDown('F'))
+				{
+					absorbfactor += absorbChangeFactor * deltaTime;
+				}
+
+				if (WInput::Instance()->WasKeyPressed(VK_SPACE))
+				{
+					glassMeshIndex = (glassMeshIndex + 1) % numMeshes;
+				}
 			}
 
-			glassMesh = vAllMeshesForGlass[glassMeshIndex];
+			if (WInput::Instance()->WasKeyPressed(VK_RETURN))
+			{
+				makeMeshFollowCamera = !makeMeshFollowCamera;
+			}
+
+			if (WInput::Instance()->WasKeyPressed('H'))
+			{
+				showDeubgText = !showDeubgText;
+			}
+
+			if (WInput::Instance()->WasKeyPressed('I'))
+			{
+				useInternalReflections = 1 - useInternalReflections;
+			}
+
+			if (WInput::Instance()->WasKeyPressed('P'))
+			{
+				onScreenMeshes.push_back(onScreenMeshes[0]);
+				onScreenMeshMatrices.push_back(onScreenMeshMatrices[0]);
+				onScreenMeshData.push_back(onScreenMeshData[0]);
+			}
+
+			if (WInput::Instance()->WasKeyPressed('O'))
+			{
+				if (onScreenMeshes.size() > 1)
+				{
+					onScreenMeshes.pop_back();
+					onScreenMeshMatrices.pop_back();
+					onScreenMeshData.pop_back();
+				}
+			}
+
+			if (WInput::Instance()->IsKeyDown(VK_OEM_PERIOD))
+			{
+				refractionIndex += refractionIndexChangeFactor * deltaTime;
+			}
+			if (WInput::Instance()->IsKeyDown(VK_OEM_COMMA))
+			{
+				refractionIndex -= refractionIndexChangeFactor * deltaTime;
+			}
+
+			{
+				if (WInput::Instance()->WasKeyPressed('1'))
+				{
+					maxItterations = 100;
+				}
+				if (WInput::Instance()->WasKeyPressed('2'))
+				{
+					maxItterations = 200;
+				}
+				if (WInput::Instance()->WasKeyPressed('3'))
+				{
+					maxItterations = 300;
+				}
+				if (WInput::Instance()->WasKeyPressed('4'))
+				{
+					maxItterations = 400;
+				}
+				if (WInput::Instance()->WasKeyPressed('5'))
+				{
+					maxItterations = 500;
+				}
+				if (WInput::Instance()->WasKeyPressed('6'))
+				{
+					maxItterations = 600;
+				}
+				if (WInput::Instance()->WasKeyPressed('7'))
+				{
+					maxItterations = 700;
+				}
+				if (WInput::Instance()->WasKeyPressed('8'))
+				{
+					maxItterations = 800;
+				}
+				if (WInput::Instance()->WasKeyPressed('9'))
+				{
+					maxItterations = 900;
+				}
+			}
 		}
 
 		// Update
@@ -310,12 +498,18 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow)
 			if (makeMeshFollowCamera)
 			{
 				glassPos = camPos + camForwards * distFromCamera;
-				glassRotation = wma::mat4{ wma::vec4{camRight, 0}, wma::vec4{camUp, 0} , wma::vec4{camForwards, 0}, wma::vec4{0,0,0,1} };
+				glassRotation = WaveInstance->GetGameCamera().GetRotation();
 			}
 
-			wma::mat4 glassMatrix = wma::translate(identityMatrix, glassPos) * wma::scale(identityMatrix, { glassScale, glassScale, glassScale }) * glassRotation * wma::rotate(identityMatrix, xRot, {1, 0, 0}) * wma::rotate(identityMatrix, yRot, { 0, 1, 0 }) * vMeshMatrices[meshIndex];
+			wma::mat4 glassMatrix =
+				vMeshMatrices[glassMeshIndex] *
+				wma::rotate(identityMatrix, yRot, { 0, 1, 0 }) *
+				wma::rotate(identityMatrix, xRot, { 1, 0, 0 }) *
+				glassRotation *
+				wma::scale(identityMatrix, { glassScale, glassScale, glassScale }) *
+				wma::translate(identityMatrix, glassPos);
 
-			ResourceID<WMesh> glassObject = vAllMeshesForGlass[meshIndex];
+			ResourceID<WMesh> glassObject = vAllMeshesForGlass[glassMeshIndex];
 
 			onScreenMeshes[0] = glassObject;
 			onScreenMeshMatrices[0] = glassMatrix;
@@ -323,6 +517,11 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow)
 
 		// Clear textures
 		{
+			glassFrountNormalTexture.GetResource()->SetState(WTexture::Output);
+			glassBackNormalTexture.GetResource()->SetState(WTexture::Output);
+			glassFrountDepthTexture.GetResource()->SetState(WTexture::Output);
+			glassBackDepthTexture.GetResource()->SetState(WTexture::Output);
+
 			WaveInstance->ClearRenderTarget(glassScreenAlbedoTextureCopyFrom, { 0.5f, 0.8f, 0.9f });
 			WaveInstance->ClearRenderTarget(glassFrountNormalTexture, { 0, 0, 0, 0 });
 			WaveInstance->ClearRenderTarget(glassBackNormalTexture, { 0, 0, 0, 0 });
@@ -402,12 +601,12 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow)
 				WaveInstance->SetRenderTarget(glassFrountNormalTexture, glassFrountDepthTexture);
 
 				WaveInstance->SetPipelineState(frountNormalPipeline);
-				WaveInstance->DrawMeshWithCurrentParamaters(glassMesh);
+				WaveInstance->DrawMeshWithCurrentParamaters(onScreenMeshes[index]);
 
 				WaveInstance->SetRenderTarget(glassBackNormalTexture, glassBackDepthTexture);
 
 				WaveInstance->SetPipelineState(backNormalPipeline);
-				WaveInstance->DrawMeshWithCurrentParamaters(glassMesh);
+				WaveInstance->DrawMeshWithCurrentParamaters(onScreenMeshes[index]);
 			}
 
 			// Change states
@@ -427,7 +626,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow)
 				// Bind buffer and textures in 1 go
 				WaveInstance->BindResource(glassShaderAllocation, WaveManager::GLOBAL_CBV_SRV);
 
-				WaveInstance->DrawMeshWithCurrentParamaters(glassMesh);
+				WaveInstance->DrawMeshWithCurrentParamaters(onScreenMeshes[index]);
 			}
 		}
 
@@ -451,12 +650,52 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow)
 			copyLocationSource.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
 			copyLocationSource.SubresourceIndex = 0;
 
-			WaveInstance->CopyTexture(&copyLocationDestination, &copyLocationSource);
+			WaveECommandList* pCommandList = WaveInstance->GetCommandList();
+
+			// Transition and copy albedo to swap chain
+			{				
+				CD3DX12_RESOURCE_BARRIER barrierBeforeCopySource = CD3DX12_RESOURCE_BARRIER::Transition(
+					pGlassAlbedo, glassScreenAlbedoTextureCopyFrom.GetResource()->GetCurrentState(), D3D12_RESOURCE_STATE_COPY_SOURCE);
+				pCommandList->ResourceBarrier(1, &barrierBeforeCopySource);
+
+				CD3DX12_RESOURCE_BARRIER barrierBeforeCopyDest = CD3DX12_RESOURCE_BARRIER::Transition(
+					pBackBuffer, D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_COPY_DEST);
+				pCommandList->ResourceBarrier(1, &barrierBeforeCopyDest);
+
+				WaveInstance->CopyTexture(&copyLocationDestination, &copyLocationSource);
+
+				CD3DX12_RESOURCE_BARRIER barrierAfterCopySource = CD3DX12_RESOURCE_BARRIER::Transition(
+					pGlassAlbedo, D3D12_RESOURCE_STATE_COPY_SOURCE, glassScreenAlbedoTextureCopyFrom.GetResource()->GetCurrentState());
+				pCommandList->ResourceBarrier(1, &barrierAfterCopySource);
+
+				CD3DX12_RESOURCE_BARRIER barrierAfterCopyDest = CD3DX12_RESOURCE_BARRIER::Transition(
+					pBackBuffer, D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_RENDER_TARGET);
+				pCommandList->ResourceBarrier(1, &barrierAfterCopyDest);
+			}
 
 			copyLocationDestination.pResource = pDefaultDepth;
 			copyLocationSource.pResource = pGlassDepth;
 
-			WaveInstance->CopyTexture(&copyLocationDestination, &copyLocationSource);
+			// Transition and copy depth to default depth
+			{
+				CD3DX12_RESOURCE_BARRIER barrierBeforeCopySource = CD3DX12_RESOURCE_BARRIER::Transition(
+					pGlassDepth, glassScreenDepthTextureCopyFrom.GetResource()->GetCurrentState(), D3D12_RESOURCE_STATE_COPY_SOURCE);
+				pCommandList->ResourceBarrier(1, &barrierBeforeCopySource);
+
+				CD3DX12_RESOURCE_BARRIER barrierBeforeCopyDest = CD3DX12_RESOURCE_BARRIER::Transition(
+					pDefaultDepth, D3D12_RESOURCE_STATE_DEPTH_WRITE, D3D12_RESOURCE_STATE_COPY_DEST);
+				pCommandList->ResourceBarrier(1, &barrierBeforeCopyDest);
+
+				WaveInstance->CopyTexture(&copyLocationDestination, &copyLocationSource);
+
+				CD3DX12_RESOURCE_BARRIER barrierAfterCopySource = CD3DX12_RESOURCE_BARRIER::Transition(
+					pGlassDepth, D3D12_RESOURCE_STATE_COPY_SOURCE, glassScreenDepthTextureCopyFrom.GetResource()->GetCurrentState());
+				pCommandList->ResourceBarrier(1, &barrierAfterCopySource);
+
+				CD3DX12_RESOURCE_BARRIER barrierAfterCopyDest = CD3DX12_RESOURCE_BARRIER::Transition(
+					pDefaultDepth, D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_DEPTH_WRITE);
+				pCommandList->ResourceBarrier(1, &barrierAfterCopyDest);
+			}
 		}
 
         WaveInstance->EndFrame();

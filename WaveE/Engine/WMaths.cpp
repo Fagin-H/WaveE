@@ -611,6 +611,21 @@ namespace WaveE
 			return DirectX::XMVectorGetX(resultVec);
 		}
 
+		vec3 operator*(float scalar, const vec3& vec)
+		{
+			return vec * scalar;
+		}
+
+		vec4 operator*(float scalar, const vec4& vec)
+		{
+			return vec * scalar;
+		}
+
+		vec2 operator*(float scalar, const vec2& vec)
+		{
+			return vec * scalar;
+		}
+
 		mat4 rotate(const mat4& matrix, float angle, vec3 axis)
 		{
 			mat4 newMatrix{ matrix };
@@ -672,6 +687,12 @@ namespace WaveE
 		{
 			DirectX::XMMATRIX orthographicMat = DirectX::XMMatrixOrthographicLH(width, height, nearZ, farZ);
 			return mat4(orthographicMat);
+		}
+
+		mat4 rotation(float pitch, float yaw, float roll /*= 0*/)
+		{
+			DirectX::XMMATRIX rotationMatrix = DirectX::XMMatrixRotationRollPitchYaw(pitch, yaw, roll);
+			return mat4{ rotationMatrix };
 		}
 
 		float degrees(float radians)

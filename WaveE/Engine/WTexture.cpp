@@ -23,11 +23,12 @@ namespace WaveE
 		}
 	}
 
-	DXGI_FORMAT GetDXGIFormatForDepthTypeless(WTextureDescriptor::Format format, bool isForSRV = true)
+	DXGI_FORMAT GetDXGIFormatForDepth(WTextureDescriptor::Format format, bool isForSRV = true)
 	{
 		switch (format)
 		{
-		case WTextureDescriptor::DepthTypeless:
+		case WTextureDescriptor::DepthTypeless: [[fallthrough]];
+		case WTextureDescriptor::DepthFloat:
 			return isForSRV ? DXGI_FORMAT_R32_FLOAT : DXGI_FORMAT_D32_FLOAT;
 		default:
 			return DXGI_FORMAT_UNKNOWN;
@@ -65,7 +66,7 @@ namespace WaveE
 				flags |= D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
 			}
 		}
-		if (!(usage & WTextureDescriptor::Usage::ShaderResource))
+		if (!(usage & WTextureDescriptor::Usage::ShaderResource) && (format == WTextureDescriptor::DepthFloat || format == WTextureDescriptor::DepthTypeless))
 		{
 			flags |= D3D12_RESOURCE_FLAG_DENY_SHADER_RESOURCE;
 		}
@@ -121,8 +122,8 @@ namespace WaveE
 
 		D3D12_HEAP_PROPERTIES heapProperties = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
 		DXGI_FORMAT dxgiFormat = GetDXGIFormat(rDescriptor.format);
-		DXGI_FORMAT dxgiFormatNonTypelessForDepthSRV = GetDXGIFormatForDepthTypeless(rDescriptor.format, true);
-		DXGI_FORMAT dxgiFormatNonTypelessForDepthDSV = GetDXGIFormatForDepthTypeless(rDescriptor.format, false);
+		DXGI_FORMAT dxgiFormatNonTypelessForDepthSRV = GetDXGIFormatForDepth(rDescriptor.format, true);
+		DXGI_FORMAT dxgiFormatNonTypelessForDepthDSV = GetDXGIFormatForDepth(rDescriptor.format, false);
 		D3D12_RESOURCE_FLAGS resourceFlags = GetResourceFlags(rDescriptor.usage, rDescriptor.format);
 
 		m_bytesPerPixel = GetBytesPerPixel(dxgiFormat);
@@ -138,14 +139,7 @@ namespace WaveE
 		D3D12_CLEAR_VALUE clearValue = {};
 		if (m_isDepthType)
 		{
-			if (rDescriptor.usage & WTextureDescriptor::ShaderResource)
-			{
-				clearValue.Format = dxgiFormatNonTypelessForDepthDSV;
-			}
-			else
-			{
-				clearValue.Format = dxgiFormat;
-			}
+			clearValue.Format = dxgiFormatNonTypelessForDepthDSV;
 		}
 		else
 		{

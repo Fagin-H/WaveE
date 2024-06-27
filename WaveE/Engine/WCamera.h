@@ -13,6 +13,7 @@ namespace WaveE
 		wma::vec3 GetForwards() const;
 		wma::vec3 GetRight() const;
 		wma::vec3 GetUp() const;
+		wma::mat4 GetRotation() const;
 
 		void MoveForward(float delta);
 		void MoveRight(float delta);
