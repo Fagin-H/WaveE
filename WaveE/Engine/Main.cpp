@@ -16,6 +16,7 @@
 #include "WResourceManager.h"
 #include "WMeshBuilder.h"
 #include "WMaterial.h"
+#include <algorithm>
 
 using namespace WaveE;
 
@@ -56,6 +57,22 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow)
 		worldMatrixDesc.worldPos = wma::vec3{ -2, 1, 10 };
 
 		WaveInstance->CreateWorldMatrix(icosphereWorldMatrix, worldMatrixDesc);
+	}
+	wma::mat4 glassCubeWorldMatrix;
+	{
+		WaveManager::WorldMatrixDescriptor worldMatrixDesc;
+
+		worldMatrixDesc.worldPos = wma::vec3{ -2, 1, 5 };
+
+		WaveInstance->CreateWorldMatrix(glassCubeWorldMatrix, worldMatrixDesc);
+	}
+	wma::mat4 glassIcosphereWorldMatrix;
+	{
+		WaveManager::WorldMatrixDescriptor worldMatrixDesc;
+
+		worldMatrixDesc.worldPos = wma::vec3{ 2, 1, 5 };
+
+		WaveInstance->CreateWorldMatrix(glassIcosphereWorldMatrix, worldMatrixDesc);
 	}
 
 	// Create textures
@@ -230,12 +247,13 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow)
 		wma::rotate(wma::scale(wma::mat4::identity(), wma::vec3{1.5f, 1.5f, 1.5f}), wma::radians(90), wma::vec3{1, 0, 0})
 	};
 
-	std::vector<ResourceID<WMesh>> onScreenMeshes{ sphereMeshID };
-	std::vector<wma::mat4> onScreenMeshMatrices{ wma::mat4::identity() };
-	std::vector<GlassBuffer> onScreenMeshData{ glassBufferData };
+	std::vector<ResourceID<WMesh>> onScreenMeshes{ sphereMeshID, cubMeshID, icosphereMeshID };
+	std::vector<wma::mat4> onScreenMeshMatrices{ wma::mat4::identity(), glassCubeWorldMatrix, glassIcosphereWorldMatrix };
+	std::vector<GlassBuffer> onScreenMeshData{ glassBufferData, glassBufferData, glassBufferData };
 
 	UINT numMeshes = _countof(vAllMeshesForGlass);
 
+	int numPermentGlassObjects = 3;
 	float deltaTime;
 	float rotSpeed = 1;
 	float moveSpeed = 1;
@@ -257,7 +275,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow)
 	wma::vec3 camUp = WaveInstance->GetGameCamera().GetUp();
 	float distFromCamera = 5;
 	float glassScale = 1.f;
-	int glassMeshIndex = 0;
+	int glassMeshIndex = 2;
 	float xRot = 0;
 	float yRot = 0;
 	bool makeMeshFollowCamera{ true };
@@ -413,7 +431,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow)
 
 			if (WInput::Instance()->WasKeyPressed('O'))
 			{
-				if (onScreenMeshes.size() > 1)
+				if (onScreenMeshes.size() > numPermentGlassObjects)
 				{
 					onScreenMeshes.pop_back();
 					onScreenMeshMatrices.pop_back();
@@ -474,6 +492,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow)
 		{
 			cubeWorldMatrix = wma::rotate(cubeWorldMatrix, (float)WaveInstance->GetDeltaTime(), wma::vec3{ 0.f, 0.f, 1.f });
 			icosphereWorldMatrix = wma::rotate(icosphereWorldMatrix, -(float)WaveInstance->GetDeltaTime(), wma::vec3{ 0.f, 0.f, 1.f });
+			onScreenMeshMatrices[1] = wma::rotate(onScreenMeshMatrices[1], (float)WaveInstance->GetDeltaTime(), wma::vec3{ 0.f, 1.f, 0.f });
+			onScreenMeshMatrices[2] = wma::rotate(onScreenMeshMatrices[2], (float)WaveInstance->GetDeltaTime(), wma::vec3{ 0.f, 1.f, 0.f });
 		}
 
 		// Update glass const buffer
@@ -515,24 +535,11 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow)
 			onScreenMeshMatrices[0] = glassMatrix;
 		}
 
-		// Clear textures
-		{
-			glassFrountNormalTexture.GetResource()->SetState(WTexture::Output);
-			glassBackNormalTexture.GetResource()->SetState(WTexture::Output);
-			glassFrountDepthTexture.GetResource()->SetState(WTexture::Output);
-			glassBackDepthTexture.GetResource()->SetState(WTexture::Output);
-
-			WaveInstance->ClearRenderTarget(glassScreenAlbedoTextureCopyFrom, { 0.5f, 0.8f, 0.9f });
-			WaveInstance->ClearRenderTarget(glassFrountNormalTexture, { 0, 0, 0, 0 });
-			WaveInstance->ClearRenderTarget(glassBackNormalTexture, { 0, 0, 0, 0 });
-
-			WaveInstance->ClearDepthStencilTarget(glassScreenDepthTextureCopyFrom);
-			WaveInstance->ClearDepthStencilTarget(glassFrountDepthTexture);
-			WaveInstance->ClearDepthStencilTarget(glassBackDepthTexture);
-		}
-
 		// Draw scene
 		{
+			WaveInstance->ClearRenderTarget(glassScreenAlbedoTextureCopyFrom, { 0.5f, 0.8f, 0.9f });
+			WaveInstance->ClearDepthStencilTarget(glassScreenDepthTextureCopyFrom);
+
 			WaveInstance->SetDefaultRootSigniture();
 			
 			WaveInstance->SetRenderTarget(glassScreenAlbedoTextureCopyFrom, glassScreenDepthTextureCopyFrom);
@@ -597,6 +604,11 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow)
 				glassBackNormalTexture.GetResource()->SetState(WTexture::Output);
 				glassFrountDepthTexture.GetResource()->SetState(WTexture::Output);
 				glassBackDepthTexture.GetResource()->SetState(WTexture::Output);
+
+				WaveInstance->ClearRenderTarget(glassFrountNormalTexture, { 0, 0, 0, 0 });
+				WaveInstance->ClearRenderTarget(glassBackNormalTexture, { 0, 0, 0, 0 });
+				WaveInstance->ClearDepthStencilTarget(glassFrountDepthTexture);
+				WaveInstance->ClearDepthStencilTarget(glassBackDepthTexture);
 
 				WaveInstance->SetRenderTarget(glassFrountNormalTexture, glassFrountDepthTexture);
 

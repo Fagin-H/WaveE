@@ -46,7 +46,7 @@ namespace WaveE
 			m_pDevice->CreateRenderTargetView(m_pBackBuffers[i].Get(), nullptr, m_rtvHeap.GetCPUHandle(m_backBufferAllocations[i]));
 		}
 
-		m_uploadManager.Init(m_uploadBufferSize, m_uploadBufferCount);
+		m_uploadManager.Init(m_bigUploadBufferSize, m_bigUploadBufferCount, m_smallUploadBufferSize, m_smallUploadBufferCount);
 
 		CreateDefaultRootSigniture();
 		CreateSlotHLSLIFile();

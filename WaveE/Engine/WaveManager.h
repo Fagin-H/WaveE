@@ -323,8 +323,10 @@ namespace WaveE
 		const UINT m_descriptorHeapCountDSV{ 32 };
 		const UINT m_descriptorHeapCountSampler{ 32 };
 
-		const UINT m_uploadBufferCount{ 20 };
-		const UINT m_uploadBufferSize{ 1024 * 1024 * 32 };
+		const UINT m_bigUploadBufferCount{ 10 };
+		const UINT m_smallUploadBufferCount{ 50 };
+		const size_t m_bigUploadBufferSize{ 1024 * 1024 * 32 };
+		const size_t m_smallUploadBufferSize{ 1024 * 32 };
 
 		const UINT m_defaultSamplerCount{ 4 };
 		const UINT m_frameCVBCount{ 2 };

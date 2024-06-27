@@ -9,9 +9,10 @@ namespace WaveE
 		
 	}
 
-	void WUploadManager::Init(size_t bufferSize, size_t bufferCount)
+	void WUploadManager::Init(size_t bigBufferSize, UINT bigBufferCount, size_t smallBufferSize, UINT smallBufferCount)
 	{
-		m_bufferSize = bufferSize;
+		m_bigBufferSize = bigBufferSize;
+		m_smallBufferSize = smallBufferSize;
 
 		WaveEDevice* pDevice = WaveManager::Instance()->GetDevice();
 
@@ -22,20 +23,24 @@ namespace WaveE
 		m_fenceEvent = CreateEvent(nullptr, FALSE, FALSE, nullptr);
 		WAVEE_ASSERT_MESSAGE(m_fenceEvent, "Failed to create fence event!");
 
-		for (UINT i = 0; i < bufferCount; ++i)
+		for (UINT i = 0; i < bigBufferCount; ++i)
 		{
-			CreateUploadBuffer();
+			CreateUploadBuffer(true, m_bigBufferSize);
+		}
+		for (UINT i = 0; i < smallBufferCount; ++i)
+		{
+			CreateUploadBuffer(true, m_smallBufferSize);
 		}
 	}
 
 	void WUploadManager::UploadDataToBuffer(ID3D12Resource* pDestResource, const void* pData, size_t size, D3D12_RESOURCE_STATES currentState, D3D12_RESOURCE_STATES finalState)
 	{
-		WAVEE_ASSERT_MESSAGE(size <= m_bufferSize, "Data too big for upload buffer!");
+		WAVEE_ASSERT_MESSAGE(size <= m_bigBufferSize, "Data too big for upload buffer!");
+
+		UINT bufferIndex = RequestUploadBuffer(size);
 
 		WaveECommandList* pCommandList = WaveManager::Instance()->GetCommandList();
 		WaveECommandQueue* pCommandQueue = WaveManager::Instance()->GetCommandQueue();
-
-		UINT bufferIndex = RequestUploadBuffer();
 
 		void* pMappedData = nullptr;
 		D3D12_RANGE readRange = { 0, 0 }; // We do not intend to read this resource on the CPU
@@ -67,7 +72,6 @@ namespace WaveE
 	{
 		WaveECommandList* pCommandList = WaveManager::Instance()->GetCommandList();
 		WaveECommandQueue* pCommandQueue = WaveManager::Instance()->GetCommandQueue();
-		UINT bufferIndex = RequestUploadBuffer();
 
 		D3D12_RESOURCE_DESC textureDescriptor = pDestResource->GetDesc();
 
@@ -75,7 +79,9 @@ namespace WaveE
 		UINT64 rowPitch = align_value(textureDescriptor.Width * bytesPerPixel, D3D12_TEXTURE_DATA_PITCH_ALIGNMENT);
 		UINT64 totalSize = rowPitch * textureDescriptor.Height;
 
-		WAVEE_ASSERT_MESSAGE(totalSize <= m_bufferSize, "Texture data too big for upload buffer!");
+		WAVEE_ASSERT_MESSAGE(totalSize <= m_bigBufferSize, "Texture data too big for upload buffer!");
+		
+		UINT bufferIndex = RequestUploadBuffer(totalSize);
 
 		// Map the upload buffer
 		void* pMappedData = nullptr;
@@ -148,7 +154,7 @@ namespace WaveE
 		}
 	}
 
-	UINT WUploadManager::RequestUploadBuffer()
+	UINT WUploadManager::RequestUploadBuffer(size_t bufferSize)
 	{
 		WaveECommandQueue* pCommandQueue = WaveManager::Instance()->GetCommandQueue();
 
@@ -159,16 +165,44 @@ namespace WaveE
 
 		m_fenceValue++;
 
-		UINT bufferIndex;
-
-		if (m_qAvailableBuffers.empty())
+		UINT bufferIndex{ UINT_MAX };
+		
+		// Search for small buffers first
+		if (bufferSize <= m_smallBufferSize)
 		{
-			bufferIndex = CreateUploadBuffer(false);
+			for (UINT i = 0; i < m_qAvailableBuffers.size(); i++)
+			{
+				UINT newBufferIndex = m_qAvailableBuffers[i];
+				if (m_vUploadBuffers[newBufferIndex].bufferSize == m_smallBufferSize)
+				{
+					bufferIndex = newBufferIndex;
+					break;
+				}
+			}
+		}
+		// Otherwise search for big buffers
+		if (bufferIndex == UINT_MAX)
+		{
+			for (UINT i = 0; i < m_qAvailableBuffers.size(); i++)
+			{
+				UINT newBufferIndex = m_qAvailableBuffers[i];
+				if (m_vUploadBuffers[newBufferIndex].bufferSize >= bufferSize)
+				{
+					bufferIndex = newBufferIndex;
+					break;
+				}
+			}
+		}
+		// Create new buffer if one cannot be found
+		if (bufferIndex == UINT_MAX)
+		{
+			bufferIndex = CreateUploadBuffer(false, bufferSize > m_smallBufferSize ? m_bigBufferSize : m_smallBufferSize);
 		}
 		else
 		{
-			bufferIndex = m_qAvailableBuffers.front();
-			m_qAvailableBuffers.pop();
+			auto it = std::find(m_qAvailableBuffers.begin(), m_qAvailableBuffers.end(), bufferIndex);
+			WAVEE_ASSERT_MESSAGE(it != m_qAvailableBuffers.end(), "Could not find buffer index in avilable buffers!");
+			m_qAvailableBuffers.erase(it);
 			m_vInUseBuffers.push_back(bufferIndex);
 		}
 
@@ -188,19 +222,20 @@ namespace WaveE
 		{
 			WAVEE_ASSERT_MESSAGE(false, "Index not in use!");
 		}
-		m_qAvailableBuffers.push(bufferIndex);
+		m_qAvailableBuffers.push_back(bufferIndex);
 	}
 
-	UINT WUploadManager::CreateUploadBuffer(bool addToAvailableBuffers)
+	UINT WUploadManager::CreateUploadBuffer(bool addToAvailableBuffers, size_t bufferSize)
 	{
 		UploadBuffer newBuffer;
+		newBuffer.bufferSize = bufferSize;
 
 		WaveEDevice* pDevice = WaveManager::Instance()->GetDevice();
 
 		HRESULT hr = pDevice->CreateCommittedResource(
 			&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
 			D3D12_HEAP_FLAG_NONE,
-			&CD3DX12_RESOURCE_DESC::Buffer(m_bufferSize),
+			&CD3DX12_RESOURCE_DESC::Buffer(bufferSize),
 			D3D12_RESOURCE_STATE_GENERIC_READ,
 			nullptr,
 			IID_PPV_ARGS(&newBuffer.pResource)
@@ -212,7 +247,7 @@ namespace WaveE
 		
 		if (addToAvailableBuffers)
 		{
-			m_qAvailableBuffers.push(newBufferIndex);
+			m_qAvailableBuffers.push_back(newBufferIndex);
 		}
 		else
 		{
