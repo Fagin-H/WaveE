@@ -325,14 +325,14 @@ namespace WaveE
 
 		const UINT m_bigUploadBufferCount{ 10 };
 		const UINT m_smallUploadBufferCount{ 50 };
-		const size_t m_bigUploadBufferSize{ 1024 * 1024 * 32 };
+		const size_t m_bigUploadBufferSize{ 1024 * 1024 * 32 * 2 };
 		const size_t m_smallUploadBufferSize{ 1024 * 32 };
 
 		const UINT m_defaultSamplerCount{ 4 };
 		const UINT m_frameCVBCount{ 2 };
 		const UINT m_drawCBVCount{ 1 };
 		const UINT m_globalCBVCount{ 1 };
-		const UINT m_globalSRVCount{ 6 };
+		const UINT m_globalSRVCount{ 8 };
 		const UINT m_globalSamplerCount{ m_globalSRVCount };
 		const UINT m_materialCBVCount{ 1 };
 		const UINT m_materialSRVCount{ 4 };

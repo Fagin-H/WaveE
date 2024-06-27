@@ -10,7 +10,7 @@ namespace WaveE
 	WAVEE_SINGLETON_CPP(WaveManager);
 
 	WaveManager::WaveManager(const WaveEDescriptor& rDescriptor)
-		: m_gameCamera{ {0, 5, 0}, 0, 30, 45, static_cast<float>(rDescriptor.width) / rDescriptor.height, 0.1f, 100.f }
+		: m_gameCamera{ {0, 8, 0}, 0, 15, 45, static_cast<float>(rDescriptor.width) / rDescriptor.height, 0.1f, 100.f }
 	{
 		ms_pInstance = this;
 
