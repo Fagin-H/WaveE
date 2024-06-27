@@ -380,11 +380,11 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow)
 					}
 					if (WInput::Instance()->IsKeyDown(VK_RIGHT))
 					{
-						glassPos -= moveSpeed * camRight * deltaTime;
+						glassPos += moveSpeed * camRight * deltaTime;
 					}
 					if (WInput::Instance()->IsKeyDown(VK_LEFT))
 					{
-						glassPos += moveSpeed * camRight * deltaTime;
+						glassPos -= moveSpeed * camRight * deltaTime;
 					}
 				}
 			}

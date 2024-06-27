@@ -96,11 +96,16 @@ namespace WaveE
 		classname* classname::ms_pInstance = nullptr;
 
 	#define WAVEE_ASSERT(condition) \
-		assert(condition);
+		{\
+		bool WAVEE_ASSERT_RESULT = condition;\
+		assert(WAVEE_ASSERT_RESULT);\
+		}
 
 	#define WAVEE_ASSERT_MESSAGE(condition, message) \
-		std::cerr << message << '\n';\
-		assert(condition);
+		{\
+		bool WAVEE_ASSERT_RESULT = condition;\
+		assert(WAVEE_ASSERT_RESULT);\
+		}
 
 	#define WAVEE_ERROR_DWORD(errorCode)						\
 	{															\

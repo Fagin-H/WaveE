@@ -1,5 +1,5 @@
 #include "stdafx.h"
-
+#pragma optimize( "", off )
 #define  TINYOBJLOADER_IMPLEMENTATION // Implementation for tiny obj loader, must be defined once in the project
 #include "WMeshLoader.h"
 
@@ -16,7 +16,7 @@ namespace WaveE
 
 		tinyobj::ObjReader reader;
 
-		WAVEE_ASSERT_MESSAGE(reader.ParseFromFile(filePath, reader_config), "Failes to parse mesh from file!");
+		WAVEE_ASSERT_MESSAGE(reader.ParseFromFile(filePath, reader_config), "Failed to parse mesh from file!");
 
 		if (!reader.Warning().empty())
 		{

@@ -450,7 +450,7 @@ namespace WaveE
 			m_currentMouseState.middleMouseButton = false;
 			break;
 		}
-
+		
 		// Update mouse position
 		if (message == WM_MOUSEMOVE)
 		{
@@ -466,12 +466,12 @@ namespace WaveE
 		GetRawInputData(reinterpret_cast<HRAWINPUT>(lParam), RID_INPUT, nullptr, &dwSize, sizeof(RAWINPUTHEADER));
 		std::vector<BYTE> lpb(dwSize);
 		WAVEE_ASSERT_MESSAGE(GetRawInputData(reinterpret_cast<HRAWINPUT>(lParam), RID_INPUT, lpb.data(), &dwSize, sizeof(RAWINPUTHEADER)) == dwSize, "Failed to get raw input data!");
-
+		
 		RAWINPUT* raw = reinterpret_cast<RAWINPUT*>(lpb.data());
 		if (raw->header.dwType == RIM_TYPEMOUSE)
 		{
-			m_currentMouseState.delta.x += raw->data.mouse.lLastX;
-			m_currentMouseState.delta.y += raw->data.mouse.lLastY;
+			m_currentMouseState.delta.x += static_cast<float>(raw->data.mouse.lLastX);
+			m_currentMouseState.delta.y += static_cast<float>(raw->data.mouse.lLastY);
 		}
 	}
 
@@ -1053,7 +1053,7 @@ namespace WaveE
 	{
 		if (m_resourceDirectory.size() == 0)
 		{
-			 m_resourceDirectory = std::filesystem::current_path().string();
+			 m_resourceDirectory = std::filesystem::current_path().string() + "\\..\\Resources";
 		}
 		return m_resourceDirectory;
 	}
