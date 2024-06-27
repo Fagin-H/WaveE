@@ -1,6 +1,7 @@
 #include "stdafx.h"
-#include "WaveManager.h"
 #include <fstream>
+#include <filesystem>
+#include "WaveManager.h"
 #include "WTextureLoader.h"
 #include "WMeshLoader.h"
 #include "WInput.h"
@@ -1000,12 +1001,7 @@ namespace WaveE
 	{
 		if (m_resourceDirectory.size() == 0)
 		{
-			char pathBuffer[MAX_PATH];
-			GetModuleFileNameA(nullptr, pathBuffer, MAX_PATH);
-			m_resourceDirectory = std::string{ pathBuffer };
-			size_t lastSlashIndex = m_resourceDirectory.find_last_of("\\/");
-			m_resourceDirectory = m_resourceDirectory.substr(0, lastSlashIndex);
-			m_resourceDirectory += "\\..\\..\\..\\..\\Resources";
+			 m_resourceDirectory = std::filesystem::current_path().string();
 		}
 		return m_resourceDirectory;
 	}
