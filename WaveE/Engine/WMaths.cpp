@@ -397,6 +397,13 @@ namespace WaveE
 			return mat3();
 		}
 
+		void mat3::inverse()
+		{
+			DirectX::XMMATRIX mat = DirectX::XMLoadFloat3x3(&data);
+			DirectX::XMMATRIX invMat = DirectX::XMMatrixInverse(nullptr, mat);
+			DirectX::XMStoreFloat3x3(&data, invMat);
+		}
+
 		void mat3::translate(const vec3& translation)
 		{
 			DirectX::XMMATRIX mat = DirectX::XMLoadFloat3x3(&data);
@@ -473,6 +480,13 @@ namespace WaveE
 			return mat4();
 		}
 
+		void mat4::inverse()
+		{
+			DirectX::XMMATRIX mat = DirectX::XMLoadFloat4x4(&data);
+			DirectX::XMMATRIX invMat = DirectX::XMMatrixInverse(nullptr, mat);
+			DirectX::XMStoreFloat4x4(&data, invMat);
+		}
+
 		void mat4::translate(const vec3& translation)
 		{
 			DirectX::XMMATRIX mat = DirectX::XMLoadFloat4x4(&data);
@@ -518,6 +532,20 @@ namespace WaveE
 		vec2 normalize(const vec2& vector)
 		{
 			return vector.normalize();
+		}
+
+		mat4 inverse(const mat4& matrix)
+		{
+			mat4 newMatrix{ matrix };
+			newMatrix.inverse();
+			return newMatrix;
+		}
+
+		mat3 inverse(const mat3& matrix)
+		{
+			mat3 newMatrix{ matrix };
+			newMatrix.inverse();
+			return newMatrix;
 		}
 
 		mat4 transpose(const mat4& matrix)

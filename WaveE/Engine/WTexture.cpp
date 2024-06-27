@@ -23,6 +23,17 @@ namespace WaveE
 		}
 	}
 
+	DXGI_FORMAT GetDXGIFormatForDepthTypeless(WTextureDescriptor::Format format, bool isForSRV = true)
+	{
+		switch (format)
+		{
+		case WTextureDescriptor::DepthTypeless:
+			return isForSRV ? DXGI_FORMAT_R32_FLOAT : DXGI_FORMAT_D32_FLOAT;
+		default:
+			return DXGI_FORMAT_UNKNOWN;
+		}
+	}
+
 	size_t GetBytesPerPixel(DXGI_FORMAT format)
 	{
 		switch (format)
@@ -54,7 +65,7 @@ namespace WaveE
 				flags |= D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
 			}
 		}
-		if (!usage & WTextureDescriptor::Usage::ShaderResource)
+		if (!(usage & WTextureDescriptor::Usage::ShaderResource))
 		{
 			flags |= D3D12_RESOURCE_FLAG_DENY_SHADER_RESOURCE;
 		}
@@ -75,7 +86,7 @@ namespace WaveE
 				return D3D12_RESOURCE_STATE_GENERIC_READ;
 			case WaveE::WTextureDescriptor::DepthFloat: [[fallthrough]];
 			case WaveE::WTextureDescriptor::DepthTypeless:
-				return D3D12_RESOURCE_STATE_DEPTH_READ;
+				return D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
 			}
 		}
 		else
@@ -110,6 +121,8 @@ namespace WaveE
 
 		D3D12_HEAP_PROPERTIES heapProperties = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
 		DXGI_FORMAT dxgiFormat = GetDXGIFormat(rDescriptor.format);
+		DXGI_FORMAT dxgiFormatNonTypelessForDepthSRV = GetDXGIFormatForDepthTypeless(rDescriptor.format, true);
+		DXGI_FORMAT dxgiFormatNonTypelessForDepthDSV = GetDXGIFormatForDepthTypeless(rDescriptor.format, false);
 		D3D12_RESOURCE_FLAGS resourceFlags = GetResourceFlags(rDescriptor.usage, rDescriptor.format);
 
 		m_bytesPerPixel = GetBytesPerPixel(dxgiFormat);
@@ -123,7 +136,21 @@ namespace WaveE
 		resourceDesc.MipLevels = 1;
 
 		D3D12_CLEAR_VALUE clearValue = {};
-		clearValue.Format = dxgiFormat;
+		if (m_isDepthType)
+		{
+			if (rDescriptor.usage & WTextureDescriptor::ShaderResource)
+			{
+				clearValue.Format = dxgiFormatNonTypelessForDepthDSV;
+			}
+			else
+			{
+				clearValue.Format = dxgiFormat;
+			}
+		}
+		else
+		{
+			clearValue.Format = dxgiFormat;
+		}
 
 		if (m_isDepthType)
 		{
@@ -152,23 +179,25 @@ namespace WaveE
 
 		WaveEDevice* pDevice = WaveManager::Instance()->GetDevice();
 
+		bool useClearValue = rDescriptor.usage & WTextureDescriptor::RenderTarget;
+
 		HRESULT hr = pDevice->CreateCommittedResource(
 			&heapProperties,
 			D3D12_HEAP_FLAG_NONE,
 			&resourceDesc,
 			initialState,
-			(rDescriptor.usage == WTextureDescriptor::ShaderResource) ? nullptr : &clearValue,
+			useClearValue ? &clearValue : nullptr,
 			IID_PPV_ARGS(&m_pTexture)
 		);
 
 		WAVEE_ASSERT_MESSAGE(SUCCEEDED(hr), "Failed to create committed resource for texture!");
 
-		if (rDescriptor.usage == WTextureDescriptor::Usage::RenderTarget)
+		if (rDescriptor.usage & WTextureDescriptor::Usage::RenderTarget)
 		{
 			if (m_isDepthType)
 			{
 				D3D12_DEPTH_STENCIL_VIEW_DESC dsvDesc = {};
-				dsvDesc.Format = dxgiFormat;
+				dsvDesc.Format = dxgiFormatNonTypelessForDepthDSV;
 				dsvDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
 				dsvDesc.Texture2D.MipSlice = 0;
 
@@ -191,7 +220,7 @@ namespace WaveE
 				pDevice->CreateRenderTargetView(m_pTexture.Get(), &rtvDesc, cpuDescriptorHandle);
 			}
 		}
-		if (rDescriptor.usage == WTextureDescriptor::Usage::ShaderResource)
+		if (rDescriptor.usage & WTextureDescriptor::Usage::ShaderResource)
 		{
 			WDescriptorHeapManager* pCBVDescriptorHeapManager = WaveManager::Instance()->GetCBV_SRV_UAVHeap();
 			if (m_doesOwnAllocationSRV)
@@ -205,7 +234,7 @@ namespace WaveE
 			{
 				D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
 				srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-				srvDesc.Format = dxgiFormat;
+				srvDesc.Format = dxgiFormatNonTypelessForDepthSRV;
 				srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
 				srvDesc.Texture2D.MostDetailedMip = 0;
 				srvDesc.Texture2D.MipLevels = 1;

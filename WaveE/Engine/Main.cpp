@@ -27,7 +27,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow)
 	ResourceID<WMesh> cubMeshID = WResourceManager::Instance()->GetMeshID("cube");
 	ResourceID<WMesh> planeMeshID = WResourceManager::Instance()->GetMeshID("plane");
 	ResourceID<WMesh> icosphereMeshID = WResourceManager::Instance()->GetMeshID("icosphere");
-
+	ResourceID<WMesh> glassMesh = cubMeshID;
 	// Create world matrices
 	wma::mat4 cubeWorldMatrix;
 	{
@@ -54,35 +54,46 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow)
 
 		WaveInstance->CreateWorldMatrix(icosphereWorldMatrix, worldMatrixDesc);
 	}
-	wma::mat4 glassIcosphereWorldMatrix;
+	wma::mat4 glassWorldMatrix;
 	{
 		WaveManager::WorldMatrixDescriptor worldMatrixDesc;
 
 		worldMatrixDesc.worldPos = wma::vec3{ 0, 3, 5 };
 
-		WaveInstance->CreateWorldMatrix(glassIcosphereWorldMatrix, worldMatrixDesc);
+		WaveInstance->CreateWorldMatrix(glassWorldMatrix, worldMatrixDesc);
 	}
 
 	// Create textures
-	ResourceID<WTexture> waveAlbidoTexture = WResourceManager::Instance()->GetTextureID("WaveE_A_L");
+	ResourceID<WTexture> waveAlbedoTexture = WResourceManager::Instance()->GetTextureID("WaveE_A_L");
 	ResourceID<WTexture> waveNormalTexture = WResourceManager::Instance()->GetTextureID("WaveE_N_L");
-	ResourceID<WTexture> tilesAlbidoTexture = WResourceManager::Instance()->GetTextureID("Tiles_A_L");
+	ResourceID<WTexture> tilesAlbedoTexture = WResourceManager::Instance()->GetTextureID("Tiles_A_L");
 	ResourceID<WTexture> tilesNormalTexture = WResourceManager::Instance()->GetTextureID("Tiles_N_L");	
-	ResourceID<WTexture> iceAlbidoTexture = WResourceManager::Instance()->GetTextureID("Ice_A_L");
+	ResourceID<WTexture> iceAlbedoTexture = WResourceManager::Instance()->GetTextureID("Ice_A_L");
 	ResourceID<WTexture> iceNormalTexture = WResourceManager::Instance()->GetTextureID("Ice_N_L");
 
-	ResourceID<WTexture> glassFrountNormalTexture;
+	// Glass shader textures
+	ResourceID<WTexture> glassScreenAlbedoTexture;
+	ResourceID<WTexture> glassScreenDepthTexture;
+	ResourceID<WTexture> glassBackDepthTexture;
+	ResourceID<WTexture> glassFrountDepthTexture;
 	ResourceID<WTexture> glassBackNormalTexture;
-	//WDescriptorHeapManager::Allocation glassNormalTexturesAllocation = WDescriptorHeapManager::Instance()->Allocate(2);
+	ResourceID<WTexture> glassFrountNormalTexture;
+	WDescriptorHeapManager::Allocation glassShaderAllocation = WaveManager::Instance()->GetCBV_SRV_UAVHeap()->Allocate(7);
 	{
 		WTextureDescriptor textureDesc;
-		textureDesc.format = WTextureDescriptor::RGBAF16;
+		textureDesc.format = WTextureDescriptor::RGBA;
 		textureDesc.usage = WTextureDescriptor::ResourceAndTarget;
 		textureDesc.startAsShaderResource = false;
 		textureDesc.width = WaveInstance->GetWidth();
 		textureDesc.height = WaveInstance->GetHeight();
-		glassFrountNormalTexture = WResourceManager::Instance()->CreateResource(textureDesc);
-		glassBackNormalTexture = WResourceManager::Instance()->CreateResource(textureDesc);
+		glassScreenAlbedoTexture = WResourceManager::Instance()->CreateResource(textureDesc, glassShaderAllocation, 1);
+		textureDesc.format = WTextureDescriptor::DepthTypeless;
+		glassScreenDepthTexture = WResourceManager::Instance()->CreateResource(textureDesc, glassShaderAllocation, 2);
+		glassBackDepthTexture = WResourceManager::Instance()->CreateResource(textureDesc, glassShaderAllocation, 3);
+		glassFrountDepthTexture = WResourceManager::Instance()->CreateResource(textureDesc, glassShaderAllocation, 4);
+		textureDesc.format = WTextureDescriptor::RGBAF16;
+		glassBackNormalTexture = WResourceManager::Instance()->CreateResource(textureDesc, glassShaderAllocation, 5);
+		glassFrountNormalTexture = WResourceManager::Instance()->CreateResource(textureDesc, glassShaderAllocation, 6);
 	}
 
 	// Create materials
@@ -90,21 +101,21 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow)
 	{
 		WMaterialDescriptor materialDesc;
 		waveMaterial = WResourceManager::Instance()->CreateResource(materialDesc);
-		waveMaterial.GetResource()->SwapTexture(waveAlbidoTexture, 0);
+		waveMaterial.GetResource()->SwapTexture(waveAlbedoTexture, 0);
 		waveMaterial.GetResource()->SwapTexture(waveNormalTexture, 1);
 	}
 	ResourceID<WMaterial> tilesMaterial;
 	{
 		WMaterialDescriptor materialDesc;
 		tilesMaterial = WResourceManager::Instance()->CreateResource(materialDesc);
-		tilesMaterial.GetResource()->SwapTexture(tilesAlbidoTexture, 0);
+		tilesMaterial.GetResource()->SwapTexture(tilesAlbedoTexture, 0);
 		tilesMaterial.GetResource()->SwapTexture(tilesNormalTexture, 1);
 	}
 	ResourceID<WMaterial> iceMaterial;
 	{
 		WMaterialDescriptor materialDesc;
 		iceMaterial = WResourceManager::Instance()->CreateResource(materialDesc);
-		iceMaterial.GetResource()->SwapTexture(iceAlbidoTexture, 0);
+		iceMaterial.GetResource()->SwapTexture(iceAlbedoTexture, 0);
 		iceMaterial.GetResource()->SwapTexture(iceNormalTexture, 1);
 	}
 
@@ -115,13 +126,30 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow)
 		WPipelineDescriptor pipelineDescriptor;
 		pipelineDescriptor.pVertexShader = WResourceManager::Instance()->GetShader("glassNormalShader_VS");
 		pipelineDescriptor.pPixelShader = WResourceManager::Instance()->GetShader("glassNormalShader_PS");
-		pipelineDescriptor.depthStencilState.DepthEnable = FALSE;
-		pipelineDescriptor.depthStencilState.StencilEnable = FALSE;
+		pipelineDescriptor.rtvFormats[0] = DXGI_FORMAT_R16G16B16A16_FLOAT;
+		pipelineDescriptor.dsvFormat = DXGI_FORMAT_D32_FLOAT;
 		frountNormalPipeline = WResourceManager::Instance()->CreateResource(pipelineDescriptor);
 		pipelineDescriptor.rasterizerState.CullMode = D3D12_CULL_MODE_FRONT;
 		backNormalPipeline = WResourceManager::Instance()->CreateResource(pipelineDescriptor);
 	}
+	ResourceID<WPipeline> glassPipeline;
+	{
+		WPipelineDescriptor pipelineDescriptor;
+		pipelineDescriptor.pVertexShader = WResourceManager::Instance()->GetShader("glassShader_VS");
+		pipelineDescriptor.pPixelShader = WResourceManager::Instance()->GetShader("glassShader_PS");
+		pipelineDescriptor.dsvFormat = DXGI_FORMAT_D32_FLOAT;
+		glassPipeline = WResourceManager::Instance()->CreateResource(pipelineDescriptor);
+	}
+	ResourceID<WPipeline> scenePipeline;
+	{
+		WPipelineDescriptor pipelineDescriptor;
+		pipelineDescriptor.pVertexShader = WResourceManager::Instance()->GetShader("SimpleLighting_VS");
+		pipelineDescriptor.pPixelShader = WResourceManager::Instance()->GetShader("SimpleLighting_PS");
+		pipelineDescriptor.dsvFormat = DXGI_FORMAT_D32_FLOAT;
+		scenePipeline = WResourceManager::Instance()->CreateResource(pipelineDescriptor);
+	}
 
+	// Buffers
 	// Create per draw buffer
 	ResourceID<WBuffer> drawBuffer;
 	{
@@ -129,6 +157,30 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow)
 		drawBufferDesc.sizeBytes = sizeof(wma::mat4);
 
 		drawBuffer = WResourceManager::Instance()->CreateResource(drawBufferDesc);
+	}
+	// Glass buffer
+	struct GlassBuffer
+	{
+		wma::vec4 colourAbsorption;
+		wma::vec4 useInternalReflections;
+		wma::vec2 screenRes;
+		float refractionIndex;
+		float maxItterations;
+	};
+	GlassBuffer glassBufferData;
+	glassBufferData.colourAbsorption = { 1, 1, 1, 0 };
+	glassBufferData.useInternalReflections = { 1, 0, 0, 0 };
+	glassBufferData.screenRes = { static_cast<float>(WaveInstance->GetWidth()), static_cast<float>(WaveInstance->GetHeight()) };
+	glassBufferData.refractionIndex = 1.1f;
+	glassBufferData.maxItterations = 500;
+
+	ResourceID<WBuffer> glassBuffer;
+	{
+		WBufferDescriptor bufferDesc;
+		bufferDesc.sizeBytes = sizeof(GlassBuffer);
+		bufferDesc.pInitalData = &glassBufferData;
+
+		glassBuffer = WResourceManager::Instance()->CreateResource(bufferDesc, glassShaderAllocation, 0);
 	}
 
 	WaveManager::Light light1;
@@ -152,28 +204,95 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow)
     {
 		cubeWorldMatrix = wma::rotate(cubeWorldMatrix, (float)WaveInstance->GetDeltaTime(), wma::vec3{ 0.f, 0.f, 1.f });
 		icosphereWorldMatrix = wma::rotate(icosphereWorldMatrix, -(float)WaveInstance->GetDeltaTime(), wma::vec3{ 0.f, 0.f, 1.f });
+		glassWorldMatrix = wma::rotate(glassWorldMatrix, -(float)WaveInstance->GetDeltaTime(), wma::vec3{ 0.f, 1.f, 0.f });
 
 		WaveInstance->SetDefaultRootSigniture();
 
-		WaveInstance->ClearBackBuffer({ 0.5f, 0.8f, 0.9f });
-		WaveInstance->ClearDepthStencilTarget(WaveInstance->GetDefaultDepthTexture());
-		WaveInstance->SetPipelineState(WaveInstance->GetDefaultPipelineState());
-		WaveInstance->SetRenderTargetToSwapChain(WaveInstance->GetDefaultDepthTexture());
+		// Draw scene
+		{
+			glassScreenAlbedoTexture.GetResource()->SetState(WTexture::Output);
+			glassScreenDepthTexture.GetResource()->SetState(WTexture::Output);
 
-		WaveInstance->BindBuffer(drawBuffer, WaveManager::DRAW_CBV);
+			WaveInstance->ClearRenderTarget(glassScreenAlbedoTexture, { 0.5f, 0.8f, 0.9f });
+			WaveInstance->ClearDepthStencilTarget(glassScreenDepthTexture);
+			WaveInstance->SetRenderTarget(glassScreenAlbedoTexture, glassScreenDepthTexture);
 
-		drawBuffer.GetResource()->UploadData(&cubeWorldMatrix, sizeof(wma::mat4));
-		WaveInstance->DrawMesh(cubMeshID, waveMaterial);
+			WaveInstance->SetPipelineState(scenePipeline);
 
-		drawBuffer.GetResource()->UploadData(&icosphereWorldMatrix, sizeof(wma::mat4));
-		WaveInstance->DrawMesh(icosphereMeshID, iceMaterial);
+			WaveInstance->BindBuffer(drawBuffer, WaveManager::DRAW_CBV);
 
-		drawBuffer.GetResource()->UploadData(&planeWorldMatrix, sizeof(wma::mat4));
-		WaveInstance->DrawMesh(planeMeshID, tilesMaterial);
+			drawBuffer.GetResource()->UploadData(&cubeWorldMatrix, sizeof(wma::mat4));
+			WaveInstance->DrawMesh(cubMeshID, waveMaterial);
 
-		WaveInstance->SetPipelineState(frountNormalPipeline);
-		drawBuffer.GetResource()->UploadData(&glassIcosphereWorldMatrix, sizeof(wma::mat4));
-		WaveInstance->DrawMeshWithCurrentParamaters(icosphereMeshID);
+			drawBuffer.GetResource()->UploadData(&icosphereWorldMatrix, sizeof(wma::mat4));
+			WaveInstance->DrawMesh(icosphereMeshID, iceMaterial);
+
+			drawBuffer.GetResource()->UploadData(&planeWorldMatrix, sizeof(wma::mat4));
+			WaveInstance->DrawMesh(planeMeshID, tilesMaterial);
+		}
+
+		// Normals
+		{
+			glassFrountNormalTexture.GetResource()->SetState(WTexture::Output);
+			glassBackNormalTexture.GetResource()->SetState(WTexture::Output);
+			glassFrountDepthTexture.GetResource()->SetState(WTexture::Output);
+			glassBackDepthTexture.GetResource()->SetState(WTexture::Output);
+
+			WaveInstance->ClearRenderTarget(glassFrountNormalTexture, { 0, 0, 0, 0 });
+			WaveInstance->ClearRenderTarget(glassBackNormalTexture, { 0, 0, 0, 0 });
+			WaveInstance->ClearDepthStencilTarget(glassFrountDepthTexture);
+			WaveInstance->ClearDepthStencilTarget(glassBackDepthTexture);
+
+			WaveInstance->SetRenderTarget(glassFrountNormalTexture, glassFrountDepthTexture);
+			
+			drawBuffer.GetResource()->UploadData(&glassWorldMatrix, sizeof(wma::mat4));
+
+			WaveInstance->SetPipelineState(frountNormalPipeline);
+			WaveInstance->DrawMeshWithCurrentParamaters(glassMesh);
+
+			WaveInstance->SetRenderTarget(glassBackNormalTexture, glassBackDepthTexture);
+
+			WaveInstance->SetPipelineState(backNormalPipeline);
+			WaveInstance->DrawMeshWithCurrentParamaters(glassMesh);
+		}
+
+		// Draw scene again. Hack until copy implemented
+		{
+			WaveInstance->ClearBackBuffer({ 0.5f, 0.8f, 0.9f });
+			WaveInstance->ClearDepthStencilTarget(WaveInstance->GetDefaultDepthTexture());
+			WaveInstance->SetRenderTargetToSwapChain(WaveInstance->GetDefaultDepthTexture());
+
+			WaveInstance->SetPipelineState(WaveInstance->GetDefaultPipelineState());
+
+			WaveInstance->BindBuffer(drawBuffer, WaveManager::DRAW_CBV);
+
+			drawBuffer.GetResource()->UploadData(&cubeWorldMatrix, sizeof(wma::mat4));
+			WaveInstance->DrawMesh(cubMeshID, waveMaterial);
+
+			drawBuffer.GetResource()->UploadData(&icosphereWorldMatrix, sizeof(wma::mat4));
+			WaveInstance->DrawMesh(icosphereMeshID, iceMaterial);
+
+			drawBuffer.GetResource()->UploadData(&planeWorldMatrix, sizeof(wma::mat4));
+			WaveInstance->DrawMesh(planeMeshID, tilesMaterial);
+		}
+
+		// Glass
+		{
+			glassScreenAlbedoTexture.GetResource()->SetState(WTexture::Input);
+			glassScreenDepthTexture.GetResource()->SetState(WTexture::Input);
+			glassFrountNormalTexture.GetResource()->SetState(WTexture::Input);
+			glassBackNormalTexture.GetResource()->SetState(WTexture::Input);
+			glassFrountDepthTexture.GetResource()->SetState(WTexture::Input);
+			glassBackDepthTexture.GetResource()->SetState(WTexture::Input);
+
+			WaveInstance->SetPipelineState(glassPipeline);
+
+			// Bind buffer and textures in 1 go
+			WaveInstance->BindResource(glassShaderAllocation, WaveManager::GLOBAL_CBV_SRV);
+
+			drawBuffer.GetResource()->UploadData(&glassWorldMatrix, sizeof(wma::mat4));
+			WaveInstance->DrawMeshWithCurrentParamaters(glassMesh);
+		}
 
         WaveInstance->EndFrame();
 

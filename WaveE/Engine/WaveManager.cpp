@@ -83,7 +83,7 @@ namespace WaveE
 		// Default depth
 		WTextureDescriptor depthTextureDescriptor;
 		
-		depthTextureDescriptor.format = WTextureDescriptor::DepthStencilFloat;
+		depthTextureDescriptor.format = WTextureDescriptor::DepthFloat;
 		depthTextureDescriptor.usage = WTextureDescriptor::RenderTarget;
 		depthTextureDescriptor.startAsShaderResource = false;
 		depthTextureDescriptor.width = GetWidth();
@@ -1128,6 +1128,7 @@ namespace WaveE
 	{
 		m_camerBufferData.viewMatrix = m_gameCamera.GetViewMatrix();
 		m_camerBufferData.projectionMatrix = m_gameCamera.GetProjectionMatrix();
+		m_camerBufferData.inverseProjectionMatrix = wma::inverse(m_camerBufferData.projectionMatrix);
 		m_camerBufferData.viewPos = wma::vec4{ m_gameCamera.GetPosition(), 0 };
 		m_camerBufferData.time[0] = static_cast<float>(GetGameTime());
 	}

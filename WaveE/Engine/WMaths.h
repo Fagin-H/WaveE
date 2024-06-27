@@ -172,6 +172,8 @@ namespace WaveE
 			// Other useful functions
 			static mat3 identity();
 
+			void inverse();
+
 			void translate(const vec3& translation);
 
 			void rotate(float angle, const vec3& axis);
@@ -206,6 +208,8 @@ namespace WaveE
 			// Other useful functions
 			static mat4 identity();
 
+			void inverse();
+
 			void translate(const vec3& translation);
 
 			void rotate(float angle, const vec3& axis);
@@ -220,6 +224,10 @@ namespace WaveE
 		vec3 normalize(const vec3& vector);
 
 		vec2 normalize(const vec2& vector);
+
+		mat4 inverse(const mat4& matrix);
+
+		mat3 inverse(const mat3& matrix);
 
 		mat4 transpose(const mat4& matrix);
 

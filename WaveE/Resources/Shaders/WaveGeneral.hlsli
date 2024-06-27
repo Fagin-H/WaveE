@@ -20,6 +20,7 @@ cbuffer CameraBuffer : register(FRAME_CBV_0)
 {
     matrix viewMatrix;
     matrix projectionMatrix;
+    matrix inverseProjectionMatrix;
     float4 viewPos;
     float4 time;
 };

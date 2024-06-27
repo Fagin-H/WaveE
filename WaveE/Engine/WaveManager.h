@@ -174,6 +174,7 @@ namespace WaveE
 		{
 			wma::mat4 viewMatrix;
 			wma::mat4 projectionMatrix;
+			wma::mat4 inverseProjectionMatrix;
 			wma::vec4 viewPos;
 			wma::vec4 time;
 		};
@@ -323,7 +324,7 @@ namespace WaveE
 		const UINT m_frameCVBCount{ 2 };
 		const UINT m_drawCBVCount{ 1 };
 		const UINT m_globalCBVCount{ 1 };
-		const UINT m_globalSRVCount{ 4 };
+		const UINT m_globalSRVCount{ 6 };
 		const UINT m_globalSamplerCount{ m_globalSRVCount };
 		const UINT m_materialCBVCount{ 1 };
 		const UINT m_materialSRVCount{ 4 };

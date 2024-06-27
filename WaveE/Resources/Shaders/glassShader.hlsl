@@ -1,15 +1,6 @@
-// We want to use some of Play3ds built-in standard macros.
-PLAY3D_PER_FRAME_CONSTANTS
+#include "WaveGeneral.hlsli"
 
-PLAY3D_PER_DRAW_CONSTANTS
-
-PLAY3D_LIGHT_CONSTANTS
-
-PLAY3D_MATERIAL_CONSTANTS
-
-PLAY3D_MESH_VS_INPUTS
-
-cbuffer GlassConstantData : register(b4)
+cbuffer GlassConstantData : register(GLOBAL_CBV_0)
 {
     float4 colourAbsorption;
     float4 useInternalReflections;
@@ -18,60 +9,48 @@ cbuffer GlassConstantData : register(b4)
     float maxItterations;
 };
 
-// Material Constants are managed by materials.
-// You can customise the data as you like here
-// but it must match the Material's Constant Buffer
-cbuffer MaterialConstantData : register(b3)
-{
-};
-
-Texture2D g_mainDiffuse : register(t4);
-Texture2D g_mainDepth : register(t5);
-Texture2D g_backDepth : register(t6);
-Texture2D g_backNormal : register(t7);
-Texture2D g_frountDepth : register(t8);
-Texture2D g_frountNormal : register(t9);
-
-SamplerState g_linearSampler : register(s4);
-SamplerState g_linearClampSampler : register(s5);
-SamplerState g_pointClampSampler : register(s6);
+Texture2D g_mainDiffuse : register(GLOBAL_SRV_0);
+Texture2D g_mainDepth : register(GLOBAL_SRV_1);
+Texture2D g_backDepth : register(GLOBAL_SRV_2);
+Texture2D g_frountDepth : register(GLOBAL_SRV_3);
+Texture2D g_backNormal : register(GLOBAL_SRV_4);
+Texture2D g_frountNormal : register(GLOBAL_SRV_5);
 
 struct PSInput
 {
     float4 position : SV_POSITION; //<< This attribute must exist.
-    float4 colour : COLOUR;
     float3 normal : NORMAL;
     float3 normalVS : NORMAL_SS;
-    float2 uv : UV;
+    float2 texCoord : UV;
     float3 vsPosition : VS_POS;
 };
 
-PSInput VS_Main(VSInput input)
+PSInput VSMain(VSInput input)
 {
-    PSInput output;
-    
-    float4 vsPos = mul(worldMtx, float4(input.position.xyz, 1));
-    vsPos = mul(viewMtx, float4(vsPos.xyz, 1));
-    output.vsPosition = vsPos.xyz;
-    //output.wsPosition = input.position.xyz;
-    output.position = mul(mvpMtx, float4(input.position.xyz, 1.0f));
-    output.colour = pow(input.colour, 2.2); // Gamma correct from sRGB.
-    output.normal = mul(normalMtx, float4(input.normal.xyz, 0.0f));
-    output.normalVS = mul(viewMtx, float4(output.normal, 0.0f)).xyz;
-    output.uv = input.uv;
+PSInput output;
+
+    // Transform the vertex position from object space to world space
+    float4 worldPosition = mul(float4(input.position, 1.0f), worldMatrix);
+
+    // Transform the vertex position from world space to clip space
+    output.vsPosition = mul(worldPosition, viewMatrix).xyz;
+    output.position = mul(float4(output.vsPosition, 1), projectionMatrix);
+
+    // Sample the normal texture and transform it into world space
+    output.normal = normalize(mul(input.normal, (float3x3) worldMatrix));
+
+    output.normalVS = mul(float4(input.normal, 0.0f), worldMatrix).xyz;
+    output.normalVS = mul(float4(output.normalVS, 0.0f), viewMatrix).xyz;
+
+    // Pass through UV
+    output.texCoord = input.texCoord;
 
     return output;
 }
 
-float3 GetNormalDirection(PSInput input)
-{
-    float3 N = normalize(input.normal);
-    return N;
-}
-
 float FresnelReflectAmount(float n1, float n2, float3 normal, float3 incident)
 {
-        // Schlick aproximation
+    // Schlick aproximation
     float r0 = (n1 - n2) / (n1 + n2);
     r0 *= r0;
     float cosX = -dot(normal, incident);
@@ -127,7 +106,7 @@ float3 FindIntersectionWithDepth(float3 rayPosTS, float3 rayDirTS)
     
     [loop] for (int i = 0; i < max_dist; i++)
     {
-        float depth = g_mainDepth.Sample(g_pointClampSampler, rayPosInTS.xy).x;
+        float depth = g_mainDepth.Sample(g_samplerPointClamp, rayPosInTS.xy).x;
         float thickness = rayPosInTS.z - depth;
         if (thickness >= 0 && thickness < MAX_THICKNESS)
         {
@@ -181,8 +160,8 @@ float4 FindIntersectionWithDepthIternal(float3 rayPosTS, float3 rayDirTS)
     {
         rayPosInTS += vRayDirInTS;
         
-        float depthB = g_backDepth.Sample(g_pointClampSampler, rayPosInTS.xy).x;
-        float depthF = g_frountDepth.Sample(g_pointClampSampler, rayPosInTS.xy).x;
+        float depthB = g_backDepth.Sample(g_samplerPointClamp, rayPosInTS.xy).x;
+        float depthF = g_frountDepth.Sample(g_samplerPointClamp, rayPosInTS.xy).x;
             
         if (rayPosInTS.z > depthB || rayPosInTS.z < depthF)
         {
@@ -217,9 +196,9 @@ float3 ViewSpaceToClipSpaceRay(float3 posVS, float3 directionVS)
         startPosVS = posVS;
         endPosVS = posVS + directionVS * 100;
     }
-    float4 startPosCS = mul(projectionMtx, float4(startPosVS, 1));
+    float4 startPosCS = mul(float4(startPosVS, 1), projectionMatrix);
     startPosCS.xyz /= startPosCS.w;
-    float4 endPosCS = mul(projectionMtx, float4(endPosVS, 1));
+    float4 endPosCS = mul(float4(endPosVS, 1), projectionMatrix);
     endPosCS.xyz /= endPosCS.w;
 
     float3 directionCS = normalize(endPosCS.xyz - startPosCS.xyz);
@@ -227,7 +206,7 @@ float3 ViewSpaceToClipSpaceRay(float3 posVS, float3 directionVS)
     return directionCS;
 }
 
-float4 PS_Main(PSInput input) : SV_TARGET
+float4 PSMain(PSInput input) : SV_TARGET
 { 
     float indexOfRefraction = 1 / refractionIndex;
     float3 refractColour = float3(0, 0, 0);
@@ -262,9 +241,9 @@ float4 PS_Main(PSInput input) : SV_TARGET
     float3 reflectedRayDirTS = reflectedRayDirCS.xyz;
     reflectedRayDirTS.xy *= float2(0.5, -0.5);
     float3 foundPosReflectedTS = FindIntersectionWithDepth(rayPosTS.xyz, reflectedRayDirTS);
-    reflectColour = g_mainDiffuse.Sample(g_linearClampSampler, foundPosReflectedTS.xy).xyz;
+    reflectColour = g_mainDiffuse.Sample(g_samplerLinearClamp, foundPosReflectedTS.xy).xyz;
     
-    //Find Refracted light colouor
+    //Find Refracted light colour
     bool foundRefracted = false;
     if (!skipRefract)
     {       
@@ -284,18 +263,18 @@ float4 PS_Main(PSInput input) : SV_TARGET
             foundPosRefractedCS.xy -= float2(0.5, 0.5);
             foundPosRefractedCS.xy /= float2(0.5, -0.5);
         
-            foundPosRefractedVS = mul(invProjectionMtx, float4(foundPosRefractedCS, 1));
+            foundPosRefractedVS = mul(float4(foundPosRefractedCS, 1), inverseProjectionMatrix);
             foundPosRefractedVS.xyz /= foundPosRefractedVS.w;
             float distTraveled = length(foundPosRefractedVS.xyz - rayPosVS.xyz);
             
             float3 foundNormalVS;
             if (foundPosRefractedTS.w > 0)
             {
-                foundNormalVS = -normalize((g_backNormal.Sample(g_linearClampSampler, foundPosRefractedTS.xy).xyz));
+                foundNormalVS = -normalize((g_backNormal.Sample(g_samplerLinearClamp, foundPosRefractedTS.xy).xyz));
             }
             else
             {
-                foundNormalVS = -normalize((g_frountNormal.Sample(g_linearClampSampler, foundPosRefractedTS.xy).xyz));
+                foundNormalVS = -normalize((g_frountNormal.Sample(g_samplerLinearClamp, foundPosRefractedTS.xy).xyz));
             }
             float3 doubleRefractedRayDirVS = refract(refractedRayDirVS, foundNormalVS, 1 / indexOfRefraction);
             float reflectedToRefractedRatio2 = FresnelReflectAmount(1 / indexOfRefraction, 1, foundNormalVS, refractedRayDirVS);
@@ -316,13 +295,13 @@ float4 PS_Main(PSInput input) : SV_TARGET
             
             if (foundRefracted)
             {
-                refractColour = g_mainDiffuse.Sample(g_linearClampSampler, foundPosRefractedReflectedTS.xy).xyz;
+                refractColour = g_mainDiffuse.Sample(g_samplerLinearClamp, foundPosRefractedReflectedTS.xy).xyz;
                 float3 absorb = exp(-colourAbsorption.xyz * distTraveled * colourAbsorption.w);
                 refractColour *= absorb;
             }
             if (useInternalReflections.x > 0)
             {
-                // Find ray reflected internaly
+                // Find ray reflected internally
             
                 float3 refractedReflectedRayDirVS = reflect(refractedRayDirVS, foundNormalVS);
                 float3 refractedReflectedRayDirCS = ViewSpaceToClipSpaceRay(foundPosRefractedVS.xyz, refractedReflectedRayDirVS);
@@ -340,18 +319,18 @@ float4 PS_Main(PSInput input) : SV_TARGET
                     foundPosRefractedReflectedCS.xy -= float2(0.5, 0.5);
                     foundPosRefractedReflectedCS.xy /= float2(0.5, -0.5);
         
-                    foundPosRefractedReflectedVS = mul(invProjectionMtx, float4(foundPosRefractedReflectedCS, 1));
+                    foundPosRefractedReflectedVS = mul(float4(foundPosRefractedReflectedCS, 1), inverseProjectionMatrix);
                     foundPosRefractedReflectedVS.xyz /= foundPosRefractedReflectedVS.w;
                     distTraveled += length(foundPosRefractedVS.xyz - foundPosRefractedReflectedVS.xyz);
             
                     float3 foundNormalRefractedReflectedVS;
                     if (foundPosRefractedReflectedTS.w > 0)
                     {
-                        foundNormalRefractedReflectedVS = -normalize((g_backNormal.Sample(g_linearClampSampler, foundPosRefractedReflectedTS.xy).xyz));
+                        foundNormalRefractedReflectedVS = -normalize((g_backNormal.Sample(g_samplerLinearClamp, foundPosRefractedReflectedTS.xy).xyz));
                     }
                     else
                     {
-                        foundNormalRefractedReflectedVS = -normalize((g_frountNormal.Sample(g_linearClampSampler, foundPosRefractedReflectedTS.xy).xyz));
+                        foundNormalRefractedReflectedVS = -normalize((g_frountNormal.Sample(g_samplerLinearClamp, foundPosRefractedReflectedTS.xy).xyz));
                     }
                     float3 refractedReflectedRefractedRayDirVS = refract(refractedReflectedRayDirVS, foundNormalRefractedReflectedVS, 1 / indexOfRefraction);
                 
@@ -374,11 +353,11 @@ float4 PS_Main(PSInput input) : SV_TARGET
                         float3 absorb = exp(-colourAbsorption.xyz * distTraveled * colourAbsorption.w);
                         if (foundRefracted)
                         {
-                            refractColour = refractColour * (1 - reflectedToRefractedRatio2) + g_mainDiffuse.Sample(g_linearClampSampler, foundPosRefractedReflectedTS.xy).xyz * reflectedToRefractedRatio2 * absorb;
+                            refractColour = refractColour * (1 - reflectedToRefractedRatio2) + g_mainDiffuse.Sample(g_samplerLinearClamp, foundPosRefractedReflectedTS.xy).xyz * reflectedToRefractedRatio2 * absorb;
                         }
                         else
                         {
-                            refractColour = g_mainDiffuse.Sample(g_linearClampSampler, foundPosRefractedReflectedTS.xy).xyz * absorb;
+                            refractColour = g_mainDiffuse.Sample(g_samplerLinearClamp, foundPosRefractedReflectedTS.xy).xyz * absorb;
                         }
                         foundRefracted = true;
                     }
@@ -400,17 +379,5 @@ float4 PS_Main(PSInput input) : SV_TARGET
         colour = reflectColour;
     }
     
-    // Specular lighting
-    float3 N = normalize(input.normal);
-    float3 viewDir = normalize(input.position.xyz - viewPosition.xyz);
-    float3 vSpec = float3(0, 0, 0);
-    [unroll] for (uint i = 0; i < MAX_LIGHTS; ++i)
-    {
-        float3 L = lightDir[i];
-        
-        float I = max(dot(L, -reflect(viewDir, N)), 0);
-        vSpec += pow(lightColour[i] * I, 50);
-    }
-    
-    return float4(colour + vSpec, 1);
+    return float4(colour, 1);
 }
