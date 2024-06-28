@@ -1,16 +1,6 @@
-//*********************************************************
-//
-// Copyright (c) Microsoft. All rights reserved.
-// This code is licensed under the MIT License (MIT).
-// THIS CODE IS PROVIDED *AS IS* WITHOUT WARRANTY OF
-// ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING ANY
-// IMPLIED WARRANTIES OF FITNESS FOR A PARTICULAR
-// PURPOSE, MERCHANTABILITY, OR NON-INFRINGEMENT.
-//
-//*********************************************************
-
-#include "stdafx.h"
+#include "pch.h"
 #include "WaveManager.h"
+#include "DX12Helper.h"
 
 #include "WMesh.h"
 #include "WResourceManager.h"
@@ -631,8 +621,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow)
 				glassFrountDepthTexture.GetResource()->SetState(WTexture::Output);
 				glassBackDepthTexture.GetResource()->SetState(WTexture::Output);
 
-				WaveInstance->ClearRenderTarget(glassFrountNormalTexture, { 0, 0, 0, 0 });
-				WaveInstance->ClearRenderTarget(glassBackNormalTexture, { 0, 0, 0, 0 });
+				WaveInstance->ClearRenderTarget(glassFrountNormalTexture, { 0, 0, 0, 1 });
+				WaveInstance->ClearRenderTarget(glassBackNormalTexture, { 0, 0, 0, 1 });
 				WaveInstance->ClearDepthStencilTarget(glassFrountDepthTexture);
 				WaveInstance->ClearDepthStencilTarget(glassBackDepthTexture);
 
@@ -692,21 +682,20 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow)
 
 			// Transition and copy albedo to swap chain
 			{				
-				CD3DX12_RESOURCE_BARRIER barrierBeforeCopySource = CD3DX12_RESOURCE_BARRIER::Transition(
-					pGlassAlbedo, glassScreenAlbedoTextureCopyFrom.GetResource()->GetCurrentState(), D3D12_RESOURCE_STATE_COPY_SOURCE);
+				D3D12_RESOURCE_BARRIER barrierBeforeCopySource = CreateTransitionBarrier(pGlassAlbedo, glassScreenAlbedoTextureCopyFrom.GetResource()->GetCurrentState(), D3D12_RESOURCE_STATE_COPY_SOURCE);
 				pCommandList->ResourceBarrier(1, &barrierBeforeCopySource);
 
-				CD3DX12_RESOURCE_BARRIER barrierBeforeCopyDest = CD3DX12_RESOURCE_BARRIER::Transition(
+				D3D12_RESOURCE_BARRIER barrierBeforeCopyDest = CreateTransitionBarrier(
 					pBackBuffer, D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_COPY_DEST);
 				pCommandList->ResourceBarrier(1, &barrierBeforeCopyDest);
 
 				WaveInstance->CopyTexture(&copyLocationDestination, &copyLocationSource);
 
-				CD3DX12_RESOURCE_BARRIER barrierAfterCopySource = CD3DX12_RESOURCE_BARRIER::Transition(
+				D3D12_RESOURCE_BARRIER barrierAfterCopySource = CreateTransitionBarrier(
 					pGlassAlbedo, D3D12_RESOURCE_STATE_COPY_SOURCE, glassScreenAlbedoTextureCopyFrom.GetResource()->GetCurrentState());
 				pCommandList->ResourceBarrier(1, &barrierAfterCopySource);
 
-				CD3DX12_RESOURCE_BARRIER barrierAfterCopyDest = CD3DX12_RESOURCE_BARRIER::Transition(
+				D3D12_RESOURCE_BARRIER barrierAfterCopyDest = CreateTransitionBarrier(
 					pBackBuffer, D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_RENDER_TARGET);
 				pCommandList->ResourceBarrier(1, &barrierAfterCopyDest);
 			}
@@ -716,21 +705,21 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow)
 
 			// Transition and copy depth to default depth
 			{
-				CD3DX12_RESOURCE_BARRIER barrierBeforeCopySource = CD3DX12_RESOURCE_BARRIER::Transition(
+				D3D12_RESOURCE_BARRIER barrierBeforeCopySource = CreateTransitionBarrier(
 					pGlassDepth, glassScreenDepthTextureCopyFrom.GetResource()->GetCurrentState(), D3D12_RESOURCE_STATE_COPY_SOURCE);
 				pCommandList->ResourceBarrier(1, &barrierBeforeCopySource);
 
-				CD3DX12_RESOURCE_BARRIER barrierBeforeCopyDest = CD3DX12_RESOURCE_BARRIER::Transition(
+				D3D12_RESOURCE_BARRIER barrierBeforeCopyDest = CreateTransitionBarrier(
 					pDefaultDepth, D3D12_RESOURCE_STATE_DEPTH_WRITE, D3D12_RESOURCE_STATE_COPY_DEST);
 				pCommandList->ResourceBarrier(1, &barrierBeforeCopyDest);
 
 				WaveInstance->CopyTexture(&copyLocationDestination, &copyLocationSource);
 
-				CD3DX12_RESOURCE_BARRIER barrierAfterCopySource = CD3DX12_RESOURCE_BARRIER::Transition(
+				D3D12_RESOURCE_BARRIER barrierAfterCopySource = CreateTransitionBarrier(
 					pGlassDepth, D3D12_RESOURCE_STATE_COPY_SOURCE, glassScreenDepthTextureCopyFrom.GetResource()->GetCurrentState());
 				pCommandList->ResourceBarrier(1, &barrierAfterCopySource);
 
-				CD3DX12_RESOURCE_BARRIER barrierAfterCopyDest = CD3DX12_RESOURCE_BARRIER::Transition(
+				D3D12_RESOURCE_BARRIER barrierAfterCopyDest = CreateTransitionBarrier(
 					pDefaultDepth, D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_DEPTH_WRITE);
 				pCommandList->ResourceBarrier(1, &barrierAfterCopyDest);
 			}

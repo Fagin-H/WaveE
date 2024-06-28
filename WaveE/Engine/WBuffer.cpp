@@ -53,8 +53,8 @@ namespace WaveE
 		m_state = GetResourceState(rDescriptor);
 		D3D12_RESOURCE_STATES initialState = GetInitialResourceState(rDescriptor);
 
-		D3D12_HEAP_PROPERTIES heapProperties = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
-		D3D12_RESOURCE_DESC resourceDesc = CD3DX12_RESOURCE_DESC::Buffer(align_value(rDescriptor.sizeBytes, 256));
+		D3D12_HEAP_PROPERTIES heapProperties = CreateHeapProperties(D3D12_HEAP_TYPE_DEFAULT);
+		D3D12_RESOURCE_DESC resourceDesc = CreateBufferResourceDesc(align_value(rDescriptor.sizeBytes, 256));
 
 		WaveEDevice* pDevice = WaveManager::Instance()->GetDevice();
 
@@ -74,7 +74,7 @@ namespace WaveE
 			// Transition state to D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER
 			WaveECommandList* pCommandList = WaveManager::Instance()->GetCommandList();
 
-			CD3DX12_RESOURCE_BARRIER barrierTransition = CD3DX12_RESOURCE_BARRIER::Transition(m_pBuffer.Get(), initialState, m_state);
+			D3D12_RESOURCE_BARRIER barrierTransition = CreateTransitionBarrier(m_pBuffer.Get(), initialState, m_state);
 			pCommandList->ResourceBarrier(1, &barrierTransition);
 		}
 

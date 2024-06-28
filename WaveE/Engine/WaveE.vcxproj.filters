@@ -1,9 +1,6 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
-    <ClCompile Include="Main.cpp">
-      <Filter>Private</Filter>
-    </ClCompile>
     <ClCompile Include="stdafx.cpp">
       <Filter>Private</Filter>
     </ClCompile>
@@ -61,11 +58,14 @@
     <ClCompile Include="WInput.cpp">
       <Filter>Private\WaveGraphics</Filter>
     </ClCompile>
+    <ClCompile Include="DX12Helper.cpp">
+      <Filter>Private\WaveGraphics</Filter>
+    </ClCompile>
+    <ClCompile Include="WResource.cpp">
+      <Filter>Private\WaveGraphics</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="stdafx.h">
-      <Filter>Public</Filter>
-    </ClInclude>
     <ClInclude Include="WaveManager.h">
       <Filter>Public\WaveGraphics</Filter>
     </ClInclude>
@@ -126,9 +126,9 @@
     <ClInclude Include="WInput.h">
       <Filter>Public\WaveGraphics</Filter>
     </ClInclude>
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="packages.config" />
+    <ClInclude Include="DX12Helper.h">
+      <Filter>Public\WaveGraphics</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Public">
@@ -143,5 +143,8 @@
     <Filter Include="Public\WaveGraphics">
       <UniqueIdentifier>{4dee9a5e-3e3f-445a-877e-df39eb8f46e4}</UniqueIdentifier>
     </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="packages.config" />
   </ItemGroup>
 </Project>

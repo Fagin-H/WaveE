@@ -27,10 +27,10 @@ namespace WaveE
 		Allocation Allocate(UINT size = 1);
 		void Deallocate(Allocation allocation);
 
-		CD3DX12_GPU_DESCRIPTOR_HANDLE GetGPUHandle(UINT index) const;
-		CD3DX12_GPU_DESCRIPTOR_HANDLE GetGPUHandle(Allocation allocation) const { return GetGPUHandle(allocation.index); }
-		CD3DX12_CPU_DESCRIPTOR_HANDLE GetCPUHandle(UINT index) const;
-		CD3DX12_CPU_DESCRIPTOR_HANDLE GetCPUHandle(Allocation allocation) const { return GetCPUHandle(allocation.index); }
+		D3D12_GPU_DESCRIPTOR_HANDLE GetGPUHandle(UINT index) const;
+		D3D12_GPU_DESCRIPTOR_HANDLE GetGPUHandle(Allocation allocation) const { return GetGPUHandle(allocation.index); }
+		D3D12_CPU_DESCRIPTOR_HANDLE GetCPUHandle(UINT index) const;
+		D3D12_CPU_DESCRIPTOR_HANDLE GetCPUHandle(Allocation allocation) const { return GetCPUHandle(allocation.index); }
 
 		static Allocation InvalidAllocation() { return Allocation{ UINT_MAX, 0 }; }
 		static bool IsInvalidAllocation(Allocation allocation) { return allocation.index == UINT_MAX; }

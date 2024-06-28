@@ -656,7 +656,7 @@ namespace WaveE
 		if (source.GetResource()->GetCurrentState() != D3D12_RESOURCE_STATE_COPY_SOURCE)
 		{
 			stateChangeSource = true;
-			CD3DX12_RESOURCE_BARRIER barrierBeforeCopy = CD3DX12_RESOURCE_BARRIER::Transition(
+			D3D12_RESOURCE_BARRIER barrierBeforeCopy = CreateTransitionBarrier(
 				source.GetResource()->GetTexture(), source.GetResource()->GetCurrentState(), D3D12_RESOURCE_STATE_COPY_SOURCE);
 			m_pCommandList->ResourceBarrier(1, &barrierBeforeCopy);
 		}
@@ -665,7 +665,7 @@ namespace WaveE
 		if (destination.GetResource()->GetCurrentState() != D3D12_RESOURCE_STATE_COPY_DEST)
 		{
 			stateChangeDestination = true;
-			CD3DX12_RESOURCE_BARRIER barrierBeforeCopy = CD3DX12_RESOURCE_BARRIER::Transition(
+			D3D12_RESOURCE_BARRIER barrierBeforeCopy = CreateTransitionBarrier(
 				destination.GetResource()->GetTexture(), destination.GetResource()->GetCurrentState(), D3D12_RESOURCE_STATE_COPY_DEST);
 			m_pCommandList->ResourceBarrier(1, &barrierBeforeCopy);
 		}
@@ -674,14 +674,14 @@ namespace WaveE
 
 		if (stateChangeSource)
 		{
-			CD3DX12_RESOURCE_BARRIER barrierAfterCopy = CD3DX12_RESOURCE_BARRIER::Transition(
+			D3D12_RESOURCE_BARRIER barrierAfterCopy = CreateTransitionBarrier(
 				source.GetResource()->GetTexture(), D3D12_RESOURCE_STATE_COPY_SOURCE, source.GetResource()->GetCurrentState());
 			m_pCommandList->ResourceBarrier(1, &barrierAfterCopy);
 		}
 
 		if (stateChangeDestination)
 		{
-			CD3DX12_RESOURCE_BARRIER barrierAfterCopy = CD3DX12_RESOURCE_BARRIER::Transition(
+			D3D12_RESOURCE_BARRIER barrierAfterCopy = CreateTransitionBarrier(
 				destination.GetResource()->GetTexture(), D3D12_RESOURCE_STATE_COPY_DEST, destination.GetResource()->GetCurrentState());
 			m_pCommandList->ResourceBarrier(1, &barrierAfterCopy);
 		}
@@ -778,8 +778,8 @@ namespace WaveE
 		bool shouldSetRTV = RTVId.id != UINT_MAX;
 		bool shouldSetDSV = DSVId.id != UINT_MAX;
 
-		CD3DX12_CPU_DESCRIPTOR_HANDLE rtvHandle;
-		CD3DX12_CPU_DESCRIPTOR_HANDLE dsvHandle;
+		D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle;
+		D3D12_CPU_DESCRIPTOR_HANDLE dsvHandle;
 
 		if (shouldSetRTV)
 		{
@@ -813,8 +813,8 @@ namespace WaveE
 
 		m_pCommandList->RSSetScissorRects(1, &scissorRect);
 
-		CD3DX12_CPU_DESCRIPTOR_HANDLE rtvHandle;
-		CD3DX12_CPU_DESCRIPTOR_HANDLE dsvHandle;
+		D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle;
+		D3D12_CPU_DESCRIPTOR_HANDLE dsvHandle;
 
 		rtvHandle = m_rtvHeap.GetCPUHandle(m_backBufferAllocations[m_frameIndex]);
 
@@ -834,7 +834,7 @@ namespace WaveE
 	{
 		WAVEE_ASSERT_MESSAGE(!id.GetResource()->IsDepthType(), "Can't clear render target view on depth texture!");
 
-		CD3DX12_CPU_DESCRIPTOR_HANDLE handle = m_rtvHeap.GetCPUHandle(id.GetResource()->GetAllocationRTV_DSV());
+		D3D12_CPU_DESCRIPTOR_HANDLE handle = m_rtvHeap.GetCPUHandle(id.GetResource()->GetAllocationRTV_DSV());
 		m_pCommandList->ClearRenderTargetView(handle, &colour[0], 0, nullptr);
 	}
 
@@ -842,7 +842,7 @@ namespace WaveE
 	{
 		WAVEE_ASSERT_MESSAGE(id.GetResource()->IsDepthType(), "Can't clear depth stencil target view on non depth texture!");
 
-		CD3DX12_CPU_DESCRIPTOR_HANDLE handle = m_dsvHeap.GetCPUHandle(id.GetResource()->GetAllocationRTV_DSV());
+		D3D12_CPU_DESCRIPTOR_HANDLE handle = m_dsvHeap.GetCPUHandle(id.GetResource()->GetAllocationRTV_DSV());
 		m_pCommandList->ClearDepthStencilView(handle, D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, depth, stencil, 0, nullptr);
 	}
 
@@ -851,7 +851,7 @@ namespace WaveE
 		// Transition the back buffer to target state
 		ChangeBackBufferState(STATE_TARGET);
 
-		CD3DX12_CPU_DESCRIPTOR_HANDLE handle = m_rtvHeap.GetCPUHandle(m_backBufferAllocations[m_frameIndex]);
+		D3D12_CPU_DESCRIPTOR_HANDLE handle = m_rtvHeap.GetCPUHandle(m_backBufferAllocations[m_frameIndex]);
 		m_pCommandList->ClearRenderTargetView(handle, &colour[0], 0, nullptr);
 	}
 
@@ -1101,7 +1101,7 @@ namespace WaveE
 	{
 		if (m_backBufferStates[m_frameIndex] != state)
 		{
-			D3D12_RESOURCE_BARRIER barrier = CD3DX12_RESOURCE_BARRIER::Transition(
+			D3D12_RESOURCE_BARRIER barrier = CreateTransitionBarrier(
 				m_pBackBuffers[m_frameIndex].Get(),
 				state == STATE_PRESENT ? D3D12_RESOURCE_STATE_RENDER_TARGET : D3D12_RESOURCE_STATE_PRESENT,
 				state == STATE_TARGET ? D3D12_RESOURCE_STATE_RENDER_TARGET : D3D12_RESOURCE_STATE_PRESENT);

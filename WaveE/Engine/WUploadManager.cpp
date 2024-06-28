@@ -53,7 +53,7 @@ namespace WaveE
 		if (currentState != D3D12_RESOURCE_STATE_COPY_DEST)
 		{
 			// Transition the resource to the copy destination state
-			CD3DX12_RESOURCE_BARRIER barrierBeforeCopy = CD3DX12_RESOURCE_BARRIER::Transition(pDestResource, currentState, D3D12_RESOURCE_STATE_COPY_DEST);
+			D3D12_RESOURCE_BARRIER barrierBeforeCopy = CreateTransitionBarrier(pDestResource, currentState, D3D12_RESOURCE_STATE_COPY_DEST);
 			pCommandList->ResourceBarrier(1, &barrierBeforeCopy);
 		}
 
@@ -63,7 +63,7 @@ namespace WaveE
 		if (finalState != D3D12_RESOURCE_STATE_COPY_DEST)
 		{
 			// Transition the resource to the final state
-			CD3DX12_RESOURCE_BARRIER barrierAfterCopy = CD3DX12_RESOURCE_BARRIER::Transition(pDestResource, D3D12_RESOURCE_STATE_COPY_DEST, finalState);
+			D3D12_RESOURCE_BARRIER barrierAfterCopy = CreateTransitionBarrier(pDestResource, D3D12_RESOURCE_STATE_COPY_DEST, finalState);
 			pCommandList->ResourceBarrier(1, &barrierAfterCopy);
 		}
 	}
@@ -104,7 +104,7 @@ namespace WaveE
 		// Transition the resource to the copy destination state if needed
 		if (currentState != D3D12_RESOURCE_STATE_COPY_DEST)
 		{
-			CD3DX12_RESOURCE_BARRIER barrierBeforeCopy = CD3DX12_RESOURCE_BARRIER::Transition(
+			D3D12_RESOURCE_BARRIER barrierBeforeCopy = CreateTransitionBarrier(
 				pDestResource, currentState, D3D12_RESOURCE_STATE_COPY_DEST);
 			pCommandList->ResourceBarrier(1, &barrierBeforeCopy);
 		}
@@ -130,7 +130,7 @@ namespace WaveE
 		// Transition the resource to the final state if needed
 		if (finalState != D3D12_RESOURCE_STATE_COPY_DEST)
 		{
-			CD3DX12_RESOURCE_BARRIER barrierAfterCopy = CD3DX12_RESOURCE_BARRIER::Transition(
+			D3D12_RESOURCE_BARRIER barrierAfterCopy = CreateTransitionBarrier(
 				pDestResource, D3D12_RESOURCE_STATE_COPY_DEST, finalState);
 			pCommandList->ResourceBarrier(1, &barrierAfterCopy);
 		}
@@ -233,9 +233,9 @@ namespace WaveE
 		WaveEDevice* pDevice = WaveManager::Instance()->GetDevice();
 
 		HRESULT hr = pDevice->CreateCommittedResource(
-			&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
+			&CreateHeapProperties(D3D12_HEAP_TYPE_UPLOAD),
 			D3D12_HEAP_FLAG_NONE,
-			&CD3DX12_RESOURCE_DESC::Buffer(bufferSize),
+			&CreateBufferResourceDesc(bufferSize),
 			D3D12_RESOURCE_STATE_GENERIC_READ,
 			nullptr,
 			IID_PPV_ARGS(&newBuffer.pResource)

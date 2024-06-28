@@ -69,17 +69,15 @@ namespace WaveE
 		}
 	}
 
-	CD3DX12_GPU_DESCRIPTOR_HANDLE WDescriptorHeapManager::GetGPUHandle(UINT index) const
+	D3D12_GPU_DESCRIPTOR_HANDLE WDescriptorHeapManager::GetGPUHandle(UINT index) const
 	{
 		WAVEE_ASSERT_MESSAGE(index >= 0 && index < m_numDescriptors, "Descriptor index out of range");
-
-		return CD3DX12_GPU_DESCRIPTOR_HANDLE(m_pDescriptorHeap->GetGPUDescriptorHandleForHeapStart(), index, m_descriptorSize);
+		return D3D12_GPU_DESCRIPTOR_HANDLE{ m_pDescriptorHeap->GetGPUDescriptorHandleForHeapStart().ptr + index * m_descriptorSize};
 	}
 
-	CD3DX12_CPU_DESCRIPTOR_HANDLE WDescriptorHeapManager::GetCPUHandle(UINT index) const
+	D3D12_CPU_DESCRIPTOR_HANDLE WDescriptorHeapManager::GetCPUHandle(UINT index) const
 	{
 		WAVEE_ASSERT_MESSAGE(index >= 0 && index < m_numDescriptors, "Descriptor index out of range");
-		
-		return CD3DX12_CPU_DESCRIPTOR_HANDLE(m_pDescriptorHeap->GetCPUDescriptorHandleForHeapStart(), index, m_descriptorSize);
+		return D3D12_CPU_DESCRIPTOR_HANDLE{ m_pDescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr + index * m_descriptorSize };
 	}
 }

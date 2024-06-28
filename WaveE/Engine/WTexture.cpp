@@ -120,7 +120,7 @@ namespace WaveE
 
 		m_isDepthType = rDescriptor.format == WTextureDescriptor::Format::DepthFloat || rDescriptor.format == WTextureDescriptor::Format::DepthTypeless;
 
-		D3D12_HEAP_PROPERTIES heapProperties = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
+		D3D12_HEAP_PROPERTIES heapProperties = CreateHeapProperties(D3D12_HEAP_TYPE_DEFAULT);
 		DXGI_FORMAT dxgiFormat = GetDXGIFormat(rDescriptor.format);
 		DXGI_FORMAT dxgiFormatNonTypelessForDepthSRV = GetDXGIFormatForDepth(rDescriptor.format, true);
 		DXGI_FORMAT dxgiFormatNonTypelessForDepthDSV = GetDXGIFormatForDepth(rDescriptor.format, false);
@@ -132,7 +132,7 @@ namespace WaveE
 		m_renderTargetState = GetResourceState(rDescriptor.format, false);
 		m_shaderResourceState = GetResourceState(rDescriptor.format, true);
 
-		D3D12_RESOURCE_DESC resourceDesc = CD3DX12_RESOURCE_DESC::Tex2D(dxgiFormat, rDescriptor.width, rDescriptor.height);
+		D3D12_RESOURCE_DESC resourceDesc = CreateTextureResourceDesc(dxgiFormat, rDescriptor.width, rDescriptor.height);
 		resourceDesc.Flags = resourceFlags;
 		resourceDesc.MipLevels = 1;
 

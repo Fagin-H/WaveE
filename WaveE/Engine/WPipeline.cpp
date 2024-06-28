@@ -7,6 +7,9 @@ namespace WaveE
 	WPipelineDescriptor::WPipelineDescriptor()
 		: inputLayout{ WaveManager::Instance()->GetDefaultInputLayout() }
 		, pRootSigniture{ WaveManager::Instance()->GetDefaultRootSigniture() }
+		, blendState{ DefaultBlendDesc() }
+		, rasterizerState{ DefaultRasterizerDesc() }
+		, depthStencilState{ DefaultDeptStencilDesc() }
 	{
 
 	}

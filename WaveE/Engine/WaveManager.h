@@ -151,9 +151,9 @@ namespace WaveE
 		// Sets the render target, viewport, and scissor rect for drawing to the whole screen
 		void SetRenderTarget(ResourceID<WTexture> RTVId, ResourceID<WTexture> DSVId = {});
 		void SetRenderTargetToSwapChain(ResourceID<WTexture> DSVId = {});
-		void ClearRenderTarget(ResourceID<WTexture> id, wma::vec4 colour = { 0,0,0,1 });
+		void ClearRenderTarget(ResourceID<WTexture> id, wma::vec4 colour = { 0,0,0,0 });
 		void ClearDepthStencilTarget(ResourceID<WTexture> id, float depth = 1, UINT stencil = 0);
-		void ClearBackBuffer(wma::vec4 colour = { 0,0,0,1 });
+		void ClearBackBuffer(wma::vec4 colour = { 0,0,0,0 });
 
 		void CopyTexture(ResourceID<WTexture> destination, ResourceID<WTexture> source);
 		void CopyTexture(const D3D12_TEXTURE_COPY_LOCATION* pDst, const D3D12_TEXTURE_COPY_LOCATION* pSrc);
@@ -288,9 +288,9 @@ namespace WaveE
 		
 		ResourceID<WPipeline> m_defaultPipeline3D;
 		ResourceID<WTexture> m_defaultDepthTexture;
-		static constexpr char* m_defaultPixelShaderName{ "SimpleLighting_PS" };
-		static constexpr char* m_defaultVertexShaderName{ "SimpleLighting_VS" };
-		static constexpr DXGI_FORMAT m_defaultDepthType{ DXGI_FORMAT_D32_FLOAT };
+		const char* m_defaultPixelShaderName{ "SimpleLighting_PS" };
+		const char* m_defaultVertexShaderName{ "SimpleLighting_VS" };
+		const DXGI_FORMAT m_defaultDepthType{ DXGI_FORMAT_D32_FLOAT };
 
 		ResourceID<WPipeline> m_currentPipeline{};
 		ResourceID<WMaterial> m_currentMaterial{};
