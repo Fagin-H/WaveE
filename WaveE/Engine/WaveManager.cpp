@@ -157,8 +157,12 @@ namespace WaveE
 
 	void WaveManager::InitWindow(const WaveEDescriptor& rDescriptor)
 	{
-		const wchar_t* className = L"WaveE";
+		TCHAR projectDir[MAX_PATH];
+		GetCurrentDirectory(MAX_PATH, projectDir);
+		std::wstring projectDirWString{ projectDir };
+		projectDirWString += L"\\..\\WaveE.ico";
 
+		const wchar_t* className = L"WaveE";
 		WNDCLASSEX windowClass;
 		windowClass.cbSize = sizeof(WNDCLASSEX);
 		windowClass.style = CS_HREDRAW | CS_VREDRAW;
@@ -166,7 +170,7 @@ namespace WaveE
 		windowClass.cbClsExtra = 0;
 		windowClass.cbWndExtra = 0;
 		windowClass.hInstance = m_hInstance;
-		windowClass.hIcon = LoadIcon(NULL, IDI_APPLICATION);
+		windowClass.hIcon = (HICON)LoadImage(m_hInstance, projectDirWString.c_str(), IMAGE_ICON, 0, 0, LR_LOADFROMFILE | LR_DEFAULTSIZE | LR_SHARED);//LoadIcon(m_hInstance, MAKEINTRESOURCE(IDI_ICON1));
 		windowClass.hCursor = LoadCursor(NULL, IDC_ARROW);
 		windowClass.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1);
 		windowClass.lpszMenuName = nullptr;
