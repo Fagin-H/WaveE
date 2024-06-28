@@ -80,6 +80,4 @@ namespace WaveE
 
 		WAVEE_ASSERT_MESSAGE(SUCCEEDED(hr), "Failed to create compute pipeline!");
 	}
-
-
 }

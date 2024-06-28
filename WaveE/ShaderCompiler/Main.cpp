@@ -23,9 +23,21 @@ bool CompileShader(const std::wstring& sourceFile, const std::string& entryPoint
 	{
 		if (errorBlob)
 		{
-			std::cerr << "Compilation failed: " << static_cast<char*>(errorBlob->GetBufferPointer()) << std::endl;
+			std::string errorMsg = static_cast<char*>(errorBlob->GetBufferPointer());
+			if (errorMsg.find("X3501") != std::string::npos)
+			{
+
+			}
+			else
+			{
+				std::cerr << "Compilation failed: " << entryPoint << '\n' << errorMsg << '\n';
+			}
 
 			errorBlob->Release();
+		}
+		else
+		{
+			std::cerr << "Compilation failed: " << entryPoint << '\n';
 		}
 		if (shaderBlob)
 			shaderBlob->Release();
@@ -98,6 +110,10 @@ int main(int argc, char* argv[])
 		// Compile vertex shader
 		CompileShader(hlslFile.wstring(), "VSMain", "vs_5_0", debugOutputPath + L"_VS.cso", true);
 		CompileShader(hlslFile.wstring(), "VSMain", "vs_5_0", releaseOutputPath + L"_VS.cso", false);
+
+		// Compile compute shader
+		CompileShader(hlslFile.wstring(), "CSMain", "cs_5_0", debugOutputPath + L"_CS.cso", true);
+		CompileShader(hlslFile.wstring(), "CSMain", "cs_5_0", releaseOutputPath + L"_CS.cso", false);
 	}
 
 	return 0;
