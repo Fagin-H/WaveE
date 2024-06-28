@@ -12,7 +12,10 @@ using namespace WaveE;
 
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow)
 {
-    WaveManager::Init({});
+	WaveEDescriptor waveEDesc{};
+	waveEDesc.title = "Screen Space Glass";
+
+    WaveManager::Init(waveEDesc);
     
     // Create meshes
 	ResourceID<WMesh> cubMeshID = WResourceManager::Instance()->GetMeshID("cube");
