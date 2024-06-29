@@ -24,6 +24,8 @@ Run the CompileShaders.bat script.
 
 WaveE includes a demo showcasing screen space refraction.
 
+![A rendered image showing a glass sphere in front of a cube and an icosphere.](./Images/Glass1.png)
+
 ## Maths Library
 
 WaveE has a wrapper around DirectXMath to simplify handling it. To use the maths library, include WMaths.h and use the wma namespace to create vectors and matrices.
