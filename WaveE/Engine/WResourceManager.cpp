@@ -100,6 +100,81 @@ namespace WaveE
 		return ResourceID<WMaterial>{static_cast<UINT>(m_vpMaterials.size()) - 1};
 	}
 
+	ResourceID<WBottomLevelAS> WResourceManager::CreateResource(const WBLASDescriptor& rDescriptor)
+	{
+		m_vpBottomLevelAS.push_back(new WBottomLevelAS{ rDescriptor });
+		return ResourceID<WBottomLevelAS>{static_cast<UINT>(m_vpBottomLevelAS.size()) - 1};
+	}
+
+	ResourceID<WTopLevelAS> WResourceManager::CreateResource(const WTLASDescriptor& rDescriptor)
+	{
+		m_vpTopLevelAS.push_back(new WTopLevelAS{ rDescriptor });
+		return ResourceID<WTopLevelAS>{static_cast<UINT>(m_vpTopLevelAS.size()) - 1};
+	}
+
+	void WResourceManager::OverrideResource(ResourceID<WTexture> id, const WTextureDescriptor& rDescriptor, WDescriptorHeapManager::Allocation allocation /*= WDescriptorHeapManager::InvalidAllocation()*/, UINT offset /*= 0*/)
+	{
+		WAVEE_ASSERT_MESSAGE(id.id < m_vpTextures.size(), "Texture ID out of range!");
+		delete m_vpTextures[id.id];
+		m_vpTextures[id.id] = new WTexture{ rDescriptor, allocation, offset };
+	}
+
+	void WResourceManager::OverrideResource(ResourceID<WBuffer> id, const WBufferDescriptor& rDescriptor, WDescriptorHeapManager::Allocation allocation /*= WDescriptorHeapManager::InvalidAllocation()*/, UINT offset /*= 0*/)
+	{
+		WAVEE_ASSERT_MESSAGE(id.id < m_vpBuffers.size(), "Buffer ID out of range!");
+		delete m_vpBuffers[id.id];
+		m_vpBuffers[id.id] = new WBuffer{ rDescriptor, allocation, offset };
+	}
+
+	void WResourceManager::OverrideResource(ResourceID<WSampler> id, const WSamplerDescriptor& rDescriptor, WDescriptorHeapManager::Allocation allocation /*= WDescriptorHeapManager::InvalidAllocation()*/, UINT offset /*= 0*/)
+	{
+		WAVEE_ASSERT_MESSAGE(id.id < m_vpSamplers.size(), "Sampler ID out of range!");
+		delete m_vpSamplers[id.id];
+		m_vpSamplers[id.id] = new WSampler{ rDescriptor, allocation, offset };
+	}
+
+	void WResourceManager::OverrideResource(ResourceID<WMesh> id, const WMeshDescriptor& rDescriptor)
+	{
+		WAVEE_ASSERT_MESSAGE(id.id < m_vpMeshes.size(), "Mesh ID out of range!");
+		delete m_vpMeshes[id.id];
+		m_vpMeshes[id.id] = new WMesh{ rDescriptor };
+	}
+
+	void WResourceManager::OverrideResource(ResourceID<WShader> id, const WShaderDescriptor& rDescriptor)
+	{
+		WAVEE_ASSERT_MESSAGE(id.id < m_vpShaders.size(), "Shader ID out of range!");
+		delete m_vpShaders[id.id];
+		m_vpShaders[id.id] = new WShader{ rDescriptor };
+	}
+
+	void WResourceManager::OverrideResource(ResourceID<WPipeline> id, const WPipelineDescriptor& rDescriptor)
+	{
+		WAVEE_ASSERT_MESSAGE(id.id < m_vpPipelines.size(), "Pipeline ID out of range!");
+		delete m_vpPipelines[id.id];
+		m_vpPipelines[id.id] = new WPipeline{ rDescriptor };
+	}
+
+	void WResourceManager::OverrideResource(ResourceID<WMaterial> id, const WMaterialDescriptor& rDescriptor)
+	{
+		WAVEE_ASSERT_MESSAGE(id.id < m_vpMaterials.size(), "Material ID out of range!");
+		delete m_vpMaterials[id.id];
+		m_vpMaterials[id.id] = new WMaterial{ rDescriptor };
+	}
+
+	void WResourceManager::OverrideResource(ResourceID<WBottomLevelAS> id, const WBLASDescriptor& rDescriptor)
+	{
+		WAVEE_ASSERT_MESSAGE(id.id < m_vpBottomLevelAS.size(), "Bottom Level AS ID out of range!");
+		delete m_vpBottomLevelAS[id.id];
+		m_vpBottomLevelAS[id.id] = new WBottomLevelAS{ rDescriptor };
+	}
+
+	void WResourceManager::OverrideResource(ResourceID<WTopLevelAS> id, const WTLASDescriptor& rDescriptor)
+	{
+		WAVEE_ASSERT_MESSAGE(id.id < m_vpTopLevelAS.size(), "Top Level AS ID out of range!");
+		delete m_vpTopLevelAS[id.id];
+		m_vpTopLevelAS[id.id] = new WTopLevelAS{ rDescriptor };
+	}
+
 	ResourceBlock<WTexture> WResourceManager::CreateResourceBlock(WTextureDescriptor* pDescriptors, UINT numDescriptors)
 	{
 		WAVEE_ASSERT_MESSAGE(numDescriptors > 0, "Can't create resource block of size 0!");
@@ -204,6 +279,20 @@ namespace WaveE
 		WAVEE_ASSERT_MESSAGE(id.id < m_vpMaterials.size(), "Material ID out of range!");
 
 		return m_vpMaterials[id.id];
+	}
+
+	WBottomLevelAS* WResourceManager::GetResource(ResourceID<WBottomLevelAS> id) const
+	{
+		WAVEE_ASSERT_MESSAGE(id.id < m_vpBottomLevelAS.size(), "Bottom Level AS ID out of range!");
+
+		return m_vpBottomLevelAS[id.id];
+	}
+
+	WTopLevelAS* WResourceManager::GetResource(ResourceID<WTopLevelAS> id) const
+	{
+		WAVEE_ASSERT_MESSAGE(id.id < m_vpTopLevelAS.size(), "Top Level AS ID out of range!");
+
+		return m_vpTopLevelAS[id.id];
 	}
 
 	ResourceID<WTexture> WResourceManager::GetTextureID(const std::string& textureName) const

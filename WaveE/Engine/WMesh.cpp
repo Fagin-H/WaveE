@@ -21,6 +21,7 @@ namespace WaveE
 	WMesh::WMesh(const WMeshDescriptor& rDescriptor)
 		: m_vertexCount{ rDescriptor.vertexCount }
 		, m_IndexCount{ rDescriptor.indexCount }
+		, m_vertexStrideBytes{ rDescriptor.vertexStrideBytes }
 	{
 		WAVEE_ASSERT_MESSAGE(rDescriptor.pVertexData, "No vertex data for mesh!");
 

@@ -58,8 +58,8 @@ namespace WaveE
 	using ComPtr = Microsoft::WRL::ComPtr<T>;
 
 	// Using for device and others in case the version changes
-	using WaveEDevice = ID3D12Device1;
-	using WaveECommandList = ID3D12GraphicsCommandList;
+	using WaveEDevice = ID3D12Device5;
+	using WaveECommandList = ID3D12GraphicsCommandList4;
 	using WaveECommandQueue = ID3D12CommandQueue;
 	using WaveESwapChain = IDXGISwapChain3;
 

@@ -135,6 +135,7 @@
     <ClInclude Include="DXRHelpers\nv_helpers_dx12\ShaderBindingTableGenerator.h" />
     <ClInclude Include="DXRHelpers\nv_helpers_dx12\TopLevelASGenerator.h" />
     <ClInclude Include="TinyObjLoader\tiny_obj_loader.h" />
+    <ClInclude Include="WAccelerationStructure.h" />
     <ClInclude Include="WCamera.h" />
     <ClInclude Include="WInput.h" />
     <ClInclude Include="WMaterial.h" />
@@ -162,6 +163,7 @@
     <ClCompile Include="DXRHelpers\nv_helpers_dx12\RootSignatureGenerator.cpp" />
     <ClCompile Include="DXRHelpers\nv_helpers_dx12\ShaderBindingTableGenerator.cpp" />
     <ClCompile Include="DXRHelpers\nv_helpers_dx12\TopLevelASGenerator.cpp" />
+    <ClCompile Include="WAccelerationStructure.cpp" />
     <ClCompile Include="WCamera.cpp" />
     <ClCompile Include="WInput.cpp" />
     <ClCompile Include="WMaterial.cpp" />

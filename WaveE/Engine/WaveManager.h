@@ -242,6 +242,9 @@ namespace WaveE
 		void UpdateInputStates();
 		void UpdateGameCamera();
 
+		void CheckRayTracingSupport();
+		bool m_bSupportsRayTracing{ false };
+
 		// DX12 variables
 		static const UINT m_frameCount{ 2 };
 
@@ -337,6 +340,7 @@ namespace WaveE
 		const UINT m_materialCBVCount{ 1 };
 		const UINT m_materialSRVCount{ 4 };
 		const UINT m_materialSamplerCount{ m_materialSRVCount };
+
 	};
 }
 

@@ -9,6 +9,7 @@
 #include "WMaterial.h"
 #include <string>
 #include <unordered_map>
+#include "WAccelerationStructure.h"
 
 namespace WaveE
 {
@@ -26,6 +27,18 @@ namespace WaveE
 		ResourceID<WShader> CreateResource(const WShaderDescriptor& rDescriptor);
 		ResourceID<WPipeline> CreateResource(const WPipelineDescriptor& rDescriptor);
 		ResourceID<WMaterial> CreateResource(const WMaterialDescriptor& rDescriptor);
+		ResourceID<WBottomLevelAS> CreateResource(const WBLASDescriptor& rDescriptor);
+		ResourceID<WTopLevelAS> CreateResource(const WTLASDescriptor& rDescriptor);
+
+		void OverrideResource(ResourceID<WTexture> id, const WTextureDescriptor& rDescriptor, WDescriptorHeapManager::Allocation allocation = WDescriptorHeapManager::InvalidAllocation(), UINT offset = 0);
+		void OverrideResource(ResourceID<WBuffer> id, const WBufferDescriptor& rDescriptor, WDescriptorHeapManager::Allocation allocation = WDescriptorHeapManager::InvalidAllocation(), UINT offset = 0);
+		void OverrideResource(ResourceID<WSampler> id, const WSamplerDescriptor& rDescriptor, WDescriptorHeapManager::Allocation allocation = WDescriptorHeapManager::InvalidAllocation(), UINT offset = 0);
+		void OverrideResource(ResourceID<WMesh> id, const WMeshDescriptor& rDescriptor);
+		void OverrideResource(ResourceID<WShader> id, const WShaderDescriptor& rDescriptor);
+		void OverrideResource(ResourceID<WPipeline> id, const WPipelineDescriptor& rDescriptor);
+		void OverrideResource(ResourceID<WMaterial> id, const WMaterialDescriptor& rDescriptor);
+		void OverrideResource(ResourceID<WBottomLevelAS> id, const WBLASDescriptor& rDescriptor);
+		void OverrideResource(ResourceID<WTopLevelAS> id, const WTLASDescriptor& rDescriptor);
 
 		ResourceBlock<WTexture> CreateResourceBlock(WTextureDescriptor* pDescriptors, UINT numDescriptors);
 		ResourceBlock<WBuffer> CreateResourceBlock(WBufferDescriptor* pDescriptors, UINT numDescriptors);
@@ -41,6 +54,8 @@ namespace WaveE
 		WShader* GetShader(const std::string& shaderName) const;
 		WPipeline* GetResource(ResourceID<WPipeline> id) const;
 		WMaterial* GetResource(ResourceID<WMaterial> id) const;
+		WBottomLevelAS* GetResource(ResourceID<WBottomLevelAS> id) const;
+		WTopLevelAS* GetResource(ResourceID<WTopLevelAS> id) const;
 
 
 		ResourceID<WTexture> GetTextureID(const std::string& textureName) const;
@@ -64,6 +79,8 @@ namespace WaveE
 		std::vector<WShader*> m_vpShaders;
 		std::vector<WPipeline*> m_vpPipelines;
 		std::vector<WMaterial*> m_vpMaterials;
+		std::vector<WBottomLevelAS*> m_vpBottomLevelAS;
+		std::vector<WTopLevelAS*> m_vpTopLevelAS;
 
 		std::unordered_map<std::string, UINT> m_shaderIndexMap;
 		std::unordered_map<std::string, UINT> m_textureIndexMap;

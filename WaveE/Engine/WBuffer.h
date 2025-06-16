@@ -11,10 +11,13 @@ namespace WaveE
 			Vertex,
 			Index,
 			SRV,
-			UAV
+			UAV,
+			RAY_TRACING,
+			DESCRIPTOR,
 		};
 
 		bool isDynamic{ false };
+		bool isUpload{ false };
 		size_t sizeBytes{ 0 };
 		Type type{ Constant };
 		const void* pInitalData{ nullptr };
@@ -34,13 +37,15 @@ namespace WaveE
 		D3D12_CPU_DESCRIPTOR_HANDLE GetCPUDescriptorHandle() const;
 
 		WDescriptorHeapManager::Allocation GetAllocation() const { return m_allocation; }
+		size_t GetSize() const { return m_sizeBytes; }
 	private:
 		size_t m_sizeBytes{ 0 };
 		WBufferDescriptor::Type m_type;
 		D3D12_RESOURCE_STATES m_state;
 		WDescriptorHeapManager::Allocation m_allocation;
 		UINT m_offset;
-		bool m_doesOwnAllocation;
+		bool m_bDoesOwnAllocation;
+		bool m_bIsUploadBuffer;
 		ComPtr<ID3D12Resource> m_pBuffer{ nullptr };
 	};
 }

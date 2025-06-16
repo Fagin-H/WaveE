@@ -17,6 +17,7 @@ namespace WaveE
 			case WBufferDescriptor::Index: resourceState = D3D12_RESOURCE_STATE_INDEX_BUFFER; break;
 			case WBufferDescriptor::SRV: resourceState = D3D12_RESOURCE_STATE_ALL_SHADER_RESOURCE; break;
 			case WBufferDescriptor::UAV: resourceState = D3D12_RESOURCE_STATE_UNORDERED_ACCESS; break;
+			case WBufferDescriptor::RAY_TRACING: resourceState = D3D12_RESOURCE_STATE_RAYTRACING_ACCELERATION_STRUCTURE; break;
 			}
 		}
 
@@ -36,16 +37,28 @@ namespace WaveE
 			case WBufferDescriptor::Index: resourceState = D3D12_RESOURCE_STATE_INDEX_BUFFER; break;
 			case WBufferDescriptor::SRV: resourceState = D3D12_RESOURCE_STATE_ALL_SHADER_RESOURCE; break;
 			case WBufferDescriptor::UAV: resourceState = D3D12_RESOURCE_STATE_UNORDERED_ACCESS; break;
+			case WBufferDescriptor::RAY_TRACING: resourceState = D3D12_RESOURCE_STATE_RAYTRACING_ACCELERATION_STRUCTURE; break;
 			}
 		}
 
 		return resourceState;
 	}
 
+	D3D12_RESOURCE_FLAGS GetResourceFlags(const WBufferDescriptor& rDescriptor)
+	{
+		if (rDescriptor.type == WBufferDescriptor::RAY_TRACING || rDescriptor.type == WBufferDescriptor::UAV)
+		{
+			return D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
+		}
+
+		return D3D12_RESOURCE_FLAG_NONE;
+	}
+
 	WBuffer::WBuffer(const WBufferDescriptor& rDescriptor, WDescriptorHeapManager::Allocation allocation, UINT offset)
 		: m_allocation{ allocation }
 		, m_offset{offset}
-		, m_doesOwnAllocation{ WDescriptorHeapManager::IsInvalidAllocation(allocation) }
+		, m_bDoesOwnAllocation{ WDescriptorHeapManager::IsInvalidAllocation(allocation) }
+		, m_bIsUploadBuffer{ rDescriptor.isUpload }
 	{
 		bool initialData = rDescriptor.pInitalData;
 		m_sizeBytes = rDescriptor.sizeBytes;
@@ -53,8 +66,9 @@ namespace WaveE
 		m_state = GetResourceState(rDescriptor);
 		D3D12_RESOURCE_STATES initialState = GetInitialResourceState(rDescriptor);
 
-		D3D12_HEAP_PROPERTIES heapProperties = CreateHeapProperties(D3D12_HEAP_TYPE_DEFAULT);
+		D3D12_HEAP_PROPERTIES heapProperties = CreateHeapProperties(m_bIsUploadBuffer ? D3D12_HEAP_TYPE_UPLOAD : D3D12_HEAP_TYPE_DEFAULT);
 		D3D12_RESOURCE_DESC resourceDesc = CreateBufferResourceDesc(align_value(rDescriptor.sizeBytes, 256));
+		resourceDesc.Flags = GetResourceFlags(rDescriptor);
 
 		WaveEDevice* pDevice = WaveManager::Instance()->GetDevice();
 
@@ -79,7 +93,7 @@ namespace WaveE
 		}
 
 		WDescriptorHeapManager* pCBVDescriptorHeapManager = WaveManager::Instance()->GetCBV_SRV_UAVHeap();
-		if (m_doesOwnAllocation)
+		if (m_bDoesOwnAllocation)
 		{
 			// Allocate CPU descriptor handle for CBV/SRV/UAV based on buffer type
 			m_allocation = pCBVDescriptorHeapManager->Allocate();
@@ -146,7 +160,7 @@ namespace WaveE
 
 	WBuffer::~WBuffer()
 	{
-		if (m_doesOwnAllocation)
+		if (m_bDoesOwnAllocation)
 		{
 			if (!WDescriptorHeapManager::IsInvalidAllocation(m_allocation))
 			{
@@ -158,9 +172,19 @@ namespace WaveE
 
 	void WBuffer::UploadData(const void* pData, size_t sizeBytes)
 	{
-		WAVEE_ASSERT_MESSAGE(sizeBytes <= m_sizeBytes, "Data too big for buffer!");
+		if (m_bIsUploadBuffer)
+		{
+			void* mappedPtr;
+			m_pBuffer->Map(0, nullptr, &mappedPtr);
+			memcpy(mappedPtr, pData, sizeBytes);
+			m_pBuffer->Unmap(0, nullptr);
+		}
+		else
+		{
+			WAVEE_ASSERT_MESSAGE(sizeBytes <= m_sizeBytes, "Data too big for buffer!");
 
-		WaveManager::Instance()->GetUploadManager()->UploadDataToBuffer(m_pBuffer.Get(), pData, sizeBytes, m_state, m_state);
+			WaveManager::Instance()->GetUploadManager()->UploadDataToBuffer(m_pBuffer.Get(), pData, sizeBytes, m_state, m_state);
+		}
 	}
 
 	D3D12_CPU_DESCRIPTOR_HANDLE WBuffer::GetCPUDescriptorHandle() const

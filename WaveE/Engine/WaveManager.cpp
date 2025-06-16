@@ -97,6 +97,8 @@ namespace WaveE
 
 		m_cameraAndLightBuffers = WResourceManager::Instance()->CreateResourceBlock(cameraAndLightBufferDescriptors, 2);
 
+		CheckRayTracingSupport();
+
 		// Time
 		InitTime();
 
@@ -263,7 +265,7 @@ namespace WaveE
 		// Create device
 		hr = D3D12CreateDevice(
 			hardwareAdapter.Get(),
-			D3D_FEATURE_LEVEL_11_0,
+			D3D_FEATURE_LEVEL_12_1,
 			IID_PPV_ARGS(&m_pDevice)
 		);
 
@@ -942,7 +944,7 @@ namespace WaveE
 
 				// Check to see whether the adapter supports Direct3D 12, but don't create the
 				// actual device yet.
-				if (SUCCEEDED(D3D12CreateDevice(adapter.Get(), D3D_FEATURE_LEVEL_11_0, _uuidof(ID3D12Device), nullptr)))
+				if (SUCCEEDED(D3D12CreateDevice(adapter.Get(), D3D_FEATURE_LEVEL_12_1, _uuidof(ID3D12Device), nullptr)))
 				{
 					break;
 				}
@@ -1222,4 +1224,12 @@ namespace WaveE
 		}
 		m_gameCamera.Rotate(WInput::Instance()->GetMouseDelta().x * m_gameCameraControls.mouseSensitivity, WInput::Instance()->GetMouseDelta().y * m_gameCameraControls.mouseSensitivity);
 	}
+
+	void WaveManager::CheckRayTracingSupport()
+	{
+		D3D12_FEATURE_DATA_D3D12_OPTIONS5 options5 = {};
+		WAVEE_ASSERT_MESSAGE(SUCCEEDED(m_pDevice->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS5, &options5, sizeof(options5))), "Failed to check feature support!");
+		m_bSupportsRayTracing = options5.RaytracingTier < D3D12_RAYTRACING_TIER_1_0;
+	}
+
 }
