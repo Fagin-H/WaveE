@@ -58,11 +58,26 @@
     <ClCompile Include="WInput.cpp">
       <Filter>Private\WaveGraphics</Filter>
     </ClCompile>
+    <ClCompile Include="WResource.cpp">
+      <Filter>Private\WaveGraphics</Filter>
+    </ClCompile>
     <ClCompile Include="DX12Helper.cpp">
       <Filter>Private\WaveGraphics</Filter>
     </ClCompile>
-    <ClCompile Include="WResource.cpp">
-      <Filter>Private\WaveGraphics</Filter>
+    <ClCompile Include="DXRHelpers\nv_helpers_dx12\BottomLevelASGenerator.cpp">
+      <Filter>Private\WaveGraphics\DXR</Filter>
+    </ClCompile>
+    <ClCompile Include="DXRHelpers\nv_helpers_dx12\RaytracingPipelineGenerator.cpp">
+      <Filter>Private\WaveGraphics\DXR</Filter>
+    </ClCompile>
+    <ClCompile Include="DXRHelpers\nv_helpers_dx12\RootSignatureGenerator.cpp">
+      <Filter>Private\WaveGraphics\DXR</Filter>
+    </ClCompile>
+    <ClCompile Include="DXRHelpers\nv_helpers_dx12\ShaderBindingTableGenerator.cpp">
+      <Filter>Private\WaveGraphics\DXR</Filter>
+    </ClCompile>
+    <ClCompile Include="DXRHelpers\nv_helpers_dx12\TopLevelASGenerator.cpp">
+      <Filter>Private\WaveGraphics\DXR</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -129,6 +144,24 @@
     <ClInclude Include="DX12Helper.h">
       <Filter>Public\WaveGraphics</Filter>
     </ClInclude>
+    <ClInclude Include="DXRHelpers\DXRHelper.h">
+      <Filter>Public\WaveGraphics\DXR</Filter>
+    </ClInclude>
+    <ClInclude Include="DXRHelpers\nv_helpers_dx12\TopLevelASGenerator.h">
+      <Filter>Public\WaveGraphics\DXR</Filter>
+    </ClInclude>
+    <ClInclude Include="DXRHelpers\nv_helpers_dx12\ShaderBindingTableGenerator.h">
+      <Filter>Public\WaveGraphics\DXR</Filter>
+    </ClInclude>
+    <ClInclude Include="DXRHelpers\nv_helpers_dx12\RootSignatureGenerator.h">
+      <Filter>Public\WaveGraphics\DXR</Filter>
+    </ClInclude>
+    <ClInclude Include="DXRHelpers\nv_helpers_dx12\RaytracingPipelineGenerator.h">
+      <Filter>Public\WaveGraphics\DXR</Filter>
+    </ClInclude>
+    <ClInclude Include="DXRHelpers\nv_helpers_dx12\BottomLevelASGenerator.h">
+      <Filter>Public\WaveGraphics\DXR</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Public">
@@ -142,6 +175,12 @@
     </Filter>
     <Filter Include="Public\WaveGraphics">
       <UniqueIdentifier>{4dee9a5e-3e3f-445a-877e-df39eb8f46e4}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Private\WaveGraphics\DXR">
+      <UniqueIdentifier>{b2d8be56-0c08-42f1-9b24-511f250bc4a3}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Public\WaveGraphics\DXR">
+      <UniqueIdentifier>{217ddc14-798e-4396-8c02-2d9a0bc155b3}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
