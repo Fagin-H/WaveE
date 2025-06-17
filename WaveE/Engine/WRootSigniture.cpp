@@ -13,7 +13,7 @@ namespace WaveE
 	{
 		RootSignatureDescriptor2 rDescriptor2{};
 		rDescriptor2.descriptorTables = rDescriptor.descriptorTables;
-		rDescriptor2.numDescriptorTables = rDescriptor2.numDescriptorTables;
+		rDescriptor2.numDescriptorTables = rDescriptor.numDescriptorTables;
 		CreateRootSigniture(rDescriptor2);
 	}
 
