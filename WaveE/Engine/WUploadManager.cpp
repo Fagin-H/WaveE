@@ -35,6 +35,11 @@ namespace WaveE
 
 	void WUploadManager::UploadDataToBuffer(ID3D12Resource* pDestResource, const void* pData, size_t size, D3D12_RESOURCE_STATES currentState, D3D12_RESOURCE_STATES finalState)
 	{
+		UploadDataToBuffer(pDestResource, pData, size, 0, currentState, finalState);
+	}
+
+	void WUploadManager::UploadDataToBuffer(ID3D12Resource* pDestResource, const void* pData, size_t size, UINT offsetBytes, D3D12_RESOURCE_STATES currentState, D3D12_RESOURCE_STATES finalState)
+	{
 		WAVEE_ASSERT_MESSAGE(size <= m_bigBufferSize, "Data too big for upload buffer!");
 
 		UINT bufferIndex = RequestUploadBuffer(size);
@@ -58,7 +63,7 @@ namespace WaveE
 		}
 
 		// Copy the data to the destination resource
-		pCommandList->CopyBufferRegion(pDestResource, 0, m_vUploadBuffers[bufferIndex].pResource.Get(), 0, size);
+		pCommandList->CopyBufferRegion(pDestResource, offsetBytes, m_vUploadBuffers[bufferIndex].pResource.Get(), 0, size);
 
 		if (finalState != D3D12_RESOURCE_STATE_COPY_DEST)
 		{

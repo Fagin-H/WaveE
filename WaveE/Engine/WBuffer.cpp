@@ -170,20 +170,20 @@ namespace WaveE
 		}
 	}
 
-	void WBuffer::UploadData(const void* pData, size_t sizeBytes)
+	void WBuffer::UploadData(const void* pData, size_t sizeBytes, UINT offsetBytes)
 	{
 		if (m_bIsUploadBuffer)
 		{
-			void* mappedPtr;
-			m_pBuffer->Map(0, nullptr, &mappedPtr);
-			memcpy(mappedPtr, pData, sizeBytes);
+			BYTE* mappedPtr;
+			m_pBuffer->Map(0, nullptr, (void**)&mappedPtr);
+			memcpy(mappedPtr + offsetBytes, pData, sizeBytes);
 			m_pBuffer->Unmap(0, nullptr);
 		}
 		else
 		{
 			WAVEE_ASSERT_MESSAGE(sizeBytes <= m_sizeBytes, "Data too big for buffer!");
 
-			WaveManager::Instance()->GetUploadManager()->UploadDataToBuffer(m_pBuffer.Get(), pData, sizeBytes, m_state, m_state);
+			WaveManager::Instance()->GetUploadManager()->UploadDataToBuffer(m_pBuffer.Get(), pData, sizeBytes, offsetBytes, m_state, m_state);
 		}
 	}
 

@@ -98,7 +98,8 @@ namespace WaveE
 		WPipelineRT(WPipelineDescriptorRT& rDescriptor);
 		~WPipelineRT();
 
-		ID3D12StateObject* GetPipelineStateObject() { return m_pPipelineStateObject.Get(); }
+		ID3D12StateObject* GetPipelineStateObject() const { return m_pPipelineStateObject.Get(); }
+		ID3D12StateObjectProperties* GetPipelineStateObjectProperties() const { return m_pPipelineStateObjectProperties.Get(); }
 
 	private:
 		void BuildShaderExportList(std::vector<std::wstring>& exportedSymbols, const WPipelineDescriptorRT& rDescriptor);

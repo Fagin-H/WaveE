@@ -82,6 +82,9 @@
     <ClCompile Include="WAccelerationStructure.cpp">
       <Filter>Private\WaveGraphics\DXR</Filter>
     </ClCompile>
+    <ClCompile Include="WShaderBindingTable.cpp">
+      <Filter>Private\WaveGraphics\DXR</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="WaveManager.h">
@@ -166,6 +169,9 @@
       <Filter>Public\WaveGraphics\DXR</Filter>
     </ClInclude>
     <ClInclude Include="WAccelerationStructure.h">
+      <Filter>Public\WaveGraphics\DXR</Filter>
+    </ClInclude>
+    <ClInclude Include="WShaderBindingTable.h">
       <Filter>Public\WaveGraphics\DXR</Filter>
     </ClInclude>
   </ItemGroup>

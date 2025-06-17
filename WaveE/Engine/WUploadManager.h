@@ -15,6 +15,7 @@ namespace WaveE
 		void Init(size_t bigBufferSize, UINT bigBufferCount, size_t smallBufferSize, UINT smallBufferCount);
 
 		void UploadDataToBuffer(ID3D12Resource* pDestResource, const void* pData, size_t size, D3D12_RESOURCE_STATES currentState, D3D12_RESOURCE_STATES finalState);
+		void UploadDataToBuffer(ID3D12Resource* pDestResource, const void* pData, size_t size, UINT offsetBytes, D3D12_RESOURCE_STATES currentState, D3D12_RESOURCE_STATES finalState);
 		void UploadDataToTexture(ID3D12Resource* pDestResource, const void* pData, UINT bytesPerPixel, D3D12_RESOURCE_STATES currentState, D3D12_RESOURCE_STATES finalState);
 
 	private:

@@ -32,7 +32,7 @@ namespace WaveE
 
 		ID3D12Resource* GetBuffer() { return m_pBuffer.Get(); }
 
-		void UploadData(const void* pData, size_t sizeBytes);
+		void UploadData(const void* pData, size_t sizeBytes, UINT offsetBytes = 0);
 
 		D3D12_CPU_DESCRIPTOR_HANDLE GetCPUDescriptorHandle() const;
 
