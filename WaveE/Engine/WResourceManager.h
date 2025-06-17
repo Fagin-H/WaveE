@@ -7,9 +7,9 @@
 #include "WPipeline.h"
 #include "WResource.h"
 #include "WMaterial.h"
+#include "WAccelerationStructure.h"
 #include <string>
 #include <unordered_map>
-#include "WAccelerationStructure.h"
 
 namespace WaveE
 {
@@ -26,6 +26,7 @@ namespace WaveE
 		ResourceID<WMesh> CreateResource(const WMeshDescriptor& rDescriptor);
 		ResourceID<WShader> CreateResource(const WShaderDescriptor& rDescriptor);
 		ResourceID<WPipeline> CreateResource(const WPipelineDescriptor& rDescriptor);
+		ResourceID<WPipelineRT> CreateResource(WPipelineDescriptorRT& rDescriptor);
 		ResourceID<WMaterial> CreateResource(const WMaterialDescriptor& rDescriptor);
 		ResourceID<WBottomLevelAS> CreateResource(const WBLASDescriptor& rDescriptor);
 		ResourceID<WTopLevelAS> CreateResource(const WTLASDescriptor& rDescriptor);
@@ -36,6 +37,7 @@ namespace WaveE
 		void OverrideResource(ResourceID<WMesh> id, const WMeshDescriptor& rDescriptor);
 		void OverrideResource(ResourceID<WShader> id, const WShaderDescriptor& rDescriptor);
 		void OverrideResource(ResourceID<WPipeline> id, const WPipelineDescriptor& rDescriptor);
+		void OverrideResource(ResourceID<WPipelineRT> id, WPipelineDescriptorRT& rDescriptor);
 		void OverrideResource(ResourceID<WMaterial> id, const WMaterialDescriptor& rDescriptor);
 		void OverrideResource(ResourceID<WBottomLevelAS> id, const WBLASDescriptor& rDescriptor);
 		void OverrideResource(ResourceID<WTopLevelAS> id, const WTLASDescriptor& rDescriptor);
@@ -53,6 +55,7 @@ namespace WaveE
 		WShader* GetResource(ResourceID<WShader> id) const;
 		WShader* GetShader(const std::string& shaderName) const;
 		WPipeline* GetResource(ResourceID<WPipeline> id) const;
+		WPipelineRT* GetResource(ResourceID<WPipelineRT> id) const;
 		WMaterial* GetResource(ResourceID<WMaterial> id) const;
 		WBottomLevelAS* GetResource(ResourceID<WBottomLevelAS> id) const;
 		WTopLevelAS* GetResource(ResourceID<WTopLevelAS> id) const;
@@ -78,6 +81,7 @@ namespace WaveE
 		std::vector<WMesh*> m_vpMeshes;
 		std::vector<WShader*> m_vpShaders;
 		std::vector<WPipeline*> m_vpPipelines;
+		std::vector<WPipelineRT*> m_vpPipelinesRT;
 		std::vector<WMaterial*> m_vpMaterials;
 		std::vector<WBottomLevelAS*> m_vpBottomLevelAS;
 		std::vector<WTopLevelAS*> m_vpTopLevelAS;

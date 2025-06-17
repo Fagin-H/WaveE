@@ -23,6 +23,7 @@ namespace WaveE
 	template WMaterial* GetResourceFromManager(ResourceID<WMaterial> id);
 	template WMesh* GetResourceFromManager(ResourceID<WMesh> id);
 	template WPipeline* GetResourceFromManager(ResourceID<WPipeline> id);
+	template WPipelineRT* GetResourceFromManager(ResourceID<WPipelineRT> id);
 	template WSampler* GetResourceFromManager(ResourceID<WSampler> id);
 	template WShader* GetResourceFromManager(ResourceID<WShader> id);
 	template WTexture* GetResourceFromManager(ResourceID<WTexture> id);

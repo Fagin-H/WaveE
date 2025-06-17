@@ -112,6 +112,12 @@ namespace WaveE
 		return ResourceID<WTopLevelAS>{static_cast<UINT>(m_vpTopLevelAS.size()) - 1};
 	}
 
+	ResourceID<WaveE::WPipelineRT> WResourceManager::CreateResource(WPipelineDescriptorRT& rDescriptor)
+	{
+		m_vpPipelinesRT.push_back(new WPipelineRT{ rDescriptor });
+		return ResourceID<WPipelineRT>{static_cast<UINT>(m_vpPipelinesRT.size()) - 1};
+	}
+
 	void WResourceManager::OverrideResource(ResourceID<WTexture> id, const WTextureDescriptor& rDescriptor, WDescriptorHeapManager::Allocation allocation /*= WDescriptorHeapManager::InvalidAllocation()*/, UINT offset /*= 0*/)
 	{
 		WAVEE_ASSERT_MESSAGE(id.id < m_vpTextures.size(), "Texture ID out of range!");
@@ -173,6 +179,13 @@ namespace WaveE
 		WAVEE_ASSERT_MESSAGE(id.id < m_vpTopLevelAS.size(), "Top Level AS ID out of range!");
 		delete m_vpTopLevelAS[id.id];
 		m_vpTopLevelAS[id.id] = new WTopLevelAS{ rDescriptor };
+	}
+
+	void WResourceManager::OverrideResource(ResourceID<WPipelineRT> id, WPipelineDescriptorRT& rDescriptor)
+	{
+		WAVEE_ASSERT_MESSAGE(id.id < m_vpPipelinesRT.size(), "PipelineRT ID out of range!");
+		delete m_vpPipelinesRT[id.id];
+		m_vpPipelinesRT[id.id] = new WPipelineRT{ rDescriptor };
 	}
 
 	ResourceBlock<WTexture> WResourceManager::CreateResourceBlock(WTextureDescriptor* pDescriptors, UINT numDescriptors)
@@ -293,6 +306,13 @@ namespace WaveE
 		WAVEE_ASSERT_MESSAGE(id.id < m_vpTopLevelAS.size(), "Top Level AS ID out of range!");
 
 		return m_vpTopLevelAS[id.id];
+	}
+
+	WPipelineRT* WResourceManager::GetResource(ResourceID<WPipelineRT> id) const
+	{
+		WAVEE_ASSERT_MESSAGE(id.id < m_vpPipelinesRT.size(), "PipelineRT ID out of range!");
+
+		return m_vpPipelinesRT[id.id];
 	}
 
 	ResourceID<WTexture> WResourceManager::GetTextureID(const std::string& textureName) const

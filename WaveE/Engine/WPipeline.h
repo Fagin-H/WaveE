@@ -1,6 +1,7 @@
 #pragma once
 #include "WShader.h"
 #include "WRootSigniture.h"
+#include "WResource.h"
 
 namespace WaveE
 {
@@ -33,6 +34,49 @@ namespace WaveE
 		UINT sampleCount{ 1 };
 	};
 
+	struct WPipelineDescriptorRT
+	{
+		WRootSigniture* pGlobalRootSignature{ nullptr };
+
+		struct RootSignatureAssociation
+		{
+			WRootSigniture* pLocalRootSignature{ nullptr };
+			std::vector<std::wstring>& vSymbols;
+		private:
+			std::vector<LPCWSTR> vSymbolPointers;
+			D3D12_SUBOBJECT_TO_EXPORTS_ASSOCIATION association{};
+			friend class WPipelineRT;
+		};
+		std::vector<RootSignatureAssociation> vRootSignatureAssociations;
+
+		struct Library
+		{
+			ResourceID<WShader> shaderID{};
+			std::vector<std::wstring> vExportedSymbols;
+		private:
+			std::vector<D3D12_EXPORT_DESC> vExports;
+			D3D12_DXIL_LIBRARY_DESC libDesc;
+			friend class WPipelineRT;
+		};
+		std::vector<Library> vLibraries;
+
+		struct HitGroup
+		{
+			std::wstring hitGroupName;
+			std::wstring closestHitShader;
+			std::wstring anyHitShader;
+			std::wstring intersectionShader;
+		private:
+			D3D12_HIT_GROUP_DESC desc = {};
+			friend class WPipelineRT;
+		};
+		std::vector<HitGroup> vHitGroups;
+
+		UINT maxPayloadSizeInBytes{ 32 };  // Example: 32 for vec3 color + float
+		UINT maxAttributeSizeInBytes{ 8 }; // Usually 8 (2 floats for barycentrics)
+		UINT maxRecursionDepth{ 1 };
+	};
+
 	class WPipeline
 	{
 	public:
@@ -46,6 +90,21 @@ namespace WaveE
 		void CreateComputePipeline(const WPipelineDescriptor& rDescriptor);
 
 		ComPtr<ID3D12PipelineState> m_pPipelineState{ nullptr };
+	};
+
+	class WPipelineRT
+	{
+	public:
+		WPipelineRT(WPipelineDescriptorRT& rDescriptor);
+		~WPipelineRT();
+
+		ID3D12StateObject* GetPipelineStateObject() { return m_pPipelineStateObject.Get(); }
+
+	private:
+		void BuildShaderExportList(std::vector<std::wstring>& exportedSymbols, const WPipelineDescriptorRT& rDescriptor);
+
+		ComPtr<ID3D12StateObject> m_pPipelineStateObject{ nullptr };
+		ComPtr<ID3D12StateObjectProperties> m_pPipelineStateObjectProperties{ nullptr };
 	};
 }
 
