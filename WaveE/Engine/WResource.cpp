@@ -9,6 +9,7 @@
 #include "WSampler.h"
 #include "WShader.h"
 #include "WTexture.h"
+#include "WAccelerationStructure.h"
 
 namespace WaveE
 {
@@ -25,4 +26,6 @@ namespace WaveE
 	template WSampler* GetResourceFromManager(ResourceID<WSampler> id);
 	template WShader* GetResourceFromManager(ResourceID<WShader> id);
 	template WTexture* GetResourceFromManager(ResourceID<WTexture> id);
+	template WBottomLevelAS* GetResourceFromManager(ResourceID<WBottomLevelAS> id);
+	template WTopLevelAS* GetResourceFromManager(ResourceID<WTopLevelAS> id);
 }
