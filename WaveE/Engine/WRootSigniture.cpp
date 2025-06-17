@@ -4,13 +4,20 @@
 
 namespace WaveE
 {
-
 	WRootSigniture::WRootSigniture()
 	{
 		
 	}
 
 	void WRootSigniture::CreateRootSigniture(const RootSignatureDescriptor& rDescriptor)
+	{
+		RootSignatureDescriptor2 rDescriptor2{};
+		rDescriptor2.descriptorTables = rDescriptor.descriptorTables;
+		rDescriptor2.numDescriptorTables = rDescriptor2.numDescriptorTables;
+		CreateRootSigniture(rDescriptor2);
+	}
+
+	void WRootSigniture::CreateRootSigniture(const RootSignatureDescriptor2& rDescriptor)
 	{
 		WaveEDevice* pDevice = WaveManager::Instance()->GetDevice();
 
@@ -28,6 +35,7 @@ namespace WaveE
 		UINT UAVCount{ 0 };
 		UINT SamplerCount{ 0 };
 
+		// ----- Descriptor Tables -----
 		for (UINT i = 0; i < rDescriptor.numDescriptorTables; i++)
 		{
 			DescriptorTable& rDT = rDescriptor.descriptorTables[i];
@@ -112,6 +120,57 @@ namespace WaveE
 
 			vRootParameters[i].DescriptorTable.NumDescriptorRanges = count;
 			vRootParameters[i].DescriptorTable.pDescriptorRanges = &vDescriptorRanges[startIndex];
+		}
+
+		// ----- Root Descriptors -----
+		for (UINT i = 0; i < rDescriptor.numRootDescriptors; ++i)
+		{
+			D3D12_ROOT_PARAMETER param = {};
+			param.ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
+
+			const RootDescriptor& rRD = rDescriptor.rootDescriptors[i];
+
+			switch (rRD.type)
+			{
+			case RootDescriptor::CBV:
+				param.ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
+				param.Descriptor.ShaderRegister = CBVCount;
+				param.Descriptor.RegisterSpace = 0;
+				CBVCount++;
+				break;
+
+			case RootDescriptor::SRV:
+				param.ParameterType = D3D12_ROOT_PARAMETER_TYPE_SRV;
+				param.Descriptor.ShaderRegister = SRVCount;
+				param.Descriptor.RegisterSpace = 0;
+				SRVCount++;
+				break;
+
+			case RootDescriptor::UAV:
+				param.ParameterType = D3D12_ROOT_PARAMETER_TYPE_UAV;
+				param.Descriptor.ShaderRegister = UAVCount;
+				param.Descriptor.RegisterSpace = 0;
+				UAVCount++;
+				break;
+			}
+
+			vRootParameters.push_back(param);
+		}
+
+		// ----- Root Constants -----
+		for (UINT i = 0; i < rDescriptor.numRootConstants; i++)
+		{
+			const RootConstant& rRC = rDescriptor.rootConstants[i];
+
+			D3D12_ROOT_PARAMETER rootParam{};
+			rootParam.ParameterType = D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS;
+			rootParam.ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
+			rootParam.Constants.ShaderRegister = CBVCount;
+			rootParam.Constants.RegisterSpace = 0;
+			rootParam.Constants.Num32BitValues = rRC.num32BitValues;
+			CBVCount++;
+
+			vRootParameters.push_back(rootParam);
 		}
 
 		D3D12_ROOT_SIGNATURE_DESC rootSignitureDescriptor;
