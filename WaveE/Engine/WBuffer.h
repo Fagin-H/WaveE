@@ -38,6 +38,7 @@ namespace WaveE
 
 		WDescriptorHeapManager::Allocation GetAllocation() const { return m_allocation; }
 		size_t GetSize() const { return m_sizeBytes; }
+		D3D12_RESOURCE_STATES GetCurrentState() const { return m_state; }
 	private:
 		size_t m_sizeBytes{ 0 };
 		WBufferDescriptor::Type m_type;

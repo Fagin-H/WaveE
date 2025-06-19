@@ -698,6 +698,62 @@ namespace WaveE
 		m_pCommandList->CopyTextureRegion(pDst, 0, 0, 0, pSrc, nullptr);
 	}
 
+	void WaveManager::CopyBufferToTextre(ResourceID<WTexture> destination, ResourceID<WBuffer> source)
+	{
+		D3D12_TEXTURE_COPY_LOCATION copyLocationDestination = {};
+		D3D12_TEXTURE_COPY_LOCATION copyLocationSource = {};
+
+		copyLocationDestination.pResource = destination.GetResource()->GetTexture();
+		copyLocationDestination.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
+		copyLocationDestination.SubresourceIndex = 0;
+
+		D3D12_PLACED_SUBRESOURCE_FOOTPRINT footprint = {};
+		UINT64 totalBytes = 0;
+		auto textureDesc = destination.GetResource()->GetTexture()->GetDesc();
+
+		m_pDevice->GetCopyableFootprints(&textureDesc, 0, 1, 0, &footprint, nullptr, nullptr, &totalBytes);
+
+		copyLocationSource.pResource = source.GetResource()->GetBuffer();
+		copyLocationSource.Type = D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT;
+		copyLocationSource.PlacedFootprint = footprint;
+
+		bool stateChangeSource = false;
+		if (source.GetResource()->GetCurrentState() != D3D12_RESOURCE_STATE_COPY_SOURCE)
+		{
+			stateChangeSource = true;
+			D3D12_RESOURCE_BARRIER barrier = CreateTransitionBarrier(
+				source.GetResource()->GetBuffer(), source.GetResource()->GetCurrentState(), D3D12_RESOURCE_STATE_COPY_SOURCE);
+			m_pCommandList->ResourceBarrier(1, &barrier);
+		}
+
+		bool stateChangeDestination = false;
+		if (destination.GetResource()->GetCurrentState() != D3D12_RESOURCE_STATE_COPY_DEST)
+		{
+			stateChangeDestination = true;
+			D3D12_RESOURCE_BARRIER barrier = CreateTransitionBarrier(
+				destination.GetResource()->GetTexture(), destination.GetResource()->GetCurrentState(), D3D12_RESOURCE_STATE_COPY_DEST);
+			m_pCommandList->ResourceBarrier(1, &barrier);
+		}
+
+		// Do the copy
+		m_pCommandList->CopyTextureRegion(&copyLocationDestination, 0, 0, 0, &copyLocationSource, nullptr);
+
+		// Restore resource states if we transitioned them
+		if (stateChangeSource)
+		{
+			D3D12_RESOURCE_BARRIER barrier = CreateTransitionBarrier(
+				source.GetResource()->GetBuffer(), D3D12_RESOURCE_STATE_COPY_SOURCE, source.GetResource()->GetCurrentState());
+			m_pCommandList->ResourceBarrier(1, &barrier);
+		}
+
+		if (stateChangeDestination)
+		{
+			D3D12_RESOURCE_BARRIER barrier = CreateTransitionBarrier(
+				destination.GetResource()->GetTexture(), D3D12_RESOURCE_STATE_COPY_DEST, destination.GetResource()->GetCurrentState());
+			m_pCommandList->ResourceBarrier(1, &barrier);
+		}
+	}
+
 	void WaveManager::SetPipelineState(ResourceID<WPipeline> id)
 	{
 		WAVEE_ASSERT_MESSAGE(id.IsValid(), "Invalid pipeline!");
