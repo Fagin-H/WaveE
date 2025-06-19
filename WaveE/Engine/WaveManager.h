@@ -104,6 +104,8 @@ namespace WaveE
 		};
 		ResourceID<WSampler> GetDefaultSampler(SamplerType type = WRAP_LINEAR);
 
+		bool GetRayTracingSupport() const { return m_bSupportsRayTracing; }
+
 		// Game function
 
 		static constexpr UINT m_maxLights{ 4 };

@@ -64,21 +64,6 @@
     <ClCompile Include="DX12Helper.cpp">
       <Filter>Private\WaveGraphics</Filter>
     </ClCompile>
-    <ClCompile Include="DXRHelpers\nv_helpers_dx12\BottomLevelASGenerator.cpp">
-      <Filter>Private\WaveGraphics\DXR</Filter>
-    </ClCompile>
-    <ClCompile Include="DXRHelpers\nv_helpers_dx12\RaytracingPipelineGenerator.cpp">
-      <Filter>Private\WaveGraphics\DXR</Filter>
-    </ClCompile>
-    <ClCompile Include="DXRHelpers\nv_helpers_dx12\RootSignatureGenerator.cpp">
-      <Filter>Private\WaveGraphics\DXR</Filter>
-    </ClCompile>
-    <ClCompile Include="DXRHelpers\nv_helpers_dx12\ShaderBindingTableGenerator.cpp">
-      <Filter>Private\WaveGraphics\DXR</Filter>
-    </ClCompile>
-    <ClCompile Include="DXRHelpers\nv_helpers_dx12\TopLevelASGenerator.cpp">
-      <Filter>Private\WaveGraphics\DXR</Filter>
-    </ClCompile>
     <ClCompile Include="WAccelerationStructure.cpp">
       <Filter>Private\WaveGraphics\DXR</Filter>
     </ClCompile>
@@ -149,24 +134,6 @@
     </ClInclude>
     <ClInclude Include="DX12Helper.h">
       <Filter>Public\WaveGraphics</Filter>
-    </ClInclude>
-    <ClInclude Include="DXRHelpers\DXRHelper.h">
-      <Filter>Public\WaveGraphics\DXR</Filter>
-    </ClInclude>
-    <ClInclude Include="DXRHelpers\nv_helpers_dx12\TopLevelASGenerator.h">
-      <Filter>Public\WaveGraphics\DXR</Filter>
-    </ClInclude>
-    <ClInclude Include="DXRHelpers\nv_helpers_dx12\ShaderBindingTableGenerator.h">
-      <Filter>Public\WaveGraphics\DXR</Filter>
-    </ClInclude>
-    <ClInclude Include="DXRHelpers\nv_helpers_dx12\RootSignatureGenerator.h">
-      <Filter>Public\WaveGraphics\DXR</Filter>
-    </ClInclude>
-    <ClInclude Include="DXRHelpers\nv_helpers_dx12\RaytracingPipelineGenerator.h">
-      <Filter>Public\WaveGraphics\DXR</Filter>
-    </ClInclude>
-    <ClInclude Include="DXRHelpers\nv_helpers_dx12\BottomLevelASGenerator.h">
-      <Filter>Public\WaveGraphics\DXR</Filter>
     </ClInclude>
     <ClInclude Include="WAccelerationStructure.h">
       <Filter>Public\WaveGraphics\DXR</Filter>
