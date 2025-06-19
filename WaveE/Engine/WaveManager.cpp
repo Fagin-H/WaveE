@@ -709,6 +709,17 @@ namespace WaveE
 		}
 	}
 
+	void WaveManager::SetPipelineState(ResourceID<WPipelineRT> id)
+	{
+		WAVEE_ASSERT_MESSAGE(id.IsValid(), "Invalid pipeline!");
+
+		if (id.id != m_currentPipelineRT.id)
+		{
+			m_pCommandList->SetPipelineState1(id.GetResource()->GetPipelineStateObject());
+			m_currentPipelineRT = id;
+		}
+	}
+
 	void WaveManager::BindBuffer(ResourceID<WBuffer> id, SlotIndex slot)
 	{
 		WAVEE_ASSERT_MESSAGE(IsCBV_SRV_UAVSlot(slot), "Invalid slot index for buffer!");
@@ -909,6 +920,39 @@ namespace WaveE
 			m_currentMaterial = material;
 		}
 		m_pCommandList->DrawIndexedInstanced(mesh.GetResource()->GetIndexCount(), count, 0, 0, 0);
+	}
+
+	void WaveManager::DispatchRays(const WShaderBindingTable& sbt, UINT width /*= 0*/, UINT height /*= 0*/, UINT depth /*= 1*/)
+	{
+		if (width == 0)
+		{
+			width = m_width;
+		}
+		if (height == 0)
+		{
+			height = m_height;
+		}
+
+		D3D12_DISPATCH_RAYS_DESC dxrDesc = {};
+
+		D3D12_GPU_VIRTUAL_ADDRESS sbtBufferStartAddress = sbt.GetBuffer().GetResource()->GetBuffer()->GetGPUVirtualAddress();
+
+		dxrDesc.RayGenerationShaderRecord.StartAddress = sbtBufferStartAddress;
+		dxrDesc.RayGenerationShaderRecord.SizeInBytes = sbt.GetRayGenRecordSize();
+
+		dxrDesc.MissShaderTable.StartAddress = sbtBufferStartAddress + sbt.GetRayGenRecordSize();
+		dxrDesc.MissShaderTable.SizeInBytes = sbt.GetMissTableSize();
+		dxrDesc.MissShaderTable.StrideInBytes = sbt.GetMissRecordSize();
+
+		dxrDesc.HitGroupTable.StartAddress = sbtBufferStartAddress + sbt.GetRayGenRecordSize() + sbt.GetMissTableSize();
+		dxrDesc.HitGroupTable.SizeInBytes = sbt.GetHitTableSize();
+		dxrDesc.HitGroupTable.StrideInBytes = sbt.GetHitGroupRecordSize();
+
+		dxrDesc.Width = width;
+		dxrDesc.Height = height;
+		dxrDesc.Depth = depth;
+
+		m_pCommandList->DispatchRays(&dxrDesc);
 	}
 
 	void WaveManager::SetRootSigniture(WRootSigniture* pRootSigniture)

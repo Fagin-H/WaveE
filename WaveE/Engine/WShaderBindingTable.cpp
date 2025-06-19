@@ -15,6 +15,8 @@ namespace WaveE
 		m_rayGenRecordSize = rDescriptor.rayGenRecordSize ? rDescriptor.rayGenRecordSize : align_value(shaderIdSize + rDescriptor.rayGenLocalRootArgs.size(), D3D12_RAYTRACING_SHADER_RECORD_BYTE_ALIGNMENT);
 		m_missRecordSize = rDescriptor.missRecordSize ? rDescriptor.missRecordSize : GetMaxRecorldSize(rDescriptor.missLocalRootArgs);
 		m_hitGroupRecordSize = rDescriptor.hitGroupRecordSize ? rDescriptor.hitGroupRecordSize : GetMaxRecorldSize(rDescriptor.hitGroupLocalRootArgs);
+		m_missTableSize = m_missRecordSize * rDescriptor.missLocalRootArgs.size();
+		m_hitTableSize = m_hitGroupRecordSize * rDescriptor.hitGroupLocalRootArgs.size();
 
 		m_missCount = static_cast<UINT>(rDescriptor.missExports.size());
 		m_hitGroupCount = static_cast<UINT>(rDescriptor.hitGroupExports.size());

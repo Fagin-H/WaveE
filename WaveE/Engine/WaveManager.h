@@ -10,6 +10,7 @@
 #include "WResourceManager.h"
 #include "WCamera.h"
 #include "WMaterial.h"
+#include "WShaderBindingTable.h"
 
 
 namespace WaveE
@@ -157,8 +158,10 @@ namespace WaveE
 
 		void CopyTexture(ResourceID<WTexture> destination, ResourceID<WTexture> source);
 		void CopyTexture(const D3D12_TEXTURE_COPY_LOCATION* pDst, const D3D12_TEXTURE_COPY_LOCATION* pSrc);
+		void CopyBufferToTextre(ResourceID<WTexture> destination, ResourceID<WBuffer> source);
 
 		void SetPipelineState(ResourceID<WPipeline> id);
+		void SetPipelineState(ResourceID<WPipelineRT> id);
 
 		void SetDefaultRootSigniture() { SetRootSigniture(&m_defaultRootSigniture); }
 		void SetRootSigniture(WRootSigniture* pRootSigniture);
@@ -168,6 +171,8 @@ namespace WaveE
 
 		void DrawMesh(ResourceID<WMesh> mesh, ResourceID<WMaterial> material, UINT count = 1);
 		void DrawIndexedMesh(ResourceID<WMesh> mesh, ResourceID<WMaterial> material, UINT count = 1);
+
+		void DispatchRays(const WShaderBindingTable& sbt, UINT width = 0, UINT height = 0, UINT depth = 1);
 
 	private:
 		enum BackBufferState
@@ -296,6 +301,7 @@ namespace WaveE
 		const DXGI_FORMAT m_defaultDepthType{ DXGI_FORMAT_D32_FLOAT };
 
 		ResourceID<WPipeline> m_currentPipeline{};
+		ResourceID<WPipelineRT> m_currentPipelineRT{};
 		ResourceID<WMaterial> m_currentMaterial{};
 		ResourceID<WMesh> m_currentMesh{};
 
@@ -340,7 +346,6 @@ namespace WaveE
 		const UINT m_materialCBVCount{ 1 };
 		const UINT m_materialSRVCount{ 4 };
 		const UINT m_materialSamplerCount{ m_materialSRVCount };
-
 	};
 }
 
