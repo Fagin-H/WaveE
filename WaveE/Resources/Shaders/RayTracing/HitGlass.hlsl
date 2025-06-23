@@ -36,7 +36,8 @@ void ClosestHit_Glass(inout RayPayload payload, in Attributes attribs)
     const float3 barycentrics = float3(1.0 - attribs.texcoord.x - attribs.texcoord.y, attribs.texcoord.x, attribs.texcoord.y);
     VertexAttributes attr = InterpolateAttributes(primitiveIndex, barycentrics);
 
-    float3 viewDir = normalize(viewPos.xyz - attr.position);
+    float3 position = WorldRayOrigin() + WorldRayDirection() * RayTCurrent();
+    float3 viewDir = normalize(viewPos.xyz - position);
     float3 vertexNormal = attr.normal;
     float3 normal = normalize(mul((float3x3)viewMatrix, vertexNormal)); // To world space
 
@@ -60,7 +61,7 @@ void ClosestHit_Glass(inout RayPayload payload, in Attributes attribs)
 
         RayDesc reflectRay;
         reflectRay.Direction = reflect(I, normal);
-        reflectRay.Origin = attr.position + 0.001 * reflectRay.Direction;
+        reflectRay.Origin = position + 0.001 * reflectRay.Direction;
         reflectRay.TMin = 0.001;
         reflectRay.TMax = 10000;
 
@@ -78,7 +79,7 @@ void ClosestHit_Glass(inout RayPayload payload, in Attributes attribs)
 
             RayDesc refractRay;
             refractRay.Direction = refractDir;
-            refractRay.Origin = attr.position - 0.001 * refractDir;
+            refractRay.Origin = position - 0.001 * refractDir;
             refractRay.TMin = 0.001;
             refractRay.TMax = 10000;
 

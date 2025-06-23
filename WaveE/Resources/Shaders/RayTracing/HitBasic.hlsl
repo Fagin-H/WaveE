@@ -12,7 +12,8 @@ void ClosestHit_LitObject(inout RayPayload payload, in Attributes attribs)
     
     VertexAttributes attr = InterpolateAttributes(primitiveIndex, barycentrics);
 
-    float3 viewDir = normalize(viewPos.xyz - attr.position);
+    float3 position = WorldRayOrigin() + WorldRayDirection() * RayTCurrent();
+    float3 viewDir = normalize(viewPos.xyz - position);
     uint2 screenSize = DispatchRaysDimensions().xy;
     int2 coord = floor(attribs.texcoord * screenSize);
     float4 albedocolour = g_albedo.Load(int3(coord, 0));
@@ -23,7 +24,7 @@ void ClosestHit_LitObject(inout RayPayload payload, in Attributes attribs)
 
     for (int i = 0; i < MAX_LIGHT; ++i)
     {
-        float3 lightDir = normalize(lights[i].pos.xyz - attr.position);
+        float3 lightDir = normalize(lights[i].pos.xyz - position);
         float3 reflectDir = reflect(-lightDir, normal);
 
         // Diffuse

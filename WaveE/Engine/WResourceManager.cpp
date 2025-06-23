@@ -509,15 +509,20 @@ namespace WaveE
 	UINT WResourceManager::LoadMesh(const char* filepath)
 	{
 		std::vector<DefaultVertex> vVertices;
+		std::vector<DefaultRTVertex> vVerticesRT;
+		std::vector<wma::vec3> vVerticesPos;
 		std::vector<UINT> vIndices;
 
-		WMeshLoader::Instance()->LoadMesh(filepath, vVertices, vIndices);
+		WMeshLoader::Instance()->LoadMeshRaterAndRT(filepath, vVertices, vVerticesRT, vVerticesPos, vIndices);
 
 		WMeshDescriptor meshDescriptor;
 		meshDescriptor.topology = WMeshDescriptor::TRIANGLE_LIST;
 		meshDescriptor.pVertexData = vVertices.data();
+		meshDescriptor.pVertexDataRT = vVerticesRT.data();
+		meshDescriptor.pVertexPosData = vVerticesPos.data();
 		meshDescriptor.vertexCount = vVertices.size();
 		meshDescriptor.vertexStrideBytes = sizeof(DefaultVertex);
+		meshDescriptor.vertexStrideBytesRT = sizeof(DefaultRTVertex);
 		meshDescriptor.pIndexData = vIndices.data();
 		meshDescriptor.indexCount = vIndices.size();
 

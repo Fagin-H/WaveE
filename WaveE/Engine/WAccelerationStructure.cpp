@@ -24,8 +24,8 @@ namespace WaveE
 		// Create geom desc
 		D3D12_RAYTRACING_GEOMETRY_DESC descriptor = {};
 		descriptor.Type = D3D12_RAYTRACING_GEOMETRY_TYPE_TRIANGLES;
-		descriptor.Triangles.VertexBuffer.StartAddress = pMesh->GetVertexBufferID().GetResource()->GetBuffer()->GetGPUVirtualAddress();
-		descriptor.Triangles.VertexBuffer.StrideInBytes = pMesh->GetVertexStride();
+		descriptor.Triangles.VertexBuffer.StartAddress = pMesh->GetVertexPosBufferID().GetResource()->GetBuffer()->GetGPUVirtualAddress();
+		descriptor.Triangles.VertexBuffer.StrideInBytes = sizeof(wma::vec3);
 		descriptor.Triangles.VertexCount = pMesh->GetVertexCount();
 		descriptor.Triangles.VertexFormat = DXGI_FORMAT_R32G32B32_FLOAT;
 		descriptor.Triangles.IndexBuffer = pMesh->IsIndexed() ? (pMesh->GetIndexBufferID().GetResource()->GetBuffer()->GetGPUVirtualAddress()) : 0;

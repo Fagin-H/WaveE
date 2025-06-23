@@ -22,6 +22,7 @@ namespace WaveE
 		: m_vertexCount{ rDescriptor.vertexCount }
 		, m_IndexCount{ rDescriptor.indexCount }
 		, m_vertexStrideBytes{ rDescriptor.vertexStrideBytes }
+		,m_vertexStrideBytesRT{ rDescriptor.vertexStrideBytesRT }
 	{
 		WAVEE_ASSERT_MESSAGE(rDescriptor.pVertexData, "No vertex data for mesh!");
 
@@ -31,7 +32,7 @@ namespace WaveE
 
 		WaveEDevice* pDevice = WaveManager::Instance()->GetDevice();
 
-		// Create vertex buffer
+		// Create vertex buffers
 		{
 			WBufferDescriptor vertexBufferDescriptor = {};
 			vertexBufferDescriptor.isDynamic = false;
@@ -44,6 +45,17 @@ namespace WaveE
 			m_vertexBufferView.BufferLocation = m_vertexBufferID.GetResource()->GetBuffer()->GetGPUVirtualAddress();
 			m_vertexBufferView.SizeInBytes = rDescriptor.vertexCount * rDescriptor.vertexStrideBytes;
 			m_vertexBufferView.StrideInBytes = rDescriptor.vertexStrideBytes;
+
+			vertexBufferDescriptor.sizeBytes = rDescriptor.vertexCount * sizeof(wma::vec3);
+			vertexBufferDescriptor.pInitalData = rDescriptor.pVertexPosData;
+
+			m_vertexPosBufferID = WResourceManager::Instance()->CreateResource(vertexBufferDescriptor);
+
+			vertexBufferDescriptor.sizeBytes = rDescriptor.vertexCount * rDescriptor.vertexStrideBytesRT;
+			vertexBufferDescriptor.pInitalData = rDescriptor.pVertexDataRT;
+			vertexBufferDescriptor.type = WBufferDescriptor::Constant;
+
+			m_vertexBufferRTID = WResourceManager::Instance()->CreateResource(vertexBufferDescriptor);
 		}
 
 		// Create index buffer if needed

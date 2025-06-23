@@ -43,11 +43,10 @@ struct RayPayload
 
 // Constants
 static const uint FLOAT_SIZE = 4;
-static const uint VERTEX_STRIDE = (3 + 3 + 2) * FLOAT_SIZE; // position + normal + uv
+static const uint VERTEX_STRIDE = (3 + 2) * FLOAT_SIZE; // normal + uv
 
 struct VertexAttributes
 {
-    float3 position;
     float3 normal;
     float2 uv;
 };
@@ -57,9 +56,7 @@ VertexAttributes GetVertex(uint vertexIndex)
 {
     uint address = vertexIndex * VERTEX_STRIDE;
     VertexAttributes v;
-    v.position = asfloat(vertices.Load3(address));    
-    address += 3 * FLOAT_SIZE;
-
+    
     v.normal   = normalize(asfloat(vertices.Load3(address))); 
     address += 3 * FLOAT_SIZE;
 
@@ -77,7 +74,6 @@ VertexAttributes InterpolateAttributes(uint primitiveIndex, float3 barycentrics)
     v[2] = GetVertex(baseVertex + 2);
 
     VertexAttributes interpolated;
-    interpolated.position = v[0].position * barycentrics.x + v[1].position * barycentrics.y + v[2].position * barycentrics.z;
     interpolated.normal   = normalize(v[0].normal * barycentrics.x + v[1].normal * barycentrics.y + v[2].normal * barycentrics.z);
     interpolated.uv       = v[0].uv * barycentrics.x + v[1].uv * barycentrics.y + v[2].uv * barycentrics.z;
 

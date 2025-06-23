@@ -11,6 +11,12 @@ namespace WaveE
 		wma::vec2 texCoord;
 	};
 
+	struct DefaultRTVertex
+	{
+		wma::vec3 normal;
+		wma::vec2 texCoord;
+	};
+
 	struct WMeshDescriptor
 	{
 		enum Topology
@@ -24,8 +30,11 @@ namespace WaveE
 
 		Topology topology{ TRIANGLE_LIST };
 		void* pVertexData{ nullptr };
+		void* pVertexDataRT{ nullptr };
+		void* pVertexPosData{ nullptr };
 		UINT vertexCount{ 0 };
 		size_t vertexStrideBytes{ sizeof(DefaultVertex) };
+		size_t vertexStrideBytesRT{ sizeof(DefaultRTVertex) };
 		void* pIndexData{ nullptr };
 		UINT indexCount{ 0 };
 	};
@@ -40,18 +49,24 @@ namespace WaveE
 		UINT GetVertexCount() const { return m_vertexCount; }
 		UINT GetIndexCount() const { return m_IndexCount; }
 		size_t GetVertexStride() const { return m_vertexStrideBytes; }
+		size_t GetVertexStrideRT() const { return m_vertexStrideBytesRT; }
 		ResourceID<WBuffer> GetVertexBufferID() const { return m_vertexBufferID; }
+		ResourceID<WBuffer> GetVertexBufferIDRT() const { return m_vertexBufferRTID; }
+		ResourceID<WBuffer> GetVertexPosBufferID() const { return m_vertexPosBufferID; }
 		ResourceID<WBuffer> GetIndexBufferID() const { return m_indexBufferID; }
 
 		bool IsIndexed() const { return m_isIndexed; }
 		bool IsTriangleList() const { return m_topology == D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST; }
 	private:
 		ResourceID<WBuffer> m_vertexBufferID{};
+		ResourceID<WBuffer> m_vertexBufferRTID{};
+		ResourceID<WBuffer> m_vertexPosBufferID{};
 		ResourceID<WBuffer> m_indexBufferID{};
 
 		UINT m_vertexCount;
 		UINT m_IndexCount;
 		size_t m_vertexStrideBytes;
+		size_t m_vertexStrideBytesRT;
 
 		D3D12_VERTEX_BUFFER_VIEW m_vertexBufferView;
 		D3D12_INDEX_BUFFER_VIEW m_indexBufferView;
