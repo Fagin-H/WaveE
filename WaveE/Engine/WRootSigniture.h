@@ -11,6 +11,7 @@ namespace WaveE
 			UINT numSRVs{ 0 };
 			UINT numUAVs{ 0 };
 			UINT numSamplers{ 0 };
+			UINT space{ 0 };
 		};
 
 		struct RootDescriptor
@@ -21,11 +22,13 @@ namespace WaveE
 				SRV,
 				UAV
 			} type;
+			UINT space{ 0 };
 		};
 
 		struct RootConstant
 		{
 			UINT num32BitValues{ 0 };
+			UINT space{ 0 };
 		};
 
 		struct RootSignatureDescriptor

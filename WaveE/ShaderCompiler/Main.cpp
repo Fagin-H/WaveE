@@ -203,5 +203,6 @@ int main(int argc, char* argv[])
 		CompileRaytracingShader(hlslFile.wstring(), releaseOutputPath + L"_RT.cso", false);
 	}
 
+	system("pause");
 	return 0;
 }

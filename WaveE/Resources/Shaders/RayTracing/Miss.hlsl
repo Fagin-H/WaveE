@@ -1,7 +1,7 @@
-#include "Common.hlsl"
+#include "CommonRT.hlsl"
 
 [shader("miss")]
-void Miss(inout HitInfo payload : SV_RayPayload)
+void Miss(inout RayPayload payload : SV_RayPayload)
 {
-    payload.colorAndDistance = float4(0.2f, 0.2f, 0.8f, -1.f);
+    payload.colour = float3(0.53, 0.81, 0.92) * payload.attenuation;
 }

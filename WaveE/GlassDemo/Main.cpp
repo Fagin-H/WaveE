@@ -242,6 +242,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow)
 
 	WaveInstance->SetAmbientLight(wma::vec4{ 1, 1, 1, 0.1f });
 
+	// Ray Tracing Setup
+
 
     WaveManager::EndInit();
 

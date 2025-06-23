@@ -60,7 +60,7 @@ namespace WaveE
 				range.NumDescriptors = rDT.numSamplers;
 				range.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER;
 				range.OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
-				range.RegisterSpace = 0;
+				range.RegisterSpace = rDT.space;
 
 				SamplerCount += rDT.numSamplers;
 				vDescriptorRanges.push_back(range);
@@ -74,7 +74,7 @@ namespace WaveE
 					range.NumDescriptors = rDT.numCBVs;
 					range.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_CBV;
 					range.OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
-					range.RegisterSpace = 0;
+					range.RegisterSpace = rDT.space;
 
 					CBVCount += rDT.numCBVs;
 					vDescriptorRanges.push_back(range);
@@ -86,7 +86,7 @@ namespace WaveE
 					range.NumDescriptors = rDT.numSRVs;
 					range.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
 					range.OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
-					range.RegisterSpace = 0;
+					range.RegisterSpace = rDT.space;
 
 					SRVCount += rDT.numSRVs;
 					vDescriptorRanges.push_back(range);
@@ -98,7 +98,7 @@ namespace WaveE
 					range.NumDescriptors = rDT.numUAVs;
 					range.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_UAV;
 					range.OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
-					range.RegisterSpace = 0;
+					range.RegisterSpace = rDT.space;
 
 					UAVCount += rDT.numUAVs;
 					vDescriptorRanges.push_back(range);
@@ -135,21 +135,21 @@ namespace WaveE
 			case RootDescriptor::CBV:
 				param.ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
 				param.Descriptor.ShaderRegister = CBVCount;
-				param.Descriptor.RegisterSpace = 0;
+				param.Descriptor.RegisterSpace = rRD.space;
 				CBVCount++;
 				break;
 
 			case RootDescriptor::SRV:
 				param.ParameterType = D3D12_ROOT_PARAMETER_TYPE_SRV;
 				param.Descriptor.ShaderRegister = SRVCount;
-				param.Descriptor.RegisterSpace = 0;
+				param.Descriptor.RegisterSpace = rRD.space;
 				SRVCount++;
 				break;
 
 			case RootDescriptor::UAV:
 				param.ParameterType = D3D12_ROOT_PARAMETER_TYPE_UAV;
 				param.Descriptor.ShaderRegister = UAVCount;
-				param.Descriptor.RegisterSpace = 0;
+				param.Descriptor.RegisterSpace = rRD.space;
 				UAVCount++;
 				break;
 			}
@@ -166,7 +166,7 @@ namespace WaveE
 			rootParam.ParameterType = D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS;
 			rootParam.ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
 			rootParam.Constants.ShaderRegister = CBVCount;
-			rootParam.Constants.RegisterSpace = 0;
+			rootParam.Constants.RegisterSpace = rRC.space;
 			rootParam.Constants.Num32BitValues = rRC.num32BitValues;
 			CBVCount++;
 
