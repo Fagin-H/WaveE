@@ -1,9 +1,7 @@
 #include "CommonRT.hlsl"
 
 // Resources
-Texture2D g_normalMap : register(t0, space1);
-
-cbuffer CameraBuffer : register(b0, space1)
+cbuffer GlassBuffer : register(b2)//register(b0, space1)
 {
     float4 indexOfRefraction;
 };
@@ -30,10 +28,10 @@ float FresnelReflectAmount(float n1, float n2, float3 normal, float3 incident)
 }
 
 [shader("closesthit")]
-void ClosestHit_Glass(inout RayPayload payload, in Attributes attribs)
+void ClosestHit_Glass(inout RayPayload payload, in BuiltInTriangleIntersectionAttributes attribs)
 {
     const uint primitiveIndex = PrimitiveIndex();
-    const float3 barycentrics = float3(1.0 - attribs.texcoord.x - attribs.texcoord.y, attribs.texcoord.x, attribs.texcoord.y);
+    const float3 barycentrics = float3(1.0 - attribs.barycentrics.x - attribs.barycentrics.y, attribs.barycentrics.x, attribs.barycentrics.y);
     VertexAttributes attr = InterpolateAttributes(primitiveIndex, barycentrics);
 
     float3 position = WorldRayOrigin() + WorldRayDirection() * RayTCurrent();

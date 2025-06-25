@@ -4,6 +4,7 @@ namespace WaveE
 {
 	D3D12_HEAP_PROPERTIES CreateHeapProperties(D3D12_HEAP_TYPE type);
 	D3D12_RESOURCE_DESC CreateBufferResourceDesc(UINT width);
+	D3D12_RESOURCE_DESC CreateUAVTextureResourceDesc(UINT width, UINT height);
 	D3D12_RESOURCE_DESC CreateTextureResourceDesc(DXGI_FORMAT format, UINT width, UINT height);
 
 	D3D12_RESOURCE_BARRIER CreateTransitionBarrier(ID3D12Resource* pResource, D3D12_RESOURCE_STATES stateBefore, D3D12_RESOURCE_STATES stateAfter);

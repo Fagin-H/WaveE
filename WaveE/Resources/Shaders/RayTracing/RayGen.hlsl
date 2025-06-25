@@ -8,17 +8,21 @@ void RayGen() {
     uint2 pixelIndex = DispatchRaysIndex().xy;
     uint2 screenSize = DispatchRaysDimensions().xy;
 
-    float2 uv = (float2(pixelIndex) + 0.5f) / float2(screenSize);
-    uv = uv * 2.0f - 1.0f;  // [-1,1] range
+    float aspect = screenSize.x / screenSize.y;
+    float2 d = (((pixelIndex.xy + 0.5f) / screenSize.xy) * 2.f - 1.f);
 
-    // Generate camera ray direction in view space
-    float4 ndc = float4(uv, 1, 1);
-    float4 viewDir = mul(inverseProjectionMatrix, ndc);
-    viewDir /= viewDir.w;
-    float3 rayDir = normalize(viewDir.xyz);
+    float2 uv = (pixelIndex + 0.5f) / screenSize;
+    float2 ndc = uv * 2.0f - 1.0f;
+    ndc.x *= aspect;  // Apply aspect ratio to *NDC*, not to individual axes
+    ndc.y *= -1;
 
-    // Transform to world space
-    rayDir = mul((float3x3)viewMatrix, rayDir);
+    // Construct camera basis
+    float3 right = viewMatrix[0].xyz;
+    float3 up = viewMatrix[1].xyz;
+    float3 forward = viewMatrix[2].xyz;  // Negate if forward points backward
+
+    // Build ray direction in world space
+    float3 rayDir = normalize(ndc.x * right + ndc.y * up + forward);
 
     RayDesc ray;
     ray.Origin = viewPos.xyz;

@@ -75,7 +75,7 @@ namespace WaveE
 		}
 	}
 
-	void WMeshLoader::LoadMeshRT(const std::string& filePath, std::vector<DefaultRTVertex>& vVertices, std::vector<wma::vec3> vVertexPositions, std::vector<UINT>& vIndices)
+	void WMeshLoader::LoadMeshRT(const std::string& filePath, std::vector<DefaultRTVertex>& vVertices, std::vector<wma::vec3>& vVertexPositions, std::vector<UINT>& vIndices)
 	{
 		vVertices.clear();
 		vIndices.clear();
@@ -146,7 +146,7 @@ namespace WaveE
 		}
 	}
 
-	void WMeshLoader::LoadMeshRaterAndRT(const std::string& filePath, std::vector<DefaultVertex>& vVertices, std::vector<DefaultRTVertex>& vVerticesRT, std::vector<wma::vec3> vVertexPositions, std::vector<UINT>& vIndices)
+	void WMeshLoader::LoadMeshRaterAndRT(const std::string& filePath, std::vector<DefaultVertex>& vVertices, std::vector<DefaultRTVertex>& vVerticesRT, std::vector<wma::vec3>& vVertexPositions, std::vector<UINT>& vIndices)
 	{
 		vVertices.clear();
 		vIndices.clear();
@@ -191,6 +191,7 @@ namespace WaveE
 					tinyobj::real_t vz = attrib.vertices[3 * size_t(idx.vertex_index) + 2];
 
 					newVertex.position = wma::vec3{ vx, vy, vz };
+					vertexPos = newVertex.position;
 
 					// Check if `normal_index` is zero or positive. negative = no normal data
 					if (idx.normal_index >= 0)
@@ -200,6 +201,7 @@ namespace WaveE
 						tinyobj::real_t nz = attrib.normals[3 * size_t(idx.normal_index) + 2];
 
 						newVertex.normal = wma::vec3{ nx, ny, nz };
+						newVertexRT.normal = newVertex.normal;
 					}
 
 					// Check if `texcoord_index` is zero or positive. negative = no texcoord data
@@ -209,6 +211,7 @@ namespace WaveE
 						tinyobj::real_t ty = attrib.texcoords[2 * size_t(idx.texcoord_index) + 1];
 
 						newVertex.texCoord = wma::vec2{ tx, ty };
+						newVertexRT.texCoord = newVertex.texCoord;
 					}
 
 					vVertices.push_back(newVertex);

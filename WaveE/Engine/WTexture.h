@@ -60,6 +60,9 @@ namespace WaveE
 
 		bool IsDepthType() const { return m_isDepthType; }
 
+		void CreateView(WDescriptorHeapManager::Allocation allocationSRV, UINT offset = 0);
+		void CreateViewRTV(WDescriptorHeapManager::Allocation allocationRTV);
+
 	private:
 		size_t m_sizeBytes{ 0 };
 		UINT m_bytesPerPixel{ 0 };
@@ -74,6 +77,12 @@ namespace WaveE
 		D3D12_RESOURCE_STATES m_renderTargetState;
 		D3D12_RESOURCE_STATES m_shaderResourceState;
 		ComPtr<ID3D12Resource> m_pTexture{ nullptr };
+
+		WTextureDescriptor::Usage m_usage{};
+
+		DXGI_FORMAT m_dxgiFormat{};
+		DXGI_FORMAT m_dxgiFormatNonTypelessForDepthSRV{};
+		DXGI_FORMAT m_dxgiFormatNonTypelessForDepthDSV{};
 
 		void UploadData(const void* pData, D3D12_RESOURCE_STATES currentState, D3D12_RESOURCE_STATES finalState);
 	};

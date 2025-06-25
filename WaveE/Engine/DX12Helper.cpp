@@ -31,6 +31,23 @@ namespace WaveE
 		return desc;
 	}
 
+	D3D12_RESOURCE_DESC CreateUAVTextureResourceDesc(UINT width, UINT height)
+	{
+		D3D12_RESOURCE_DESC desc = {};
+		desc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
+		desc.Alignment = 0; // Usually 0 is fine, default alignment
+		desc.Width = width;
+		desc.Height = height;
+		desc.DepthOrArraySize = 1; // Single 2D texture
+		desc.MipLevels = 1;        // No mipmaps for UAVs typically
+		desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+		desc.SampleDesc.Count = 1; // No MSAA
+		desc.SampleDesc.Quality = 0;
+		desc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN; // Required for UAV textures
+		desc.Flags = D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS; // Important for UAV
+		return desc;
+	}
+
 	D3D12_RESOURCE_DESC CreateTextureResourceDesc(DXGI_FORMAT format, UINT width, UINT height)
 	{
 		D3D12_RESOURCE_DESC desc;

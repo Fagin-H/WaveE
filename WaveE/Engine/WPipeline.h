@@ -41,24 +41,25 @@ namespace WaveE
 		struct RootSignatureAssociation
 		{
 			WRootSigniture* pLocalRootSignature{ nullptr };
-			std::vector<std::wstring>& vSymbols;
+			std::vector<std::wstring> vSymbols{};
 		private:
-			std::vector<LPCWSTR> vSymbolPointers;
+			std::vector<const WCHAR*> vSymbolPointers;
 			D3D12_SUBOBJECT_TO_EXPORTS_ASSOCIATION association{};
+			D3D12_LOCAL_ROOT_SIGNATURE localSig{};
 			friend class WPipelineRT;
 		};
-		std::vector<RootSignatureAssociation> vRootSignatureAssociations;
+		std::vector<RootSignatureAssociation> vRootSignatureAssociations{};
 
 		struct Library
 		{
 			ResourceID<WShader> shaderID{};
-			std::vector<std::wstring> vExportedSymbols;
+			std::vector<std::wstring> vExportedSymbols{};
 		private:
 			std::vector<D3D12_EXPORT_DESC> vExports;
 			D3D12_DXIL_LIBRARY_DESC libDesc;
 			friend class WPipelineRT;
 		};
-		std::vector<Library> vLibraries;
+		std::vector<Library> vLibraries{};
 
 		struct HitGroup
 		{
@@ -70,9 +71,9 @@ namespace WaveE
 			D3D12_HIT_GROUP_DESC desc = {};
 			friend class WPipelineRT;
 		};
-		std::vector<HitGroup> vHitGroups;
+		std::vector<HitGroup> vHitGroups{};
 
-		UINT maxPayloadSizeInBytes{ 32 };  // Example: 32 for vec3 color + float
+		UINT maxPayloadSizeInBytes{ 64 };  // Example: 32 for vec3 color + float
 		UINT maxAttributeSizeInBytes{ 8 }; // Usually 8 (2 floats for barycentrics)
 		UINT maxRecursionDepth{ 1 };
 	};
@@ -106,6 +107,8 @@ namespace WaveE
 
 		ComPtr<ID3D12StateObject> m_pPipelineStateObject{ nullptr };
 		ComPtr<ID3D12StateObjectProperties> m_pPipelineStateObjectProperties{ nullptr };
+
+		WPipelineDescriptorRT m_rDescriptor;
 	};
 }
 

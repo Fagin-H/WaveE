@@ -1,10 +1,12 @@
 #define MAX_LIGHT 4
 #define MAX_RECURSION_DEPTH 5
 
+#pragma pack_matrix( row_major )
+
 // ========== Global Resources ==========
 RaytracingAccelerationStructure SceneBVH : register(t0);     // Acceleration Structure
 TextureCube g_Skybox : register(t1);
-ByteAddressBuffer vertices : register(t2, space1);
+ByteAddressBuffer vertices : register(t2);//register(t1, space1);
 
 cbuffer CameraBuffer : register(b0)
 {
@@ -25,11 +27,6 @@ cbuffer LightBuffer : register(b1)
 {
     float4 ambientColour;
     Light lights[MAX_LIGHT];
-};
-
-struct Attributes 
-{
-	float2 texcoord;
 };
 
 // ========== Payloads ==========
@@ -56,7 +53,7 @@ VertexAttributes GetVertex(uint vertexIndex)
 {
     uint address = vertexIndex * VERTEX_STRIDE;
     VertexAttributes v;
-    
+
     v.normal   = normalize(asfloat(vertices.Load3(address))); 
     address += 3 * FLOAT_SIZE;
 

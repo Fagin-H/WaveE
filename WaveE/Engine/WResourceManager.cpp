@@ -394,6 +394,10 @@ namespace WaveE
 					{
 						m_shaderIndexMap[filename] = LoadShader(filepath.c_str(), WShaderDescriptor::Compute);
 					}
+					else if (filename.find("_RT") != std::string::npos)
+					{
+						m_shaderIndexMap[filename] = LoadShader(filepath.c_str(), WShaderDescriptor::RayTracing);
+					}
 				}
 			}
 		}

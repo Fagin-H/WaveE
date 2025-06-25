@@ -57,26 +57,26 @@ namespace WaveE
 			WBufferDescriptor scratchBufferDescriptor = {};
 			scratchBufferDescriptor.isDynamic = false;
 			scratchBufferDescriptor.sizeBytes = scratchSizeBytes;
-			scratchBufferDescriptor.type = WBufferDescriptor::RAY_TRACING;
+			scratchBufferDescriptor.type = WBufferDescriptor::UAV;
 
-			if (m_scratchBuffer.IsValid())
-			{
-				// If it already exists but is too small override a new one
-				WResourceManager::Instance()->OverrideResource(m_scratchBuffer, scratchBufferDescriptor);
-			}
-			else
-			{
+			//if (m_scratchBuffer.IsValid())
+			//{
+			//	// If it already exists but is too small override a new one
+			//	WResourceManager::Instance()->OverrideResource(m_scratchBuffer, scratchBufferDescriptor);
+			//}
+			//else
+			//{
 				// Otherwise just create a new buffer
 				m_scratchBuffer = WResourceManager::Instance()->CreateResource(scratchBufferDescriptor);
-			}
+			//}
 		}
 
 		// Create result buffer
 		{
 			WBufferDescriptor resultBufferDescriptor = {};
 			resultBufferDescriptor.isDynamic = false;
-			resultBufferDescriptor.sizeBytes = scratchSizeBytes;
-			resultBufferDescriptor.type = WBufferDescriptor::RAY_TRACING;
+			resultBufferDescriptor.sizeBytes = resultSizeBytes;
+			resultBufferDescriptor.type = WBufferDescriptor::RAY_TRACING_AS;
 
 			m_ASBuffer = WResourceManager::Instance()->CreateResource(resultBufferDescriptor);
 		}
@@ -141,26 +141,26 @@ namespace WaveE
 			WBufferDescriptor scratchBufferDescriptor = {};
 			scratchBufferDescriptor.isDynamic = false;
 			scratchBufferDescriptor.sizeBytes = scratchSizeBytes;
-			scratchBufferDescriptor.type = WBufferDescriptor::RAY_TRACING;
+			scratchBufferDescriptor.type = WBufferDescriptor::UAV;
 
-			if (m_scratchBuffer.IsValid())
-			{
-				// If it already exists but is too small override a new one
-				WResourceManager::Instance()->OverrideResource(m_scratchBuffer, scratchBufferDescriptor);
-			}
-			else
-			{
+			//if (m_scratchBuffer.IsValid())
+			//{
+			//	// If it already exists but is too small override a new one
+			//	WResourceManager::Instance()->OverrideResource(m_scratchBuffer, scratchBufferDescriptor);
+			//}
+			//else
+			//{
 				// Otherwise just create a new buffer
 				m_scratchBuffer = WResourceManager::Instance()->CreateResource(scratchBufferDescriptor);
-			}
+			//}
 		}
 
 		// Create Result buffer
 		{
 			WBufferDescriptor resultBufferDescriptor = {};
 			resultBufferDescriptor.isDynamic = false;
-			resultBufferDescriptor.sizeBytes = scratchSizeBytes;
-			resultBufferDescriptor.type = WBufferDescriptor::RAY_TRACING;
+			resultBufferDescriptor.sizeBytes = resultSizeBytes;
+			resultBufferDescriptor.type = WBufferDescriptor::RAY_TRACING_AS;
 
 			m_ASBuffer = WResourceManager::Instance()->CreateResource(resultBufferDescriptor);
 		}
@@ -228,4 +228,10 @@ namespace WaveE
 	{
 
 	}
+
+	void WTopLevelAS::CreateView(WDescriptorHeapManager::Allocation allocationSRV, UINT offset /*= 0*/)
+	{
+
+	}
+
 }

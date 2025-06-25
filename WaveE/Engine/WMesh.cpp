@@ -39,6 +39,7 @@ namespace WaveE
 			vertexBufferDescriptor.sizeBytes = rDescriptor.vertexCount * rDescriptor.vertexStrideBytes;
 			vertexBufferDescriptor.type = WBufferDescriptor::Vertex;
 			vertexBufferDescriptor.pInitalData = rDescriptor.pVertexData;
+			vertexBufferDescriptor.strideBytes = rDescriptor.vertexStrideBytes;
 
 			m_vertexBufferID = WResourceManager::Instance()->CreateResource(vertexBufferDescriptor);
 
@@ -47,13 +48,16 @@ namespace WaveE
 			m_vertexBufferView.StrideInBytes = rDescriptor.vertexStrideBytes;
 
 			vertexBufferDescriptor.sizeBytes = rDescriptor.vertexCount * sizeof(wma::vec3);
+			vertexBufferDescriptor.strideBytes = sizeof(wma::vec3);
 			vertexBufferDescriptor.pInitalData = rDescriptor.pVertexPosData;
+			vertexBufferDescriptor.type = WBufferDescriptor::RAY_TRACING_VERTEX;
 
 			m_vertexPosBufferID = WResourceManager::Instance()->CreateResource(vertexBufferDescriptor);
 
 			vertexBufferDescriptor.sizeBytes = rDescriptor.vertexCount * rDescriptor.vertexStrideBytesRT;
+			vertexBufferDescriptor.strideBytes = rDescriptor.vertexStrideBytesRT;
 			vertexBufferDescriptor.pInitalData = rDescriptor.pVertexDataRT;
-			vertexBufferDescriptor.type = WBufferDescriptor::Constant;
+			vertexBufferDescriptor.type = WBufferDescriptor::Vertex;
 
 			m_vertexBufferRTID = WResourceManager::Instance()->CreateResource(vertexBufferDescriptor);
 		}

@@ -2,6 +2,7 @@
 #include "WMesh.h"
 #include "WResource.h"
 #include "WBuffer.h"
+#include "WDescriptorHeapManager.h"
 
 namespace WaveE
 {
@@ -64,6 +65,7 @@ namespace WaveE
 		~WTopLevelAS();
 
 		ResourceID<WBuffer> GetASBuffer() const { return m_ASBuffer; }
+		void CreateView(WDescriptorHeapManager::Allocation allocationSRV, UINT offset = 0);
 	private:
 		static ResourceID<WBuffer> m_scratchBuffer;
 		ResourceID<WBuffer> m_descriptorBuffer;

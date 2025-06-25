@@ -34,6 +34,9 @@ namespace WaveE
 		UINT GetHitGroupRecordSize() const { return m_hitGroupRecordSize; }
 		UINT GetMissTableSize() const { return m_missTableSize; }
 		UINT GetHitTableSize() const { return m_hitTableSize; }
+		UINT GetRayGenStartOffset() const { return m_rayGenStartOffset; }
+		UINT GetMissStartOffset() const { return m_missStartOffset; }
+		UINT GetHitStartOffset() const { return m_hitStartOffset; }
 
 	private:
 		UINT GetMaxRecorldSize(const std::vector<std::vector<BYTE>>& args);
@@ -45,6 +48,10 @@ namespace WaveE
 		UINT m_hitGroupRecordSize{ 0 };
 		UINT m_missTableSize{ 0 };
 		UINT m_hitTableSize{ 0 };
+
+		UINT m_rayGenStartOffset{ 0 };
+		UINT m_missStartOffset{ 0 };
+		UINT m_hitStartOffset{ 0 };
 
 		UINT m_missCount{ 0 };
 		UINT m_hitGroupCount{ 0 };

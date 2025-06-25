@@ -178,7 +178,8 @@ namespace WaveE
 		rootSignitureDescriptor.pParameters = vRootParameters.data();
 		rootSignitureDescriptor.NumStaticSamplers = 0;
 		rootSignitureDescriptor.pStaticSamplers = nullptr;
-		rootSignitureDescriptor.Flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
+		rootSignitureDescriptor.Flags = rDescriptor.bIsLocalRootSignature ? D3D12_ROOT_SIGNATURE_FLAG_LOCAL_ROOT_SIGNATURE : D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
+
 
 		ComPtr<ID3DBlob> signature;
 		ComPtr<ID3DBlob> error;

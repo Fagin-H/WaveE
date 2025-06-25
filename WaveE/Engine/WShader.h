@@ -7,7 +7,8 @@ namespace WaveE
 		{
 			Vertex,
 			Pixel,
-			Compute
+			Compute,
+			RayTracing
 		};
 
 		struct ShaderData

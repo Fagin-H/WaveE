@@ -16,7 +16,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow)
 	waveEDesc.title = "Screen Space Glass";
 
     WaveManager::Init(waveEDesc);
-    
+
     // Create meshes
 	ResourceID<WMesh> cubMeshID = WResourceManager::Instance()->GetMeshID("cube");
 	ResourceID<WMesh> planeMeshID = WResourceManager::Instance()->GetMeshID("plane");
@@ -243,7 +243,310 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow)
 	WaveInstance->SetAmbientLight(wma::vec4{ 1, 1, 1, 0.1f });
 
 	// Ray Tracing Setup
+	// BLAS
+	ResourceID<WBottomLevelAS> cubeBLAS{};
+	ResourceID<WBottomLevelAS> planeBLAS{};
+	ResourceID<WBottomLevelAS> icosphereBLAS{};
+	ResourceID<WBottomLevelAS> sphereBLAS{};
+	ResourceID<WBottomLevelAS> concaveLensBLAS{};
+	ResourceID<WBottomLevelAS> convexLenseBLAS{};
+	{
+		WBLASDescriptor BLASDescriptor;
+		BLASDescriptor.meshID = cubMeshID;
+		cubeBLAS = WResourceManager::Instance()->CreateResource(BLASDescriptor);
 
+		BLASDescriptor.meshID = planeMeshID;
+		planeBLAS = WResourceManager::Instance()->CreateResource(BLASDescriptor);
+
+		BLASDescriptor.meshID = icosphereMeshID;
+		icosphereBLAS = WResourceManager::Instance()->CreateResource(BLASDescriptor);
+
+		BLASDescriptor.meshID = sphereMeshID;
+		sphereBLAS = WResourceManager::Instance()->CreateResource(BLASDescriptor);
+
+		BLASDescriptor.meshID = concaveLensMeshID;
+		concaveLensBLAS = WResourceManager::Instance()->CreateResource(BLASDescriptor);
+
+		BLASDescriptor.meshID = convexLenseMeshID;
+		convexLenseBLAS = WResourceManager::Instance()->CreateResource(BLASDescriptor);
+	}
+	//// TLAS
+	ResourceID<WTopLevelAS> topLevelASID{};
+	{
+		std::vector<WTLASInstanceDescriptor> vTLASInstanceDescs{ 2 };
+		//vTLASInstanceDescs[0].BLAS = cubeBLAS;
+		//vTLASInstanceDescs[0].transform = cubeWorldMatrix;
+		//vTLASInstanceDescs[0].instanceID = 0;
+		//vTLASInstanceDescs[0].hitGroup = 0;
+
+		//vTLASInstanceDescs[1].BLAS = icosphereBLAS;
+		//vTLASInstanceDescs[1].transform = icosphereWorldMatrix;
+		//vTLASInstanceDescs[1].instanceID = 0;
+		//vTLASInstanceDescs[1].hitGroup = 0;
+
+		//vTLASInstanceDescs[2].BLAS = planeBLAS;
+		//vTLASInstanceDescs[2].transform = planeWorldMatrix;
+		//vTLASInstanceDescs[2].instanceID = 0;
+		//vTLASInstanceDescs[2].hitGroup = 0;
+
+		//vTLASInstanceDescs[3].BLAS = cubeBLAS;
+		//vTLASInstanceDescs[3].transform = glassCubeWorldMatrix;
+		//vTLASInstanceDescs[3].instanceID = 1;
+		//vTLASInstanceDescs[3].hitGroup = 1;
+
+		//vTLASInstanceDescs[4].BLAS = sphereBLAS;
+		//vTLASInstanceDescs[4].transform = glassIcosphereWorldMatrix;
+		//vTLASInstanceDescs[4].instanceID = 0;
+		//vTLASInstanceDescs[4].hitGroup = 1;
+
+		vTLASInstanceDescs[0].BLAS = sphereBLAS;
+		vTLASInstanceDescs[0].transform = wma::mat4::identity();//wma::transpose(cubeWorldMatrix);
+		vTLASInstanceDescs[0].instanceID = 0;
+		vTLASInstanceDescs[0].hitGroup = 0;
+
+		vTLASInstanceDescs[1].BLAS = sphereBLAS;
+		vTLASInstanceDescs[1].transform = wma::transpose(icosphereWorldMatrix);
+		vTLASInstanceDescs[1].instanceID = 0;
+		vTLASInstanceDescs[1].hitGroup = 1;
+
+		WTLASDescriptor TLASDesc{};
+		TLASDesc.pTLASInstanceDescriptors = vTLASInstanceDescs.data();
+		TLASDesc.numTLASInstanceDescriptors = vTLASInstanceDescs.size();
+
+		topLevelASID = WResourceManager::Instance()->CreateResource(TLASDesc);
+	}
+
+	// Root signatures
+
+	WRootSigniture rootSgnitureGlobalRT{};
+	{
+		WRootSigniture::DescriptorTable descriptorTable{};
+		descriptorTable.numCBVs = 3;
+		descriptorTable.numUAVs = 1;
+		descriptorTable.numSRVs = 4;
+		descriptorTable.space = 0;
+		WRootSigniture::RootSignatureDescriptor2 rootSignitureRTDesc{};
+		rootSignitureRTDesc.numDescriptorTables = 1;
+		rootSignitureRTDesc.descriptorTables = &descriptorTable;
+
+		rootSgnitureGlobalRT.CreateRootSigniture(rootSignitureRTDesc);
+	}
+
+	WRootSigniture rootSignitureLocalRT{};
+	{
+		WRootSigniture::DescriptorTable descriptorTable{};
+		descriptorTable.numCBVs = 1;
+		descriptorTable.numSRVs = 2;
+		descriptorTable.space = 1;
+		WRootSigniture::RootSignatureDescriptor2 rootSignitureRTDesc{};
+		rootSignitureRTDesc.numDescriptorTables = 1;
+		rootSignitureRTDesc.descriptorTables = &descriptorTable;
+		rootSignitureRTDesc.bIsLocalRootSignature = true;
+
+		rootSignitureLocalRT.CreateRootSigniture(rootSignitureRTDesc);
+	}
+
+	// Pipeline
+	ResourceID<WPipelineRT> pipelineRTID{};
+	{
+		WPipelineDescriptorRT pipelineRTDesc{};
+		pipelineRTDesc.pGlobalRootSignature = &rootSgnitureGlobalRT;
+		pipelineRTDesc.vRootSignatureAssociations.resize(3);
+		pipelineRTDesc.vRootSignatureAssociations[0].pLocalRootSignature = &rootSignitureLocalRT;
+		pipelineRTDesc.vRootSignatureAssociations[0].vSymbols = { L"BasicHit", L"GlassHit" };
+		pipelineRTDesc.vRootSignatureAssociations[1].pLocalRootSignature = &rootSignitureLocalRT;
+		pipelineRTDesc.vRootSignatureAssociations[1].vSymbols = { L"RayGen" };
+		pipelineRTDesc.vRootSignatureAssociations[2].pLocalRootSignature = &rootSignitureLocalRT;
+		pipelineRTDesc.vRootSignatureAssociations[2].vSymbols = { L"Miss" };
+
+		pipelineRTDesc.vLibraries.resize(4);
+		pipelineRTDesc.vLibraries[0].shaderID = WResourceManager::Instance()->GetShaderID("RayGen_RT");
+		pipelineRTDesc.vLibraries[0].vExportedSymbols.push_back(L"RayGen");
+		pipelineRTDesc.vLibraries[1].shaderID = WResourceManager::Instance()->GetShaderID("Miss_RT");
+		pipelineRTDesc.vLibraries[1].vExportedSymbols.push_back(L"Miss");
+		pipelineRTDesc.vLibraries[2].shaderID = WResourceManager::Instance()->GetShaderID("HitBasic_RT");
+		pipelineRTDesc.vLibraries[2].vExportedSymbols.push_back(L"ClosestHit_LitObject");
+		pipelineRTDesc.vLibraries[3].shaderID = WResourceManager::Instance()->GetShaderID("HitGlass_RT");
+		pipelineRTDesc.vLibraries[3].vExportedSymbols.push_back(L"ClosestHit_Glass");
+
+		pipelineRTDesc.vHitGroups.resize(2);
+		pipelineRTDesc.vHitGroups[0].hitGroupName = L"BasicHit";
+		pipelineRTDesc.vHitGroups[0].closestHitShader = L"ClosestHit_LitObject";
+		pipelineRTDesc.vHitGroups[1].hitGroupName = L"GlassHit";
+		pipelineRTDesc.vHitGroups[1].closestHitShader = L"ClosestHit_Glass";
+
+		pipelineRTDesc.maxRecursionDepth = 6;
+
+		pipelineRTID = WResourceManager::Instance()->CreateResource(pipelineRTDesc);
+	}
+
+	// Output buffer
+	ResourceID<WBuffer> RTOutputBuffer{};
+	{
+		WBufferDescriptor bufferDesc{};
+		bufferDesc.sizeBytes = WaveInstance->GetWidth();
+		bufferDesc.height = WaveInstance->GetHeight();
+		bufferDesc.type = WBufferDescriptor::UAV;
+		RTOutputBuffer = WResourceManager::Instance()->CreateResource(bufferDesc);
+	}
+
+	// Global allocation
+	WDescriptorHeapManager::Allocation RTGlobalAllocation = WaveManager::Instance()->GetCBV_SRV_UAVHeap()->Allocate(8);
+	const ResourceBlock<WBuffer>& cameraAndLightBuffers = WaveInstance->GetCameraAndLightBuffers();
+	cameraAndLightBuffers.GetResorce(0).GetResource()->CreateView(RTGlobalAllocation, 0);
+	cameraAndLightBuffers.GetResorce(1).GetResource()->CreateView(RTGlobalAllocation, 1);
+	topLevelASID.GetResource()->GetASBuffer().GetResource()->CreateView(RTGlobalAllocation, 3);
+	skyboxTexture.GetResource()->CreateView(RTGlobalAllocation, 4);
+	RTOutputBuffer.GetResource()->CreateView(RTGlobalAllocation, 7);
+
+	// Local allocation
+	WDescriptorHeapManager::Allocation RTLocalAllocation = WaveManager::Instance()->GetCBV_SRV_UAVHeap()->Allocate(3);
+	ResourceID<WBuffer> glassRTBuffer{};
+	{
+		WBufferDescriptor bufferDesc{};
+		wma::vec4 initialData{};
+		initialData[0] = 1.5f;
+		bufferDesc.sizeBytes = sizeof(wma::vec4);
+		bufferDesc.pInitalData = &initialData;
+		glassRTBuffer = WResourceManager::Instance()->CreateResource(bufferDesc, RTGlobalAllocation, 2);
+	}
+	waveAlbedoTexture.GetResource()->CreateView(RTGlobalAllocation, 6);
+	sphereMeshID.GetResource()->GetVertexBufferIDRT().GetResource()->CreateView(RTGlobalAllocation, 5);
+
+	// Shader binding table
+	WShaderBindingTableDescriptor shaderBindingTableDesc{};
+	{
+		shaderBindingTableDesc.pipeline = pipelineRTID;
+		shaderBindingTableDesc.rayGenExport = L"RayGen";
+		shaderBindingTableDesc.missExports = { L"Miss" };
+		shaderBindingTableDesc.hitGroupExports = { L"BasicHit", L"GlassHit" };
+		
+		shaderBindingTableDesc.hitGroupLocalRootArgs.resize(2);
+		shaderBindingTableDesc.hitGroupLocalRootArgs[0].resize(8);
+		shaderBindingTableDesc.hitGroupLocalRootArgs[1].resize(8);
+		UINT64 GPUHandleLocal = WaveInstance->GetCBV_SRV_UAVHeap()->GetGPUHandle(RTLocalAllocation).ptr;
+		memcpy(shaderBindingTableDesc.hitGroupLocalRootArgs[0].data(), &GPUHandleLocal, 8);
+		memcpy(shaderBindingTableDesc.hitGroupLocalRootArgs[1].data(), &GPUHandleLocal, 8);
+	}
+	WShaderBindingTable shaderBindingTable{ shaderBindingTableDesc };
+
+///////////////////////////////////////////
+//ResourceID<WBottomLevelAS> cubeBLAS{};
+//{
+//	WBLASDescriptor BLASDescriptor;
+//	BLASDescriptor.meshID = cubMeshID;
+//	cubeBLAS = WResourceManager::Instance()->CreateResource(BLASDescriptor);
+//}
+////// TLAS
+//ResourceID<WTopLevelAS> topLevelASID{};
+//{
+//	std::vector<WTLASInstanceDescriptor> vTLASInstanceDescs{ 1 };
+//
+//	vTLASInstanceDescs[0].BLAS = cubeBLAS;
+//	vTLASInstanceDescs[0].transform = wma::mat4::identity();
+//	vTLASInstanceDescs[0].instanceID = 0;
+//	vTLASInstanceDescs[0].hitGroup = 0;
+//
+//	WTLASDescriptor TLASDesc{};
+//	TLASDesc.pTLASInstanceDescriptors = vTLASInstanceDescs.data();
+//	TLASDesc.numTLASInstanceDescriptors = vTLASInstanceDescs.size();
+//
+//	topLevelASID = WResourceManager::Instance()->CreateResource(TLASDesc);
+//}
+//
+//// Root signatures
+//
+//WRootSigniture rootSgnitureGlobalRT{};
+//{
+//	WRootSigniture::DescriptorTable descriptorTable{};
+//	descriptorTable.numCBVs = 0;
+//	descriptorTable.numUAVs = 1;
+//	descriptorTable.numSRVs = 1;
+//	descriptorTable.space = 0;
+//	WRootSigniture::RootSignatureDescriptor2 rootSignitureRTDesc{};
+//	rootSignitureRTDesc.numDescriptorTables = 1;
+//	rootSignitureRTDesc.descriptorTables = &descriptorTable;
+//
+//	rootSgnitureGlobalRT.CreateRootSigniture(rootSignitureRTDesc);
+//}
+//
+////WRootSigniture rootSignitureLocalRT{};
+////{
+////	WRootSigniture::DescriptorTable descriptorTable{};
+////	descriptorTable.numCBVs = 0;
+////	descriptorTable.numSRVs = 0;
+////	descriptorTable.space = 1;
+////	WRootSigniture::RootSignatureDescriptor2 rootSignitureRTDesc{};
+////	rootSignitureRTDesc.numDescriptorTables = 1;
+////	rootSignitureRTDesc.descriptorTables = &descriptorTable;
+////	rootSignitureRTDesc.bIsLocalRootSignature = true;
+////
+////	rootSignitureLocalRT.CreateRootSigniture(rootSignitureRTDesc);
+////}
+//
+//// Pipeline
+//ResourceID<WPipelineRT> pipelineRTID{};
+//{
+//	WPipelineDescriptorRT pipelineRTDesc{};
+//	pipelineRTDesc.pGlobalRootSignature = &rootSgnitureGlobalRT;
+//	//pipelineRTDesc.vRootSignatureAssociations.resize(1);
+//	//pipelineRTDesc.vRootSignatureAssociations[0].pLocalRootSignature = &rootSignitureLocalRT;
+//	//pipelineRTDesc.vRootSignatureAssociations[0].vSymbols = { L"ClosestHit_Glass", L"ClosestHit_LitObject" };
+//
+//	pipelineRTDesc.vLibraries.resize(3);
+//	pipelineRTDesc.vLibraries[0].shaderID = WResourceManager::Instance()->GetShaderID("RayGenTEST_RT");
+//	pipelineRTDesc.vLibraries[0].vExportedSymbols.push_back(L"RayGen");
+//	pipelineRTDesc.vLibraries[1].shaderID = WResourceManager::Instance()->GetShaderID("MissTEST_RT");
+//	pipelineRTDesc.vLibraries[1].vExportedSymbols.push_back(L"Miss");
+//	pipelineRTDesc.vLibraries[2].shaderID = WResourceManager::Instance()->GetShaderID("HitTEST_RT");
+//	pipelineRTDesc.vLibraries[2].vExportedSymbols.push_back(L"ClosestHit");
+//
+//	pipelineRTDesc.vHitGroups.resize(1);
+//	pipelineRTDesc.vHitGroups[0].hitGroupName = L"HitGroup1";
+//	pipelineRTDesc.vHitGroups[0].closestHitShader = L"ClosestHit";
+//
+//	pipelineRTDesc.maxRecursionDepth = 1;
+//
+//	pipelineRTID = WResourceManager::Instance()->CreateResource(pipelineRTDesc);
+//}
+//
+//// Output buffer
+//ResourceID<WBuffer> RTOutputBuffer{};
+//{
+//	WBufferDescriptor bufferDesc{};
+//	bufferDesc.sizeBytes = WaveInstance->GetWidth();
+//	bufferDesc.height = WaveInstance->GetHeight();
+//	bufferDesc.type = WBufferDescriptor::UAV;
+//	RTOutputBuffer = WResourceManager::Instance()->CreateResource(bufferDesc);
+//}
+//
+//// Global allocation
+//WDescriptorHeapManager::Allocation RTGlobalAllocation = WaveManager::Instance()->GetCBV_SRV_UAVHeap()->Allocate(2);
+//topLevelASID.GetResource()->GetASBuffer().GetResource()->CreateView(RTGlobalAllocation, 0);
+//RTOutputBuffer.GetResource()->CreateView(RTGlobalAllocation, 1);
+//
+//// Local allocation
+////WDescriptorHeapManager::Allocation RTLocalAllocation = WaveManager::Instance()->GetCBV_SRV_UAVHeap()->Allocate(3);
+////ResourceID<WBuffer> glassRTBuffer{};
+////{
+////	WBufferDescriptor bufferDesc{};
+////	wma::vec4 initialData{};
+////	initialData[0] = 1.5f;
+////	bufferDesc.sizeBytes = sizeof(wma::vec4);
+////	bufferDesc.pInitalData = &initialData;
+////	glassRTBuffer = WResourceManager::Instance()->CreateResource(bufferDesc, RTLocalAllocation, 0);
+////}
+//
+//// Shader binding table
+//WShaderBindingTableDescriptor shaderBindingTableDesc{};
+//{
+//	shaderBindingTableDesc.pipeline = pipelineRTID;
+//	shaderBindingTableDesc.rayGenExport = L"RayGen";
+//	shaderBindingTableDesc.missExports = { L"Miss" };
+//	shaderBindingTableDesc.hitGroupExports = { L"HitGroup1" };
+//}
+//WShaderBindingTable shaderBindingTable{ shaderBindingTableDesc };
+//////////////////////////////////////////
 
     WaveManager::EndInit();
 
@@ -285,6 +588,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow)
 	float refractionIndex = 1.5f;
 	int useInternalReflections = 1;
 
+	
+
 	wma::vec3 camPos = WaveInstance->GetGameCamera().GetPosition();
 	wma::vec3 camForwards = WaveInstance->GetGameCamera().GetForwards();
 	wma::vec3 camRight = WaveInstance->GetGameCamera().GetRight();
@@ -304,436 +609,458 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow)
 
 	wma::mat4 skyboxMatrix;
 
-    while (WaveInstance->BeginFrame())
-    {
-		// Exit if escape is pressed
-		if (WInput::Instance()->WasKeyPressed(VK_ESCAPE))
+	if (WaveInstance->GetRayTracingSupport())
+	{
+		while (WaveInstance->BeginFrameSparse())
 		{
-			break;
+			WaveInstance->SetPipelineState(pipelineRTID);
+
+			WaveInstance->SetRootSigniture(&rootSgnitureGlobalRT, false);
+
+			WaveInstance->BindResource(RTGlobalAllocation, 0, false);
+
+			WaveInstance->DispatchRays(shaderBindingTable);
+
+			WaveInstance->SetRenderTargetToSwapChain();
+
+			WaveInstance->CopyUAVToBackBuffer(RTOutputBuffer);
+
+			WaveInstance->EndFrame();
 		}
-
-		deltaTime = WaveInstance->GetDeltaTime();
-
-		//Input
+	}
+	else
+	{
+		while (WaveInstance->BeginFrame())
 		{
-			if (WInput::Instance()->IsKeyDown(VK_SHIFT))
+			// Exit if escape is pressed
+			if (WInput::Instance()->WasKeyPressed(VK_ESCAPE))
 			{
-				if (WInput::Instance()->IsKeyDown(VK_UP))
-				{
-					xRot += rotSpeed * deltaTime;
-				}
-				if (WInput::Instance()->IsKeyDown(VK_DOWN))
-				{
-					xRot -= rotSpeed * deltaTime;
-				}
-				if (WInput::Instance()->IsKeyDown(VK_RIGHT))
-				{
-					yRot -= rotSpeed * deltaTime;
-				}
-				if (WInput::Instance()->IsKeyDown(VK_LEFT))
-				{
-					yRot += rotSpeed * deltaTime;
-				}
-
-				if (WInput::Instance()->IsKeyDown('R'))
-				{
-					redAbsorb -= absorbChangeFactor * deltaTime;
-				}
-				if (WInput::Instance()->IsKeyDown('G'))
-				{
-					greenAbsorb -= absorbChangeFactor * deltaTime;
-				}
-				if (WInput::Instance()->IsKeyDown('B'))
-				{
-					blueAbsorb -= absorbChangeFactor * deltaTime;
-				}
-				if (WInput::Instance()->IsKeyDown('F'))
-				{
-					absorbfactor -= absorbChangeFactor * deltaTime;
-				}
-
-				if (WInput::Instance()->WasKeyPressed(VK_SPACE))
-				{
-					glassMeshIndex = glassMeshIndex - 1;
-					if (glassMeshIndex < 0)
-					{
-						glassMeshIndex = numMeshes - 1;
-					}
-				}
+				break;
 			}
-			else if (WInput::Instance()->IsKeyDown(VK_CONTROL))
+
+			deltaTime = WaveInstance->GetDeltaTime();
+
+			//Input
 			{
-				if (!makeMeshFollowCamera)
+				if (WInput::Instance()->IsKeyDown(VK_SHIFT))
 				{
 					if (WInput::Instance()->IsKeyDown(VK_UP))
 					{
-						glassPos.y += moveSpeed * deltaTime;
+						xRot += rotSpeed * deltaTime;
 					}
 					if (WInput::Instance()->IsKeyDown(VK_DOWN))
 					{
-						glassPos.y -= moveSpeed * deltaTime;
+						xRot -= rotSpeed * deltaTime;
 					}
 					if (WInput::Instance()->IsKeyDown(VK_RIGHT))
 					{
-						glassPos += moveSpeed * camRight * deltaTime;
+						yRot -= rotSpeed * deltaTime;
 					}
 					if (WInput::Instance()->IsKeyDown(VK_LEFT))
 					{
-						glassPos -= moveSpeed * camRight * deltaTime;
+						yRot += rotSpeed * deltaTime;
+					}
+
+					if (WInput::Instance()->IsKeyDown('R'))
+					{
+						redAbsorb -= absorbChangeFactor * deltaTime;
+					}
+					if (WInput::Instance()->IsKeyDown('G'))
+					{
+						greenAbsorb -= absorbChangeFactor * deltaTime;
+					}
+					if (WInput::Instance()->IsKeyDown('B'))
+					{
+						blueAbsorb -= absorbChangeFactor * deltaTime;
+					}
+					if (WInput::Instance()->IsKeyDown('F'))
+					{
+						absorbfactor -= absorbChangeFactor * deltaTime;
+					}
+
+					if (WInput::Instance()->WasKeyPressed(VK_SPACE))
+					{
+						glassMeshIndex = glassMeshIndex - 1;
+						if (glassMeshIndex < 0)
+						{
+							glassMeshIndex = numMeshes - 1;
+						}
+					}
+				}
+				else if (WInput::Instance()->IsKeyDown(VK_CONTROL))
+				{
+					if (!makeMeshFollowCamera)
+					{
+						if (WInput::Instance()->IsKeyDown(VK_UP))
+						{
+							glassPos.y += moveSpeed * deltaTime;
+						}
+						if (WInput::Instance()->IsKeyDown(VK_DOWN))
+						{
+							glassPos.y -= moveSpeed * deltaTime;
+						}
+						if (WInput::Instance()->IsKeyDown(VK_RIGHT))
+						{
+							glassPos += moveSpeed * camRight * deltaTime;
+						}
+						if (WInput::Instance()->IsKeyDown(VK_LEFT))
+						{
+							glassPos -= moveSpeed * camRight * deltaTime;
+						}
+					}
+				}
+				else
+				{
+					if (WInput::Instance()->IsKeyDown(VK_UP) && makeMeshFollowCamera)
+					{
+						distFromCamera *= 1 + multiplicativeSpeed * deltaTime;
+					}
+					if (WInput::Instance()->IsKeyDown(VK_DOWN) && makeMeshFollowCamera)
+					{
+						distFromCamera /= 1 + multiplicativeSpeed * deltaTime;
+					}
+					if (WInput::Instance()->IsKeyDown(VK_RIGHT))
+					{
+						glassScale *= 1 + multiplicativeSpeed * deltaTime;
+					}
+					if (WInput::Instance()->IsKeyDown(VK_LEFT))
+					{
+						glassScale /= 1 + multiplicativeSpeed * deltaTime;
+					}
+
+					if (WInput::Instance()->IsKeyDown('R'))
+					{
+						redAbsorb += absorbChangeFactor * deltaTime;
+					}
+					if (WInput::Instance()->IsKeyDown('G'))
+					{
+						greenAbsorb += absorbChangeFactor * deltaTime;
+					}
+					if (WInput::Instance()->IsKeyDown('B'))
+					{
+						blueAbsorb += absorbChangeFactor * deltaTime;
+					}
+					if (WInput::Instance()->IsKeyDown('F'))
+					{
+						absorbfactor += absorbChangeFactor * deltaTime;
+					}
+
+					if (WInput::Instance()->WasKeyPressed(VK_SPACE))
+					{
+						glassMeshIndex = (glassMeshIndex + 1) % numMeshes;
+					}
+				}
+
+				if (WInput::Instance()->WasKeyPressed(VK_RETURN))
+				{
+					makeMeshFollowCamera = !makeMeshFollowCamera;
+				}
+
+				if (WInput::Instance()->WasKeyPressed('H'))
+				{
+					showDeubgText = !showDeubgText;
+				}
+
+				if (WInput::Instance()->WasKeyPressed('I'))
+				{
+					useInternalReflections = 1 - useInternalReflections;
+				}
+
+				if (WInput::Instance()->WasKeyPressed('P'))
+				{
+					onScreenMeshes.push_back(onScreenMeshes[0]);
+					onScreenMeshMatrices.push_back(onScreenMeshMatrices[0]);
+					onScreenMeshData.push_back(onScreenMeshData[0]);
+				}
+
+				if (WInput::Instance()->WasKeyPressed('O'))
+				{
+					if (onScreenMeshes.size() > numPermentGlassObjects)
+					{
+						onScreenMeshes.pop_back();
+						onScreenMeshMatrices.pop_back();
+						onScreenMeshData.pop_back();
+					}
+				}
+
+				if (WInput::Instance()->IsKeyDown(VK_OEM_PERIOD))
+				{
+					refractionIndex += refractionIndexChangeFactor * deltaTime;
+				}
+				if (WInput::Instance()->IsKeyDown(VK_OEM_COMMA))
+				{
+					refractionIndex -= refractionIndexChangeFactor * deltaTime;
+				}
+
+				{
+					if (WInput::Instance()->WasKeyPressed('1'))
+					{
+						maxItterations = 100;
+					}
+					if (WInput::Instance()->WasKeyPressed('2'))
+					{
+						maxItterations = 200;
+					}
+					if (WInput::Instance()->WasKeyPressed('3'))
+					{
+						maxItterations = 300;
+					}
+					if (WInput::Instance()->WasKeyPressed('4'))
+					{
+						maxItterations = 400;
+					}
+					if (WInput::Instance()->WasKeyPressed('5'))
+					{
+						maxItterations = 500;
+					}
+					if (WInput::Instance()->WasKeyPressed('6'))
+					{
+						maxItterations = 600;
+					}
+					if (WInput::Instance()->WasKeyPressed('7'))
+					{
+						maxItterations = 700;
+					}
+					if (WInput::Instance()->WasKeyPressed('8'))
+					{
+						maxItterations = 800;
+					}
+					if (WInput::Instance()->WasKeyPressed('9'))
+					{
+						maxItterations = 900;
 					}
 				}
 			}
-			else
+
+			// Update
 			{
-				if (WInput::Instance()->IsKeyDown(VK_UP) && makeMeshFollowCamera)
-				{
-					distFromCamera *= 1 + multiplicativeSpeed * deltaTime;
-				}
-				if (WInput::Instance()->IsKeyDown(VK_DOWN) && makeMeshFollowCamera)
-				{
-					distFromCamera /= 1 + multiplicativeSpeed * deltaTime;
-				}
-				if (WInput::Instance()->IsKeyDown(VK_RIGHT))
-				{
-					glassScale *= 1 + multiplicativeSpeed * deltaTime;
-				}
-				if (WInput::Instance()->IsKeyDown(VK_LEFT))
-				{
-					glassScale /= 1 + multiplicativeSpeed * deltaTime;
-				}
-
-				if (WInput::Instance()->IsKeyDown('R'))
-				{
-					redAbsorb += absorbChangeFactor * deltaTime;
-				}
-				if (WInput::Instance()->IsKeyDown('G'))
-				{
-					greenAbsorb += absorbChangeFactor * deltaTime;
-				}
-				if (WInput::Instance()->IsKeyDown('B'))
-				{
-					blueAbsorb += absorbChangeFactor * deltaTime;
-				}
-				if (WInput::Instance()->IsKeyDown('F'))
-				{
-					absorbfactor += absorbChangeFactor * deltaTime;
-				}
-
-				if (WInput::Instance()->WasKeyPressed(VK_SPACE))
-				{
-					glassMeshIndex = (glassMeshIndex + 1) % numMeshes;
-				}
+				cubeWorldMatrix = wma::rotate(cubeWorldMatrix, (float)WaveInstance->GetDeltaTime(), wma::vec3{ 0.f, 0.f, 1.f });
+				icosphereWorldMatrix = wma::rotate(icosphereWorldMatrix, -(float)WaveInstance->GetDeltaTime(), wma::vec3{ 0.f, 0.f, 1.f });
+				onScreenMeshMatrices[1] = wma::rotate(onScreenMeshMatrices[1], (float)WaveInstance->GetDeltaTime(), wma::vec3{ 0.f, 1.f, 0.f });
+				onScreenMeshMatrices[2] = wma::rotate(onScreenMeshMatrices[2], (float)WaveInstance->GetDeltaTime(), wma::vec3{ 0.f, 1.f, 0.f });
+				skyboxMatrix = wma::translate(identityMatrix, WaveInstance->GetGameCamera().GetPosition());
 			}
 
-			if (WInput::Instance()->WasKeyPressed(VK_RETURN))
+			// Update glass const buffer
 			{
-				makeMeshFollowCamera = !makeMeshFollowCamera;
-			}
-
-			if (WInput::Instance()->WasKeyPressed('H'))
-			{
-				showDeubgText = !showDeubgText;
-			}
-
-			if (WInput::Instance()->WasKeyPressed('I'))
-			{
-				useInternalReflections = 1 - useInternalReflections;
-			}
-
-			if (WInput::Instance()->WasKeyPressed('P'))
-			{
-				onScreenMeshes.push_back(onScreenMeshes[0]);
-				onScreenMeshMatrices.push_back(onScreenMeshMatrices[0]);
-				onScreenMeshData.push_back(onScreenMeshData[0]);
-			}
-
-			if (WInput::Instance()->WasKeyPressed('O'))
-			{
-				if (onScreenMeshes.size() > numPermentGlassObjects)
-				{
-					onScreenMeshes.pop_back();
-					onScreenMeshMatrices.pop_back();
-					onScreenMeshData.pop_back();
-				}
-			}
-
-			if (WInput::Instance()->IsKeyDown(VK_OEM_PERIOD))
-			{
-				refractionIndex += refractionIndexChangeFactor * deltaTime;
-			}
-			if (WInput::Instance()->IsKeyDown(VK_OEM_COMMA))
-			{
-				refractionIndex -= refractionIndexChangeFactor * deltaTime;
-			}
-
-			{
-				if (WInput::Instance()->WasKeyPressed('1'))
-				{
-					maxItterations = 100;
-				}
-				if (WInput::Instance()->WasKeyPressed('2'))
-				{
-					maxItterations = 200;
-				}
-				if (WInput::Instance()->WasKeyPressed('3'))
-				{
-					maxItterations = 300;
-				}
-				if (WInput::Instance()->WasKeyPressed('4'))
-				{
-					maxItterations = 400;
-				}
-				if (WInput::Instance()->WasKeyPressed('5'))
-				{
-					maxItterations = 500;
-				}
-				if (WInput::Instance()->WasKeyPressed('6'))
-				{
-					maxItterations = 600;
-				}
-				if (WInput::Instance()->WasKeyPressed('7'))
-				{
-					maxItterations = 700;
-				}
-				if (WInput::Instance()->WasKeyPressed('8'))
-				{
-					maxItterations = 800;
-				}
-				if (WInput::Instance()->WasKeyPressed('9'))
-				{
-					maxItterations = 900;
-				}
-			}
-		}
-
-		// Update
-		{
-			cubeWorldMatrix = wma::rotate(cubeWorldMatrix, (float)WaveInstance->GetDeltaTime(), wma::vec3{ 0.f, 0.f, 1.f });
-			icosphereWorldMatrix = wma::rotate(icosphereWorldMatrix, -(float)WaveInstance->GetDeltaTime(), wma::vec3{ 0.f, 0.f, 1.f });
-			onScreenMeshMatrices[1] = wma::rotate(onScreenMeshMatrices[1], (float)WaveInstance->GetDeltaTime(), wma::vec3{ 0.f, 1.f, 0.f });
-			onScreenMeshMatrices[2] = wma::rotate(onScreenMeshMatrices[2], (float)WaveInstance->GetDeltaTime(), wma::vec3{ 0.f, 1.f, 0.f });
-			skyboxMatrix = wma::translate(identityMatrix, WaveInstance->GetGameCamera().GetPosition());
-		}
-
-		// Update glass const buffer
-		{
-			onScreenMeshData[0].screenRes.x = screenWidth;
-			onScreenMeshData[0].screenRes.y = screenHeight;
-			onScreenMeshData[0].refractionIndex = refractionIndex;
-			onScreenMeshData[0].useInternalReflections.x = useInternalReflections;
-			// First 3 floats are the amount of each RGB value the glass absorbs as the ray travels. The 4th float is how strongly it absorbs the light
-			// E.g., a high red and green value will absorb the red and green light making it more blue
-			onScreenMeshData[0].colourAbsorption = { redAbsorb, greenAbsorb, blueAbsorb, absorbfactor };
-			onScreenMeshData[0].maxItterations = { maxItterations };
-		}
-
-		// Glass mesh variables
-		{
-			camPos = WaveInstance->GetGameCamera().GetPosition();
-			camForwards = WaveInstance->GetGameCamera().GetForwards();
-			camRight = WaveInstance->GetGameCamera().GetRight();
-			camUp = WaveInstance->GetGameCamera().GetUp();
-
-			if (makeMeshFollowCamera)
-			{
-				glassPos = camPos + camForwards * distFromCamera;
-				glassRotation = WaveInstance->GetGameCamera().GetRotation();
-			}
-
-			wma::mat4 glassMatrix =
-				vMeshMatrices[glassMeshIndex] *
-				wma::rotate(identityMatrix, yRot, { 0, 1, 0 }) *
-				wma::rotate(identityMatrix, xRot, { 1, 0, 0 }) *
-				glassRotation *
-				wma::scale(identityMatrix, { glassScale, glassScale, glassScale }) *
-				wma::translate(identityMatrix, glassPos);
-
-			ResourceID<WMesh> glassObject = vAllMeshesForGlass[glassMeshIndex];
-
-			onScreenMeshes[0] = glassObject;
-			onScreenMeshMatrices[0] = glassMatrix;
-		}
-
-		// Draw scene
-		{
-			WaveInstance->ClearRenderTarget(glassScreenAlbedoTextureCopyFrom);
-			WaveInstance->ClearDepthStencilTarget(glassScreenDepthTextureCopyFrom);
-
-			WaveInstance->SetDefaultRootSigniture();
-			
-			WaveInstance->SetRenderTarget(glassScreenAlbedoTextureCopyFrom, glassScreenDepthTextureCopyFrom);
-
-			WaveInstance->BindBuffer(drawBuffer, WaveManager::DRAW_CBV);
-			
-			// Skybox
-			drawBuffer.GetResource()->UploadData(&skyboxMatrix, sizeof(wma::mat4));
-			WaveInstance->DrawMesh(skyboxMeshID, skyboxMaterial);
-
-			drawBuffer.GetResource()->UploadData(&cubeWorldMatrix, sizeof(wma::mat4));
-			WaveInstance->DrawMesh(cubMeshID, waveMaterial);
-
-			drawBuffer.GetResource()->UploadData(&icosphereWorldMatrix, sizeof(wma::mat4));
-			WaveInstance->DrawMesh(icosphereMeshID, iceMaterial);
-
-			drawBuffer.GetResource()->UploadData(&planeWorldMatrix, sizeof(wma::mat4));
-			WaveInstance->DrawMesh(planeMeshID, tilesMaterial);
-		}
-
-		// Sort by dist to camera
-		std::vector<int> objectIndexes{};
-		for (int i = 0; i < onScreenMeshes.size(); i++)
-		{
-			objectIndexes.push_back(i);
-		}
-
-		auto sortFunc = [&](const int& a, const int& b)
-			{
-				float distToCameraA = dot(onScreenMeshMatrices[a][3].xyz - camPos, camForwards);
-				float distToCameraB = dot(onScreenMeshMatrices[b][3].xyz - camPos, camForwards);
-				return distToCameraA > distToCameraB;
-			};
-
-		std::sort(objectIndexes.begin(), objectIndexes.end(), sortFunc);
-
-		for (int i = 0; i < objectIndexes.size(); i++)
-		{
-			int index = objectIndexes[i];
-			// Copy render and dept texture
-			{
-				WaveInstance->CopyTexture(glassScreenAlbedoTexture, glassScreenAlbedoTextureCopyFrom);
-				WaveInstance->CopyTexture(glassScreenDepthTexture, glassScreenDepthTextureCopyFrom);
-			}
-
-			// Update buffers
-			{
-				glassBufferData.screenRes.x = screenWidth;
-				glassBufferData.screenRes.y = screenHeight;
-				glassBufferData.refractionIndex = onScreenMeshData[index].refractionIndex;
-				glassBufferData.useInternalReflections.x = useInternalReflections;
+				onScreenMeshData[0].screenRes.x = screenWidth;
+				onScreenMeshData[0].screenRes.y = screenHeight;
+				onScreenMeshData[0].refractionIndex = refractionIndex;
+				onScreenMeshData[0].useInternalReflections.x = useInternalReflections;
 				// First 3 floats are the amount of each RGB value the glass absorbs as the ray travels. The 4th float is how strongly it absorbs the light
 				// E.g., a high red and green value will absorb the red and green light making it more blue
-				glassBufferData.colourAbsorption = onScreenMeshData[index].colourAbsorption;
-				glassBufferData.maxItterations = { maxItterations };
-
-				glassBuffer.GetResource()->UploadData(&glassBufferData, sizeof(GlassBuffer));
-				drawBuffer.GetResource()->UploadData(&onScreenMeshMatrices[index], sizeof(wma::mat4));
+				onScreenMeshData[0].colourAbsorption = { redAbsorb, greenAbsorb, blueAbsorb, absorbfactor };
+				onScreenMeshData[0].maxItterations = { maxItterations };
 			}
 
-			// Normals
+			// Glass mesh variables
 			{
-				glassFrountNormalTexture.GetResource()->SetState(WTexture::Output);
-				glassBackNormalTexture.GetResource()->SetState(WTexture::Output);
-				glassFrountDepthTexture.GetResource()->SetState(WTexture::Output);
-				glassBackDepthTexture.GetResource()->SetState(WTexture::Output);
+				camPos = WaveInstance->GetGameCamera().GetPosition();
+				camForwards = WaveInstance->GetGameCamera().GetForwards();
+				camRight = WaveInstance->GetGameCamera().GetRight();
+				camUp = WaveInstance->GetGameCamera().GetUp();
 
-				WaveInstance->ClearRenderTarget(glassFrountNormalTexture, { 0, 0, 0, 1 });
-				WaveInstance->ClearRenderTarget(glassBackNormalTexture, { 0, 0, 0, 1 });
-				WaveInstance->ClearDepthStencilTarget(glassFrountDepthTexture);
-				WaveInstance->ClearDepthStencilTarget(glassBackDepthTexture);
+				if (makeMeshFollowCamera)
+				{
+					glassPos = camPos + camForwards * distFromCamera;
+					glassRotation = WaveInstance->GetGameCamera().GetRotation();
+				}
 
-				WaveInstance->SetRenderTarget(glassFrountNormalTexture, glassFrountDepthTexture);
+				wma::mat4 glassMatrix =
+					vMeshMatrices[glassMeshIndex] *
+					wma::rotate(identityMatrix, yRot, { 0, 1, 0 }) *
+					wma::rotate(identityMatrix, xRot, { 1, 0, 0 }) *
+					glassRotation *
+					wma::scale(identityMatrix, { glassScale, glassScale, glassScale }) *
+					wma::translate(identityMatrix, glassPos);
 
-				WaveInstance->SetPipelineState(frountNormalPipeline);
-				WaveInstance->DrawMeshWithCurrentParamaters(onScreenMeshes[index]);
+				ResourceID<WMesh> glassObject = vAllMeshesForGlass[glassMeshIndex];
 
-				WaveInstance->SetRenderTarget(glassBackNormalTexture, glassBackDepthTexture);
-
-				WaveInstance->SetPipelineState(backNormalPipeline);
-				WaveInstance->DrawMeshWithCurrentParamaters(onScreenMeshes[index]);
+				onScreenMeshes[0] = glassObject;
+				onScreenMeshMatrices[0] = glassMatrix;
 			}
 
-			// Change states
+			// Draw scene
 			{
-				glassFrountNormalTexture.GetResource()->SetState(WTexture::Input);
-				glassBackNormalTexture.GetResource()->SetState(WTexture::Input);
-				glassFrountDepthTexture.GetResource()->SetState(WTexture::Input);
-				glassBackDepthTexture.GetResource()->SetState(WTexture::Input);
-			}
+				WaveInstance->ClearRenderTarget(glassScreenAlbedoTextureCopyFrom);
+				WaveInstance->ClearDepthStencilTarget(glassScreenDepthTextureCopyFrom);
 
-			// Glass rendering
-			{
-				WaveInstance->SetPipelineState(glassPipeline);
-
+				WaveInstance->SetDefaultRootSigniture();
+			
 				WaveInstance->SetRenderTarget(glassScreenAlbedoTextureCopyFrom, glassScreenDepthTextureCopyFrom);
 
-				// Bind buffer and textures in 1 go
-				WaveInstance->BindResource(glassShaderAllocation, WaveManager::GLOBAL_CBV_SRV);
+				WaveInstance->BindBuffer(drawBuffer, WaveManager::DRAW_CBV);
+			
+				// Skybox
+				drawBuffer.GetResource()->UploadData(&skyboxMatrix, sizeof(wma::mat4));
+				WaveInstance->DrawMesh(skyboxMeshID, skyboxMaterial);
 
-				WaveInstance->DrawMeshWithCurrentParamaters(onScreenMeshes[index]);
-			}
-		}
+				drawBuffer.GetResource()->UploadData(&cubeWorldMatrix, sizeof(wma::mat4));
+				WaveInstance->DrawMesh(cubMeshID, waveMaterial);
 
-		// Copy scene to swap chain
-		{
-			WaveInstance->SetRenderTargetToSwapChain(WaveInstance->GetDefaultDepthTexture());
+				drawBuffer.GetResource()->UploadData(&icosphereWorldMatrix, sizeof(wma::mat4));
+				WaveInstance->DrawMesh(icosphereMeshID, iceMaterial);
 
-			ID3D12Resource* pBackBuffer = WaveInstance->GetCurrentBackBuffer();
-			ID3D12Resource* pDefaultDepth = WaveInstance->GetDefaultDepthTexture().GetResource()->GetTexture();
-			ID3D12Resource* pGlassAlbedo = glassScreenAlbedoTextureCopyFrom.GetResource()->GetTexture();
-			ID3D12Resource* pGlassDepth = glassScreenDepthTextureCopyFrom.GetResource()->GetTexture();
-
-			D3D12_TEXTURE_COPY_LOCATION copyLocationDestination;
-			D3D12_TEXTURE_COPY_LOCATION copyLocationSource;
-
-			copyLocationDestination.pResource = pBackBuffer;
-			copyLocationDestination.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
-			copyLocationDestination.SubresourceIndex = 0;
-
-			copyLocationSource.pResource = pGlassAlbedo;
-			copyLocationSource.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
-			copyLocationSource.SubresourceIndex = 0;
-
-			WaveECommandList* pCommandList = WaveInstance->GetCommandList();
-
-			// Transition and copy albedo to swap chain
-			{				
-				D3D12_RESOURCE_BARRIER barrierBeforeCopySource = CreateTransitionBarrier(pGlassAlbedo, glassScreenAlbedoTextureCopyFrom.GetResource()->GetCurrentState(), D3D12_RESOURCE_STATE_COPY_SOURCE);
-				pCommandList->ResourceBarrier(1, &barrierBeforeCopySource);
-
-				D3D12_RESOURCE_BARRIER barrierBeforeCopyDest = CreateTransitionBarrier(
-					pBackBuffer, D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_COPY_DEST);
-				pCommandList->ResourceBarrier(1, &barrierBeforeCopyDest);
-
-				WaveInstance->CopyTexture(&copyLocationDestination, &copyLocationSource);
-
-				D3D12_RESOURCE_BARRIER barrierAfterCopySource = CreateTransitionBarrier(
-					pGlassAlbedo, D3D12_RESOURCE_STATE_COPY_SOURCE, glassScreenAlbedoTextureCopyFrom.GetResource()->GetCurrentState());
-				pCommandList->ResourceBarrier(1, &barrierAfterCopySource);
-
-				D3D12_RESOURCE_BARRIER barrierAfterCopyDest = CreateTransitionBarrier(
-					pBackBuffer, D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_RENDER_TARGET);
-				pCommandList->ResourceBarrier(1, &barrierAfterCopyDest);
+				drawBuffer.GetResource()->UploadData(&planeWorldMatrix, sizeof(wma::mat4));
+				WaveInstance->DrawMesh(planeMeshID, tilesMaterial);
 			}
 
-			copyLocationDestination.pResource = pDefaultDepth;
-			copyLocationSource.pResource = pGlassDepth;
-
-			// Transition and copy depth to default depth
+			// Sort by dist to camera
+			std::vector<int> objectIndexes{};
+			for (int i = 0; i < onScreenMeshes.size(); i++)
 			{
-				D3D12_RESOURCE_BARRIER barrierBeforeCopySource = CreateTransitionBarrier(
-					pGlassDepth, glassScreenDepthTextureCopyFrom.GetResource()->GetCurrentState(), D3D12_RESOURCE_STATE_COPY_SOURCE);
-				pCommandList->ResourceBarrier(1, &barrierBeforeCopySource);
-
-				D3D12_RESOURCE_BARRIER barrierBeforeCopyDest = CreateTransitionBarrier(
-					pDefaultDepth, D3D12_RESOURCE_STATE_DEPTH_WRITE, D3D12_RESOURCE_STATE_COPY_DEST);
-				pCommandList->ResourceBarrier(1, &barrierBeforeCopyDest);
-
-				WaveInstance->CopyTexture(&copyLocationDestination, &copyLocationSource);
-
-				D3D12_RESOURCE_BARRIER barrierAfterCopySource = CreateTransitionBarrier(
-					pGlassDepth, D3D12_RESOURCE_STATE_COPY_SOURCE, glassScreenDepthTextureCopyFrom.GetResource()->GetCurrentState());
-				pCommandList->ResourceBarrier(1, &barrierAfterCopySource);
-
-				D3D12_RESOURCE_BARRIER barrierAfterCopyDest = CreateTransitionBarrier(
-					pDefaultDepth, D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_DEPTH_WRITE);
-				pCommandList->ResourceBarrier(1, &barrierAfterCopyDest);
+				objectIndexes.push_back(i);
 			}
+
+			auto sortFunc = [&](const int& a, const int& b)
+				{
+					float distToCameraA = dot(onScreenMeshMatrices[a][3].xyz - camPos, camForwards);
+					float distToCameraB = dot(onScreenMeshMatrices[b][3].xyz - camPos, camForwards);
+					return distToCameraA > distToCameraB;
+				};
+
+			std::sort(objectIndexes.begin(), objectIndexes.end(), sortFunc);
+
+			for (int i = 0; i < objectIndexes.size(); i++)
+			{
+				int index = objectIndexes[i];
+				// Copy render and dept texture
+				{
+					WaveInstance->CopyTexture(glassScreenAlbedoTexture, glassScreenAlbedoTextureCopyFrom);
+					WaveInstance->CopyTexture(glassScreenDepthTexture, glassScreenDepthTextureCopyFrom);
+				}
+
+				// Update buffers
+				{
+					glassBufferData.screenRes.x = screenWidth;
+					glassBufferData.screenRes.y = screenHeight;
+					glassBufferData.refractionIndex = onScreenMeshData[index].refractionIndex;
+					glassBufferData.useInternalReflections.x = useInternalReflections;
+					// First 3 floats are the amount of each RGB value the glass absorbs as the ray travels. The 4th float is how strongly it absorbs the light
+					// E.g., a high red and green value will absorb the red and green light making it more blue
+					glassBufferData.colourAbsorption = onScreenMeshData[index].colourAbsorption;
+					glassBufferData.maxItterations = { maxItterations };
+
+					glassBuffer.GetResource()->UploadData(&glassBufferData, sizeof(GlassBuffer));
+					drawBuffer.GetResource()->UploadData(&onScreenMeshMatrices[index], sizeof(wma::mat4));
+				}
+
+				// Normals
+				{
+					glassFrountNormalTexture.GetResource()->SetState(WTexture::Output);
+					glassBackNormalTexture.GetResource()->SetState(WTexture::Output);
+					glassFrountDepthTexture.GetResource()->SetState(WTexture::Output);
+					glassBackDepthTexture.GetResource()->SetState(WTexture::Output);
+
+					WaveInstance->ClearRenderTarget(glassFrountNormalTexture, { 0, 0, 0, 1 });
+					WaveInstance->ClearRenderTarget(glassBackNormalTexture, { 0, 0, 0, 1 });
+					WaveInstance->ClearDepthStencilTarget(glassFrountDepthTexture);
+					WaveInstance->ClearDepthStencilTarget(glassBackDepthTexture);
+
+					WaveInstance->SetRenderTarget(glassFrountNormalTexture, glassFrountDepthTexture);
+
+					WaveInstance->SetPipelineState(frountNormalPipeline);
+					WaveInstance->DrawMeshWithCurrentParamaters(onScreenMeshes[index]);
+
+					WaveInstance->SetRenderTarget(glassBackNormalTexture, glassBackDepthTexture);
+
+					WaveInstance->SetPipelineState(backNormalPipeline);
+					WaveInstance->DrawMeshWithCurrentParamaters(onScreenMeshes[index]);
+				}
+
+				// Change states
+				{
+					glassFrountNormalTexture.GetResource()->SetState(WTexture::Input);
+					glassBackNormalTexture.GetResource()->SetState(WTexture::Input);
+					glassFrountDepthTexture.GetResource()->SetState(WTexture::Input);
+					glassBackDepthTexture.GetResource()->SetState(WTexture::Input);
+				}
+
+				// Glass rendering
+				{
+					WaveInstance->SetPipelineState(glassPipeline);
+
+					WaveInstance->SetRenderTarget(glassScreenAlbedoTextureCopyFrom, glassScreenDepthTextureCopyFrom);
+
+					// Bind buffer and textures in 1 go
+					WaveInstance->BindResource(glassShaderAllocation, WaveManager::GLOBAL_CBV_SRV);
+
+					WaveInstance->DrawMeshWithCurrentParamaters(onScreenMeshes[index]);
+				}
+			}
+
+			// Copy scene to swap chain
+			{
+				WaveInstance->SetRenderTargetToSwapChain(WaveInstance->GetDefaultDepthTexture());
+
+				ID3D12Resource* pBackBuffer = WaveInstance->GetCurrentBackBuffer();
+				ID3D12Resource* pDefaultDepth = WaveInstance->GetDefaultDepthTexture().GetResource()->GetTexture();
+				ID3D12Resource* pGlassAlbedo = glassScreenAlbedoTextureCopyFrom.GetResource()->GetTexture();
+				ID3D12Resource* pGlassDepth = glassScreenDepthTextureCopyFrom.GetResource()->GetTexture();
+
+				D3D12_TEXTURE_COPY_LOCATION copyLocationDestination;
+				D3D12_TEXTURE_COPY_LOCATION copyLocationSource;
+
+				copyLocationDestination.pResource = pBackBuffer;
+				copyLocationDestination.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
+				copyLocationDestination.SubresourceIndex = 0;
+
+				copyLocationSource.pResource = pGlassAlbedo;
+				copyLocationSource.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
+				copyLocationSource.SubresourceIndex = 0;
+
+				WaveECommandList* pCommandList = WaveInstance->GetCommandList();
+
+				// Transition and copy albedo to swap chain
+				{				
+					D3D12_RESOURCE_BARRIER barrierBeforeCopySource = CreateTransitionBarrier(pGlassAlbedo, glassScreenAlbedoTextureCopyFrom.GetResource()->GetCurrentState(), D3D12_RESOURCE_STATE_COPY_SOURCE);
+					pCommandList->ResourceBarrier(1, &barrierBeforeCopySource);
+
+					D3D12_RESOURCE_BARRIER barrierBeforeCopyDest = CreateTransitionBarrier(
+						pBackBuffer, D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_COPY_DEST);
+					pCommandList->ResourceBarrier(1, &barrierBeforeCopyDest);
+
+					WaveInstance->CopyTexture(&copyLocationDestination, &copyLocationSource);
+
+					D3D12_RESOURCE_BARRIER barrierAfterCopySource = CreateTransitionBarrier(
+						pGlassAlbedo, D3D12_RESOURCE_STATE_COPY_SOURCE, glassScreenAlbedoTextureCopyFrom.GetResource()->GetCurrentState());
+					pCommandList->ResourceBarrier(1, &barrierAfterCopySource);
+
+					D3D12_RESOURCE_BARRIER barrierAfterCopyDest = CreateTransitionBarrier(
+						pBackBuffer, D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_RENDER_TARGET);
+					pCommandList->ResourceBarrier(1, &barrierAfterCopyDest);
+				}
+
+				copyLocationDestination.pResource = pDefaultDepth;
+				copyLocationSource.pResource = pGlassDepth;
+
+				// Transition and copy depth to default depth
+				{
+					D3D12_RESOURCE_BARRIER barrierBeforeCopySource = CreateTransitionBarrier(
+						pGlassDepth, glassScreenDepthTextureCopyFrom.GetResource()->GetCurrentState(), D3D12_RESOURCE_STATE_COPY_SOURCE);
+					pCommandList->ResourceBarrier(1, &barrierBeforeCopySource);
+
+					D3D12_RESOURCE_BARRIER barrierBeforeCopyDest = CreateTransitionBarrier(
+						pDefaultDepth, D3D12_RESOURCE_STATE_DEPTH_WRITE, D3D12_RESOURCE_STATE_COPY_DEST);
+					pCommandList->ResourceBarrier(1, &barrierBeforeCopyDest);
+
+					WaveInstance->CopyTexture(&copyLocationDestination, &copyLocationSource);
+
+					D3D12_RESOURCE_BARRIER barrierAfterCopySource = CreateTransitionBarrier(
+						pGlassDepth, D3D12_RESOURCE_STATE_COPY_SOURCE, glassScreenDepthTextureCopyFrom.GetResource()->GetCurrentState());
+					pCommandList->ResourceBarrier(1, &barrierAfterCopySource);
+
+					D3D12_RESOURCE_BARRIER barrierAfterCopyDest = CreateTransitionBarrier(
+						pDefaultDepth, D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_DEPTH_WRITE);
+					pCommandList->ResourceBarrier(1, &barrierAfterCopyDest);
+				}
+			}
+
+			WaveInstance->EndFrame();
+
+			//break;
 		}
-
-        WaveInstance->EndFrame();
-
-        //break;
-    }
+	}
 
     WaveManager::Uninit();
 }

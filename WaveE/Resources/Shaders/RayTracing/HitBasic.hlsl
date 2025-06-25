@@ -1,21 +1,20 @@
 #include "CommonRT.hlsl"
 
 // Resources
-Texture2D g_albedo : register(t0, space1);
-Texture2D g_normalMap : register(t1, space1);
+Texture2D g_albedo : register(t3);//register(t0, space1);
 
 [shader("closesthit")]
-void ClosestHit_LitObject(inout RayPayload payload, in Attributes attribs)
+void ClosestHit_LitObject(inout RayPayload payload, in BuiltInTriangleIntersectionAttributes attribs)
 {
     const uint primitiveIndex = PrimitiveIndex();
-    const float3 barycentrics = float3(1.0 - attribs.texcoord.x - attribs.texcoord.y, attribs.texcoord.x, attribs.texcoord.y);
+    const float3 barycentrics = float3(1.0 - attribs.barycentrics.x - attribs.barycentrics.y, attribs.barycentrics.x, attribs.barycentrics.y);
     
     VertexAttributes attr = InterpolateAttributes(primitiveIndex, barycentrics);
 
     float3 position = WorldRayOrigin() + WorldRayDirection() * RayTCurrent();
     float3 viewDir = normalize(viewPos.xyz - position);
     uint2 screenSize = DispatchRaysDimensions().xy;
-    int2 coord = floor(attribs.texcoord * screenSize);
+    int2 coord = floor(attribs.barycentrics * screenSize);
     float4 albedocolour = g_albedo.Load(int3(coord, 0));
     float3 vertexNormal = attr.normal;
     float3 normal = normalize(mul((float3x3)viewMatrix, vertexNormal)); // To world space

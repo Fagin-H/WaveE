@@ -117,33 +117,34 @@ namespace WaveE
 		m_width = rDescriptor.width;
 		m_height = rDescriptor.height;
 		m_currentState = rDescriptor.startAsShaderResource ? State::Input : State::Output;
+		m_usage = rDescriptor.usage;
 
 		m_isDepthType = rDescriptor.format == WTextureDescriptor::Format::DepthFloat || rDescriptor.format == WTextureDescriptor::Format::DepthTypeless;
 
 		D3D12_HEAP_PROPERTIES heapProperties = CreateHeapProperties(D3D12_HEAP_TYPE_DEFAULT);
-		DXGI_FORMAT dxgiFormat = GetDXGIFormat(rDescriptor.format);
-		DXGI_FORMAT dxgiFormatNonTypelessForDepthSRV = GetDXGIFormatForDepth(rDescriptor.format, true);
-		DXGI_FORMAT dxgiFormatNonTypelessForDepthDSV = GetDXGIFormatForDepth(rDescriptor.format, false);
+		m_dxgiFormat = GetDXGIFormat(rDescriptor.format);
+		m_dxgiFormatNonTypelessForDepthSRV = GetDXGIFormatForDepth(rDescriptor.format, true);
+		m_dxgiFormatNonTypelessForDepthDSV = GetDXGIFormatForDepth(rDescriptor.format, false);
 		D3D12_RESOURCE_FLAGS resourceFlags = GetResourceFlags(rDescriptor.usage, rDescriptor.format);
 
-		m_bytesPerPixel = GetBytesPerPixel(dxgiFormat);
+		m_bytesPerPixel = GetBytesPerPixel(m_dxgiFormat);
 		m_sizeBytes = m_width * m_height * m_bytesPerPixel;
 
 		m_renderTargetState = GetResourceState(rDescriptor.format, false);
 		m_shaderResourceState = GetResourceState(rDescriptor.format, true);
 
-		D3D12_RESOURCE_DESC resourceDesc = CreateTextureResourceDesc(dxgiFormat, rDescriptor.width, rDescriptor.height);
+		D3D12_RESOURCE_DESC resourceDesc = CreateTextureResourceDesc(m_dxgiFormat, rDescriptor.width, rDescriptor.height);
 		resourceDesc.Flags = resourceFlags;
 		resourceDesc.MipLevels = 1;
 
 		D3D12_CLEAR_VALUE clearValue = {};
 		if (m_isDepthType)
 		{
-			clearValue.Format = dxgiFormatNonTypelessForDepthDSV;
+			clearValue.Format = m_dxgiFormatNonTypelessForDepthDSV;
 		}
 		else
 		{
-			clearValue.Format = dxgiFormat;
+			clearValue.Format = m_dxgiFormat;
 		}
 
 		if (m_isDepthType)
@@ -186,70 +187,30 @@ namespace WaveE
 
 		WAVEE_ASSERT_MESSAGE(SUCCEEDED(hr), "Failed to create committed resource for texture!");
 
-		if (rDescriptor.usage & WTextureDescriptor::Usage::RenderTarget)
+		if (m_usage & WTextureDescriptor::Usage::RenderTarget)
 		{
 			if (m_isDepthType)
 			{
-				D3D12_DEPTH_STENCIL_VIEW_DESC dsvDesc = {};
-				dsvDesc.Format = dxgiFormatNonTypelessForDepthDSV;
-				dsvDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
-				dsvDesc.Texture2D.MipSlice = 0;
-
 				WDescriptorHeapManager* pDSVDescriptorHeapManager = WaveManager::Instance()->GetDSVHeap();
 				m_allocationRTV_DSV = pDSVDescriptorHeapManager->Allocate();
-				D3D12_CPU_DESCRIPTOR_HANDLE cpuDescriptorHandle = pDSVDescriptorHeapManager->GetCPUHandle(m_allocationRTV_DSV);
-				pDevice->CreateDepthStencilView(m_pTexture.Get(), &dsvDesc, cpuDescriptorHandle);
 			}
 			else
 			{
-				D3D12_RENDER_TARGET_VIEW_DESC rtvDesc = {};
-				rtvDesc.Format = dxgiFormat;
-				rtvDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
-				rtvDesc.Texture2D.MipSlice = 0;
-				rtvDesc.Texture2D.PlaneSlice = 0;
-
 				WDescriptorHeapManager* pRTVDescriptorHeapManager = WaveManager::Instance()->GetRTVHeap();
 				m_allocationRTV_DSV = pRTVDescriptorHeapManager->Allocate();
-				D3D12_CPU_DESCRIPTOR_HANDLE cpuDescriptorHandle = pRTVDescriptorHeapManager->GetCPUHandle(m_allocationRTV_DSV);
-				pDevice->CreateRenderTargetView(m_pTexture.Get(), &rtvDesc, cpuDescriptorHandle);
 			}
+			CreateViewRTV(m_allocationRTV_DSV);
 		}
-		if (rDescriptor.usage & WTextureDescriptor::Usage::ShaderResource)
+		if (m_usage & WTextureDescriptor::Usage::ShaderResource)
 		{
 			WDescriptorHeapManager* pCBVDescriptorHeapManager = WaveManager::Instance()->GetCBV_SRV_UAVHeap();
 			if (m_doesOwnAllocationSRV)
 			{
 				// Allocate CPU descriptor handle for CBV/SRV/UAV based on buffer type
 				m_allocationSRV = pCBVDescriptorHeapManager->Allocate();
+				m_offsetSRV = 0;
 			}
-			D3D12_CPU_DESCRIPTOR_HANDLE cpuDescriptorHandle = pCBVDescriptorHeapManager->GetCPUHandle(m_allocationSRV.index + m_offsetSRV);
-			
-			if (m_isDepthType)
-			{
-				D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
-				srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-				srvDesc.Format = dxgiFormatNonTypelessForDepthSRV;
-				srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
-				srvDesc.Texture2D.MostDetailedMip = 0;
-				srvDesc.Texture2D.MipLevels = 1;
-				srvDesc.Texture2D.PlaneSlice = 0;
-				srvDesc.Texture2D.ResourceMinLODClamp = 0.0f;
-
-				pDevice->CreateShaderResourceView(m_pTexture.Get(), &srvDesc, cpuDescriptorHandle);
-			}
-			else
-			{
-				D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
-				srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-				srvDesc.Format = dxgiFormat;
-				srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
-				srvDesc.Texture2D.MostDetailedMip = 0;
-				srvDesc.Texture2D.MipLevels = 1;
-				srvDesc.Texture2D.PlaneSlice = 0;
-				srvDesc.Texture2D.ResourceMinLODClamp = 0.0f;
-
-				pDevice->CreateShaderResourceView(m_pTexture.Get(), &srvDesc, cpuDescriptorHandle);
-			}
+			CreateView(m_allocationSRV, m_offsetSRV);
 		}
 
 		if (rDescriptor.pInitalData)
@@ -348,4 +309,75 @@ namespace WaveE
 	{
 		return m_currentState == Input ? m_shaderResourceState : m_renderTargetState;
 	}
+
+	void WTexture::CreateView(WDescriptorHeapManager::Allocation allocationSRV, UINT offset /*= 0*/)
+	{
+		WaveEDevice* pDevice = WaveManager::Instance()->GetDevice();
+
+		if (m_usage & WTextureDescriptor::Usage::ShaderResource)
+		{
+			WDescriptorHeapManager* pCBVDescriptorHeapManager = WaveManager::Instance()->GetCBV_SRV_UAVHeap();
+			D3D12_CPU_DESCRIPTOR_HANDLE cpuDescriptorHandle = pCBVDescriptorHeapManager->GetCPUHandle(allocationSRV.index + offset);
+
+			if (m_isDepthType)
+			{
+				D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
+				srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+				srvDesc.Format = m_dxgiFormatNonTypelessForDepthSRV;
+				srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+				srvDesc.Texture2D.MostDetailedMip = 0;
+				srvDesc.Texture2D.MipLevels = 1;
+				srvDesc.Texture2D.PlaneSlice = 0;
+				srvDesc.Texture2D.ResourceMinLODClamp = 0.0f;
+
+				pDevice->CreateShaderResourceView(m_pTexture.Get(), &srvDesc, cpuDescriptorHandle);
+			}
+			else
+			{
+				D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
+				srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+				srvDesc.Format = m_dxgiFormat;
+				srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+				srvDesc.Texture2D.MostDetailedMip = 0;
+				srvDesc.Texture2D.MipLevels = 1;
+				srvDesc.Texture2D.PlaneSlice = 0;
+				srvDesc.Texture2D.ResourceMinLODClamp = 0.0f;
+
+				pDevice->CreateShaderResourceView(m_pTexture.Get(), &srvDesc, cpuDescriptorHandle);
+			}
+		}
+	}
+
+	void WTexture::CreateViewRTV(WDescriptorHeapManager::Allocation allocationRTV)
+	{
+		WaveEDevice* pDevice = WaveManager::Instance()->GetDevice();
+
+		if (m_usage & WTextureDescriptor::Usage::RenderTarget)
+		{
+			if (m_isDepthType)
+			{
+				D3D12_DEPTH_STENCIL_VIEW_DESC dsvDesc = {};
+				dsvDesc.Format = m_dxgiFormatNonTypelessForDepthDSV;
+				dsvDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
+				dsvDesc.Texture2D.MipSlice = 0;
+
+				WDescriptorHeapManager* pDSVDescriptorHeapManager = WaveManager::Instance()->GetDSVHeap();
+				D3D12_CPU_DESCRIPTOR_HANDLE cpuDescriptorHandle = pDSVDescriptorHeapManager->GetCPUHandle(allocationRTV);
+				pDevice->CreateDepthStencilView(m_pTexture.Get(), &dsvDesc, cpuDescriptorHandle);
+			}
+			else
+			{
+				D3D12_RENDER_TARGET_VIEW_DESC rtvDesc = {};
+				rtvDesc.Format = m_dxgiFormat;
+				rtvDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
+				rtvDesc.Texture2D.MipSlice = 0;
+				rtvDesc.Texture2D.PlaneSlice = 0;
+
+				WDescriptorHeapManager* pRTVDescriptorHeapManager = WaveManager::Instance()->GetRTVHeap();
+				D3D12_CPU_DESCRIPTOR_HANDLE cpuDescriptorHandle = pRTVDescriptorHeapManager->GetCPUHandle(allocationRTV);
+				pDevice->CreateRenderTargetView(m_pTexture.Get(), &rtvDesc, cpuDescriptorHandle);
+			}
+		}
+	}
+
 }

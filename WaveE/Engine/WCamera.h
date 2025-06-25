@@ -14,6 +14,7 @@ namespace WaveE
 		wma::vec3 GetRight() const;
 		wma::vec3 GetUp() const;
 		wma::mat4 GetRotation() const;
+		float GetFoV() const { return m_fov; }
 
 		void MoveForward(float delta);
 		void MoveRight(float delta);

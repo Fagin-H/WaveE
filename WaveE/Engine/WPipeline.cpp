@@ -84,15 +84,16 @@ namespace WaveE
 
 	WPipelineRT::WPipelineRT(WPipelineDescriptorRT& rDescriptor)
 	{
+		m_rDescriptor = rDescriptor;
 		// The pipeline is made of a set of sub-objects, representing the DXIL libraries, hit group
 		// declarations, root signature associations, plus some configuration objects
 		UINT64 subobjectCount =
-			rDescriptor.vLibraries.size() +                     // DXIL libraries
-			rDescriptor.vHitGroups.size() +                     // Hit group declarations
+			m_rDescriptor.vLibraries.size() +                     // DXIL libraries
+			m_rDescriptor.vHitGroups.size() +                     // Hit group declarations
 			1 +													// Shader configuration
-			1 +													// Shader payload
+			//1 +													// Shader payload
+			2 * m_rDescriptor.vRootSignatureAssociations.size() + // Root signature declaration + association
 			1 +													// Global root signature
-			2 * rDescriptor.vRootSignatureAssociations.size() + // Root signature declaration + association
 			1;													// Final pipeline subobject
 
 		// Initialize a vector with the target object count. It is necessary to make the allocation before
@@ -103,7 +104,7 @@ namespace WaveE
 		UINT currentIndex = 0;
 
 		// Add all the DXIL libraries
-		for (WPipelineDescriptorRT::Library& lib : rDescriptor.vLibraries)
+		for (WPipelineDescriptorRT::Library& lib : m_rDescriptor.vLibraries)
 		{
 			// Create one export descriptor per symbol
 			lib.vExports.clear();
@@ -132,7 +133,7 @@ namespace WaveE
 		}
 
 		// Add all the hit group declarations
-		for (WPipelineDescriptorRT::HitGroup& group : rDescriptor.vHitGroups)
+		for (WPipelineDescriptorRT::HitGroup& group : m_rDescriptor.vHitGroups)
 		{
 			group.desc.HitGroupExport = group.hitGroupName.c_str();
 			group.desc.ClosestHitShaderImport = group.closestHitShader.empty() ? nullptr : group.closestHitShader.c_str();
@@ -148,8 +149,8 @@ namespace WaveE
 
 		// Add a subobject for the shader payload configuration
 		D3D12_RAYTRACING_SHADER_CONFIG shaderDesc = {};
-		shaderDesc.MaxPayloadSizeInBytes = rDescriptor.maxPayloadSizeInBytes;
-		shaderDesc.MaxAttributeSizeInBytes = rDescriptor.maxAttributeSizeInBytes;
+		shaderDesc.MaxPayloadSizeInBytes = m_rDescriptor.maxPayloadSizeInBytes;
+		shaderDesc.MaxAttributeSizeInBytes = m_rDescriptor.maxAttributeSizeInBytes;
 
 		D3D12_STATE_SUBOBJECT shaderConfigObject = {};
 		shaderConfigObject.Type = D3D12_STATE_SUBOBJECT_TYPE_RAYTRACING_SHADER_CONFIG;
@@ -157,75 +158,79 @@ namespace WaveE
 
 		subobjects[currentIndex++] = shaderConfigObject;
 
-		// Build a list of all the symbols for ray generation, miss and hit groups
-		// Those shaders have to be associated with the payload definition
-		std::vector<std::wstring> exportedSymbols = {};
-		std::vector<LPCWSTR> exportedSymbolPointers = {};
-		BuildShaderExportList(exportedSymbols, rDescriptor);
+		//// Build a list of all the symbols for ray generation, miss and hit groups
+		//// Those shaders have to be associated with the payload definition
+		//std::vector<std::wstring> exportedSymbols = {};
+		//std::vector<LPCWSTR> exportedSymbolPointers = {};
+		//BuildShaderExportList(exportedSymbols, m_rDescriptor);
 
-		// Build an array of the string pointers
-		exportedSymbolPointers.reserve(exportedSymbols.size());
-		for (const auto& name : exportedSymbols)
-		{
-			exportedSymbolPointers.push_back(name.c_str());
-		}
-		const WCHAR** shaderExports = exportedSymbolPointers.data();
+		//// Build an array of the string pointers
+		//exportedSymbolPointers.reserve(exportedSymbols.size());
+		//for (const auto& name : exportedSymbols)
+		//{
+		//	exportedSymbolPointers.push_back(name.c_str());
+		//}
+		//const WCHAR** shaderExports = exportedSymbolPointers.data();
 
-		// Add a subobject for the association between shaders and the payload
-		D3D12_SUBOBJECT_TO_EXPORTS_ASSOCIATION shaderPayloadAssociation = {};
-		shaderPayloadAssociation.NumExports = static_cast<UINT>(exportedSymbols.size());
-		shaderPayloadAssociation.pExports = shaderExports;
+		//// Add a subobject for the association between shaders and the payload
+		//D3D12_SUBOBJECT_TO_EXPORTS_ASSOCIATION shaderPayloadAssociation = {};
+		//shaderPayloadAssociation.NumExports = static_cast<UINT>(exportedSymbols.size());
+		//shaderPayloadAssociation.pExports = shaderExports;
 
-		// Associate the set of shaders with the payload defined in the previous subobject
-		shaderPayloadAssociation.pSubobjectToAssociate = &subobjects[(currentIndex - 1)];
+		//// Associate the set of shaders with the payload defined in the previous subobject
+		//shaderPayloadAssociation.pSubobjectToAssociate = &subobjects[(currentIndex - 1)];
 
-		// Create and store the payload association object
-		D3D12_STATE_SUBOBJECT shaderPayloadAssociationObject = {};
-		shaderPayloadAssociationObject.Type = D3D12_STATE_SUBOBJECT_TYPE_SUBOBJECT_TO_EXPORTS_ASSOCIATION;
-		shaderPayloadAssociationObject.pDesc = &shaderPayloadAssociation;
-		subobjects[currentIndex++] = shaderPayloadAssociationObject;
+		//// Create and store the payload association object
+		//D3D12_STATE_SUBOBJECT shaderPayloadAssociationObject = {};
+		//shaderPayloadAssociationObject.Type = D3D12_STATE_SUBOBJECT_TYPE_SUBOBJECT_TO_EXPORTS_ASSOCIATION;
+		//shaderPayloadAssociationObject.pDesc = &shaderPayloadAssociation;
+		//subobjects[currentIndex++] = shaderPayloadAssociationObject;
 
 		// The root signature association requires two objects for each: one to declare the root
 		// signature, and another to associate that root signature to a set of symbols
-		for (WPipelineDescriptorRT::RootSignatureAssociation& assoc : rDescriptor.vRootSignatureAssociations)
-		{
-			assoc.vSymbolPointers.clear();
-			assoc.vSymbolPointers.reserve(assoc.vSymbols.size());
-			for (size_t i = 0; i < assoc.vSymbols.size(); i++)
-			{
-				assoc.vSymbolPointers[i] = assoc.vSymbols[i].c_str();
-			}
+		//for (WPipelineDescriptorRT::RootSignatureAssociation& assoc : m_rDescriptor.vRootSignatureAssociations)
+		//{
+		//	assoc.vSymbolPointers.clear();
+		//	assoc.vSymbolPointers.resize(assoc.vSymbols.size());
+		//	for (size_t i = 0; i < assoc.vSymbols.size(); i++)
+		//	{
+		//		assoc.vSymbolPointers[i] = assoc.vSymbols[i].c_str();
+		//	}
 
-			// Add a subobject to declare the root signature
-			D3D12_STATE_SUBOBJECT rootSigObject = {};
-			rootSigObject.Type = D3D12_STATE_SUBOBJECT_TYPE_LOCAL_ROOT_SIGNATURE;
-			rootSigObject.pDesc = assoc.pLocalRootSignature->GetRootSignature();
+		//	// Add a subobject to declare the root signature
+		//	assoc.localSig.pLocalRootSignature = assoc.pLocalRootSignature->GetRootSignature();
 
-			subobjects[currentIndex++] = rootSigObject;
+		//	D3D12_STATE_SUBOBJECT rootSigObject = {};
+		//	rootSigObject.Type = D3D12_STATE_SUBOBJECT_TYPE_LOCAL_ROOT_SIGNATURE;
+		//	rootSigObject.pDesc = &assoc.localSig;
 
-			// Add a subobject for the association between the exported shader symbols and the root
-			// signature
-			assoc.association.NumExports = static_cast<UINT>(assoc.vSymbolPointers.size());
-			assoc.association.pExports = assoc.vSymbolPointers.data();
-			assoc.association.pSubobjectToAssociate = &subobjects[(currentIndex - 1)];
+		//	subobjects[currentIndex++] = rootSigObject;
 
-			D3D12_STATE_SUBOBJECT rootSigAssociationObject = {};
-			rootSigAssociationObject.Type = D3D12_STATE_SUBOBJECT_TYPE_SUBOBJECT_TO_EXPORTS_ASSOCIATION;
-			rootSigAssociationObject.pDesc = &assoc.association;
+		//	// Add a subobject for the association between the exported shader symbols and the root
+		//	// signature
+		//	assoc.association.NumExports = static_cast<UINT>(assoc.vSymbolPointers.size());
+		//	assoc.association.pExports = assoc.vSymbolPointers.data();
+		//	assoc.association.pSubobjectToAssociate = &subobjects[(currentIndex - 1)];
 
-			subobjects[currentIndex++] = rootSigAssociationObject;
-		}
+		//	D3D12_STATE_SUBOBJECT rootSigAssociationObject = {};
+		//	rootSigAssociationObject.Type = D3D12_STATE_SUBOBJECT_TYPE_SUBOBJECT_TO_EXPORTS_ASSOCIATION;
+		//	rootSigAssociationObject.pDesc = &assoc.association;
+
+		//	subobjects[currentIndex++] = rootSigAssociationObject;
+		//}
+
+		D3D12_GLOBAL_ROOT_SIGNATURE globalSig{};
+		globalSig.pGlobalRootSignature = rDescriptor.pGlobalRootSignature->GetRootSignature();
 
 		D3D12_STATE_SUBOBJECT globalRootSig;
 		globalRootSig.Type = D3D12_STATE_SUBOBJECT_TYPE_GLOBAL_ROOT_SIGNATURE;
-		ID3D12RootSignature* dgSig = rDescriptor.pGlobalRootSignature->GetRootSignature();
-		globalRootSig.pDesc = &dgSig;
+		globalRootSig.pDesc = &globalSig;
 
 		subobjects[currentIndex++] = globalRootSig;
 
 		// Add a subobject for the ray tracing pipeline configuration
 		D3D12_RAYTRACING_PIPELINE_CONFIG pipelineConfig = {};
-		pipelineConfig.MaxTraceRecursionDepth = rDescriptor.maxRecursionDepth;
+		pipelineConfig.MaxTraceRecursionDepth = m_rDescriptor.maxRecursionDepth;
 
 		D3D12_STATE_SUBOBJECT pipelineConfigObject = {};
 		pipelineConfigObject.Type = D3D12_STATE_SUBOBJECT_TYPE_RAYTRACING_PIPELINE_CONFIG;
@@ -243,8 +248,70 @@ namespace WaveE
 		WaveEDevice* pDevice = WaveManager::Instance()->GetDevice();
 
 		HRESULT hr = pDevice->CreateStateObject(&pipelineDesc, IID_PPV_ARGS(&m_pPipelineStateObject));
-		
+
 		WAVEE_ASSERT_MESSAGE(SUCCEEDED(hr), "Failed to create ray tracing pipeline!");
+
+		hr = m_pPipelineStateObject->QueryInterface(IID_PPV_ARGS(&m_pPipelineStateObjectProperties));
+
+		WAVEE_ASSERT_MESSAGE(SUCCEEDED(hr), "Failed to get ray tracing pipeline properties!");
+
+		//D3D12_DXIL_LIBRARY_DESC libGen{};
+		//D3D12_DXIL_LIBRARY_DESC libMiss{};
+		//D3D12_DXIL_LIBRARY_DESC libHit{};
+		//libGen.DXILLibrary.pShaderBytecode = rDescriptor.vLibraries[0].shaderID.GetResource()->GetShaderBytecode().pShaderBytecode;
+		//libGen.DXILLibrary.BytecodeLength = rDescriptor.vLibraries[0].shaderID.GetResource()->GetShaderBytecode().BytecodeLength;
+
+		//libMiss.DXILLibrary.pShaderBytecode = rDescriptor.vLibraries[1].shaderID.GetResource()->GetShaderBytecode().pShaderBytecode;
+		//libMiss.DXILLibrary.BytecodeLength = rDescriptor.vLibraries[1].shaderID.GetResource()->GetShaderBytecode().BytecodeLength;
+
+		//libHit.DXILLibrary.pShaderBytecode = rDescriptor.vLibraries[2].shaderID.GetResource()->GetShaderBytecode().pShaderBytecode;
+		//libHit.DXILLibrary.BytecodeLength = rDescriptor.vLibraries[2].shaderID.GetResource()->GetShaderBytecode().BytecodeLength;
+
+		//D3D12_HIT_GROUP_DESC hitGroup{};
+		//hitGroup.HitGroupExport = L"HitGroup1";
+		//hitGroup.Type = D3D12_HIT_GROUP_TYPE_TRIANGLES;
+		//hitGroup.ClosestHitShaderImport = L"ClosestHit";
+
+		//D3D12_RAYTRACING_SHADER_CONFIG shaderCfg;
+		//shaderCfg.MaxAttributeSizeInBytes = 8;
+		//shaderCfg.MaxPayloadSizeInBytes = 32;
+
+		//D3D12_GLOBAL_ROOT_SIGNATURE globalSig;
+		//globalSig.pGlobalRootSignature = rDescriptor.pGlobalRootSignature->GetRootSignature();
+
+		//D3D12_RAYTRACING_PIPELINE_CONFIG pipelineCfg;
+		//pipelineCfg.MaxTraceRecursionDepth = 3;
+
+		//D3D12_STATE_SUBOBJECT subobjects2[7];
+		//subobjects2[0].Type = D3D12_STATE_SUBOBJECT_TYPE_DXIL_LIBRARY;
+		//subobjects2[0].pDesc = &libGen;
+		//subobjects2[1].Type = D3D12_STATE_SUBOBJECT_TYPE_DXIL_LIBRARY;
+		//subobjects2[1].pDesc = &libMiss;
+		//subobjects2[2].Type = D3D12_STATE_SUBOBJECT_TYPE_DXIL_LIBRARY;
+		//subobjects2[2].pDesc = &libHit;
+
+		//subobjects2[3].Type = D3D12_STATE_SUBOBJECT_TYPE_HIT_GROUP;
+		//subobjects2[3].pDesc = &hitGroup;
+
+		//subobjects2[4].Type = D3D12_STATE_SUBOBJECT_TYPE_RAYTRACING_SHADER_CONFIG;
+		//subobjects2[4].pDesc = &shaderCfg;
+
+		//subobjects2[5].Type = D3D12_STATE_SUBOBJECT_TYPE_GLOBAL_ROOT_SIGNATURE;
+		//subobjects2[5].pDesc = &globalSig;
+
+		//subobjects2[6].Type = D3D12_STATE_SUBOBJECT_TYPE_RAYTRACING_PIPELINE_CONFIG;
+		//subobjects2[6].pDesc = &pipelineCfg;
+
+		//D3D12_STATE_OBJECT_DESC desc{};
+		//desc.NumSubobjects = 7;
+		//desc.Type = D3D12_STATE_OBJECT_TYPE_RAYTRACING_PIPELINE;
+		//desc.pSubobjects = &subobjects2[0];
+
+		//HRESULT hr = pDevice->CreateStateObject(&desc, IID_PPV_ARGS(&m_pPipelineStateObject));
+		//WAVEE_ASSERT_MESSAGE(SUCCEEDED(hr), "Failed to create ray tracing pipeline!");
+
+		//hr = m_pPipelineStateObject->QueryInterface(IID_PPV_ARGS(&m_pPipelineStateObjectProperties));
+		//WAVEE_ASSERT_MESSAGE(SUCCEEDED(hr), "Failed to get ray tracing pipeline properties!");
 	}
 
 	WPipelineRT::~WPipelineRT()

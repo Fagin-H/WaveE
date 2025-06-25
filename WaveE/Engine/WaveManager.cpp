@@ -1,6 +1,7 @@
 #include "stdafx.h"
 #include <fstream>
 #include <filesystem>
+#include <iostream>
 #include "WaveManager.h"
 #include "WTextureLoader.h"
 #include "WMeshLoader.h"
@@ -10,7 +11,7 @@ namespace WaveE
 	WAVEE_SINGLETON_CPP(WaveManager);
 
 	WaveManager::WaveManager(const WaveEDescriptor& rDescriptor)
-		: m_gameCamera{ {0, 8, 0}, 0, 15, 45, static_cast<float>(rDescriptor.width) / rDescriptor.height, 0.1f, 100.f }
+		: m_gameCamera{ {0, 0, 8}, 0, 15, 45, static_cast<float>(rDescriptor.width) / rDescriptor.height, 0.1f, 100.f }
 	{
 		ms_pInstance = this;
 
@@ -93,7 +94,9 @@ namespace WaveE
 		// Frame buffers
 		WBufferDescriptor cameraAndLightBufferDescriptors[2] = {};
 		cameraAndLightBufferDescriptors[0].sizeBytes = sizeof(CameraBuffer);
+		cameraAndLightBufferDescriptors[0].isUpload = true;
 		cameraAndLightBufferDescriptors[1].sizeBytes = sizeof(LightBuffer);
+		cameraAndLightBufferDescriptors[1].isUpload = true;
 
 		m_cameraAndLightBuffers = WResourceManager::Instance()->CreateResourceBlock(cameraAndLightBufferDescriptors, 2);
 
@@ -261,6 +264,9 @@ namespace WaveE
 
 		ComPtr<IDXGIAdapter1> hardwareAdapter;
 		GetHardwareAdapter(factory.Get(), &hardwareAdapter);
+
+		ComPtr<IDXGIAdapter> warpAdapter;
+		factory->EnumWarpAdapter(IID_PPV_ARGS(&warpAdapter));
 
 		// Create device
 		hr = D3D12CreateDevice(
@@ -547,6 +553,48 @@ namespace WaveE
 		return true;
 	}
 
+	bool WaveManager::BeginFrameSparse()
+	{
+		if (UpdateWindowLoop())
+		{
+			return false;
+		}
+
+		UpdateTime();
+
+		// Mouse input and camera movement
+		if (WInput::Instance()->WasMouseButtonPressed(MOUSE_RIGHT))
+		{
+			HideCursor();
+			ConfineCursor();
+		}
+		else if (WInput::Instance()->WasMouseButtonReleased(MOUSE_RIGHT))
+		{
+			ShowCursor();
+			ReleaseCursor();
+		}
+		if (WInput::Instance()->IsMouseButtonDown(MOUSE_RIGHT))
+		{
+			UpdateGameCamera();
+		}
+
+		HRESULT hr = m_pCommandAllocators[m_frameIndex]->Reset();
+		WAVEE_ASSERT_MESSAGE(SUCCEEDED(hr), "Failed to reset command allocator!");
+
+		hr = m_pCommandList->Reset(m_pCommandAllocators[m_frameIndex].Get(), nullptr);
+		WAVEE_ASSERT_MESSAGE(SUCCEEDED(hr), "Failed to reset command list!");
+
+		ID3D12DescriptorHeap* ppHeaps[] = { m_cbvSrvUavHeap.GetHeap(), m_samplerHeap.GetHeap() };
+		m_pCommandList->SetDescriptorHeaps(_countof(ppHeaps), ppHeaps);
+
+		UpdateCameraBuffer();
+
+		m_cameraAndLightBuffers.GetResorce(0).GetResource()->UploadData(&m_camerBufferData, sizeof(CameraBuffer));
+		m_cameraAndLightBuffers.GetResorce(1).GetResource()->UploadData(&m_lightBufferData, sizeof(LightBuffer));
+
+		return true;
+	}
+
 	void WaveManager::EndFrame()
 	{
 		// Transition the back buffer to present state
@@ -586,6 +634,7 @@ namespace WaveE
 
 		// Reset current pipeline, material, and mesh
 		m_currentPipeline = {};
+		m_currentPipelineRT = {};
 		m_currentMaterial = {};
 		m_currentMesh = {};
 
@@ -812,16 +861,48 @@ namespace WaveE
 		BindResource(rb.allocation, slot);
 	}
 
-	void WaveManager::BindResource(WDescriptorHeapManager::Allocation allocation, SlotIndex slot)
+	void WaveManager::BindResource(WDescriptorHeapManager::Allocation allocation, SlotIndex slot, bool bIsGraphics)
 	{
-		if (IsCBV_SRV_UAVSlot(slot))
+		if (bIsGraphics)
 		{
-			m_pCommandList->SetGraphicsRootDescriptorTable(slot, m_cbvSrvUavHeap.GetGPUHandle(allocation));
-			return;
+			if (IsCBV_SRV_UAVSlot(slot))
+			{
+				m_pCommandList->SetGraphicsRootDescriptorTable(slot, m_cbvSrvUavHeap.GetGPUHandle(allocation));
+				return;
+			}
+			if (IsSamplerSlot(slot))
+			{
+				m_pCommandList->SetGraphicsRootDescriptorTable(slot, m_samplerHeap.GetGPUHandle(allocation));
+				return;
+			}
 		}
-		if (IsSamplerSlot(slot))
+		else
 		{
-			m_pCommandList->SetGraphicsRootDescriptorTable(slot, m_samplerHeap.GetGPUHandle(allocation));
+			WAVEE_ASSERT_MESSAGE(IsCBV_SRV_UAVSlot(slot), "Compute/Ray tracing cannot use samplers!");
+			m_pCommandList->SetComputeRootDescriptorTable(slot, m_cbvSrvUavHeap.GetGPUHandle(allocation));
+		}
+
+		WAVEE_ASSERT_MESSAGE(false, "Invalid slot index!");
+	}
+
+	void WaveManager::BindResource(WDescriptorHeapManager::Allocation allocation, UINT slot, bool bIsGraphics /*= true*/)
+	{
+		if (bIsGraphics)
+		{
+			if (IsCBV_SRV_UAVSlot((SlotIndex)slot))
+			{
+				m_pCommandList->SetGraphicsRootDescriptorTable(slot, m_cbvSrvUavHeap.GetGPUHandle(allocation));
+				return;
+			}
+			if (IsSamplerSlot((SlotIndex)slot))
+			{
+				m_pCommandList->SetGraphicsRootDescriptorTable(slot, m_samplerHeap.GetGPUHandle(allocation));
+				return;
+			}
+		}
+		else
+		{
+			m_pCommandList->SetComputeRootDescriptorTable(slot, m_cbvSrvUavHeap.GetGPUHandle(allocation));
 			return;
 		}
 
@@ -993,14 +1074,14 @@ namespace WaveE
 
 		D3D12_GPU_VIRTUAL_ADDRESS sbtBufferStartAddress = sbt.GetBuffer().GetResource()->GetBuffer()->GetGPUVirtualAddress();
 
-		dxrDesc.RayGenerationShaderRecord.StartAddress = sbtBufferStartAddress;
+		dxrDesc.RayGenerationShaderRecord.StartAddress = sbtBufferStartAddress + sbt.GetRayGenStartOffset();
 		dxrDesc.RayGenerationShaderRecord.SizeInBytes = sbt.GetRayGenRecordSize();
 
-		dxrDesc.MissShaderTable.StartAddress = sbtBufferStartAddress + sbt.GetRayGenRecordSize();
+		dxrDesc.MissShaderTable.StartAddress = sbtBufferStartAddress + sbt.GetMissStartOffset();
 		dxrDesc.MissShaderTable.SizeInBytes = sbt.GetMissTableSize();
 		dxrDesc.MissShaderTable.StrideInBytes = sbt.GetMissRecordSize();
 
-		dxrDesc.HitGroupTable.StartAddress = sbtBufferStartAddress + sbt.GetRayGenRecordSize() + sbt.GetMissTableSize();
+		dxrDesc.HitGroupTable.StartAddress = sbtBufferStartAddress + sbt.GetHitStartOffset();
 		dxrDesc.HitGroupTable.SizeInBytes = sbt.GetHitTableSize();
 		dxrDesc.HitGroupTable.StrideInBytes = sbt.GetHitGroupRecordSize();
 
@@ -1011,9 +1092,64 @@ namespace WaveE
 		m_pCommandList->DispatchRays(&dxrDesc);
 	}
 
-	void WaveManager::SetRootSigniture(WRootSigniture* pRootSigniture)
+	void WaveManager::CopyUAVToBackBuffer(ResourceID<WBuffer> sourceUAV)
 	{
-		m_pCommandList->SetGraphicsRootSignature(pRootSigniture->GetRootSignature());
+		ID3D12Resource* pUAV = sourceUAV.GetResource()->GetBuffer();
+		ID3D12Resource* pBackBuffer = GetCurrentBackBuffer();
+
+		// Transition ray tracing output UAV from UAV state (or its current state) to COPY_SOURCE
+		D3D12_RESOURCE_BARRIER barrierBeforeCopySource = CreateTransitionBarrier(
+			pUAV,
+			sourceUAV.GetResource()->GetCurrentState(), // assuming you can query this
+			D3D12_RESOURCE_STATE_COPY_SOURCE);
+		m_pCommandList->ResourceBarrier(1, &barrierBeforeCopySource);
+
+		// Transition back buffer from RENDER_TARGET to COPY_DEST
+		D3D12_RESOURCE_BARRIER barrierBeforeCopyDest = CreateTransitionBarrier(
+			pBackBuffer,
+			D3D12_RESOURCE_STATE_RENDER_TARGET,
+			D3D12_RESOURCE_STATE_COPY_DEST);
+		m_pCommandList->ResourceBarrier(1, &barrierBeforeCopyDest);
+
+		// Prepare D3D12_TEXTURE_COPY_LOCATION structures for source and destination
+		D3D12_TEXTURE_COPY_LOCATION copyLocationSource = {};
+		copyLocationSource.pResource = pUAV;
+		copyLocationSource.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
+		copyLocationSource.SubresourceIndex = 0;
+
+		D3D12_TEXTURE_COPY_LOCATION copyLocationDestination = {};
+		copyLocationDestination.pResource = pBackBuffer;
+		copyLocationDestination.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
+		copyLocationDestination.SubresourceIndex = 0;
+
+		// Copy from ray tracing output texture to back buffer
+		m_pCommandList->CopyTextureRegion(&copyLocationDestination, 0, 0, 0, &copyLocationSource, nullptr);
+
+		// Transition ray tracing output back to original state (likely UAV or shader resource)
+		D3D12_RESOURCE_BARRIER barrierAfterCopySource = CreateTransitionBarrier(
+			pUAV,
+			D3D12_RESOURCE_STATE_COPY_SOURCE,
+			sourceUAV.GetResource()->GetCurrentState());
+		m_pCommandList->ResourceBarrier(1, &barrierAfterCopySource);
+
+		// Transition back buffer from COPY_DEST back to RENDER_TARGET
+		D3D12_RESOURCE_BARRIER barrierAfterCopyDest = CreateTransitionBarrier(
+			pBackBuffer,
+			D3D12_RESOURCE_STATE_COPY_DEST,
+			D3D12_RESOURCE_STATE_RENDER_TARGET);
+		m_pCommandList->ResourceBarrier(1, &barrierAfterCopyDest);
+	}
+
+	void WaveManager::SetRootSigniture(WRootSigniture* pRootSigniture, bool bIsGraphics)
+	{
+		if (bIsGraphics)
+		{
+			m_pCommandList->SetGraphicsRootSignature(pRootSigniture->GetRootSignature());
+		}
+		else
+		{
+			m_pCommandList->SetComputeRootSignature(pRootSigniture->GetRootSignature());
+		}
 	}
 
 	void WaveManager::GetHardwareAdapter(IDXGIFactory1* pFactory, IDXGIAdapter1** ppAdapter, bool requestHighPerformanceAdapter)
@@ -1280,11 +1416,12 @@ namespace WaveE
 
 	void WaveManager::UpdateCameraBuffer()
 	{
-		m_camerBufferData.viewMatrix = m_gameCamera.GetViewMatrix();
+		m_camerBufferData.viewMatrix = wma::inverse(m_gameCamera.GetViewMatrix());
 		m_camerBufferData.projectionMatrix = m_gameCamera.GetProjectionMatrix();
 		m_camerBufferData.inverseProjectionMatrix = wma::inverse(m_camerBufferData.projectionMatrix);
 		m_camerBufferData.viewPos = wma::vec4{ m_gameCamera.GetPosition(), 0 };
 		m_camerBufferData.time[0] = static_cast<float>(GetGameTime());
+		m_camerBufferData.time[1] = std::tan(wma::radians(m_gameCamera.GetFoV()) / 2);
 	}
 
 	void WaveManager::UpdateInputStates()
@@ -1329,7 +1466,7 @@ namespace WaveE
 	{
 		D3D12_FEATURE_DATA_D3D12_OPTIONS5 options5 = {};
 		WAVEE_ASSERT_MESSAGE(SUCCEEDED(m_pDevice->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS5, &options5, sizeof(options5))), "Failed to check feature support!");
-		m_bSupportsRayTracing = options5.RaytracingTier < D3D12_RAYTRACING_TIER_1_0;
+		m_bSupportsRayTracing = options5.RaytracingTier >= D3D12_RAYTRACING_TIER_1_0;
 	}
 
 }

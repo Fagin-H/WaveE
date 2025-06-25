@@ -45,6 +45,7 @@ namespace WaveE
 			UINT numDescriptorTables{ 0 };
 			UINT numRootDescriptors{ 0 };
 			UINT numRootConstants{ 0 };
+			bool bIsLocalRootSignature{ false };
 		};
 
 		WRootSigniture();
@@ -53,6 +54,7 @@ namespace WaveE
 		void CreateRootSigniture(const RootSignatureDescriptor2& rDescriptor);
 
 		ID3D12RootSignature* GetRootSignature() const { return m_pRootSignature.Get(); }
+		ID3D12RootSignature* const * GetRootSignatureAddress() const { return m_pRootSignature.GetAddressOf(); }
 	private:
 		ComPtr<ID3D12RootSignature> m_pRootSignature{ nullptr };
 	};

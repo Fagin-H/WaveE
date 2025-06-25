@@ -32,7 +32,7 @@ namespace WaveE
 		UINT numElements{ 0 };
 		WDescriptorHeapManager::Allocation allocation{};
 
-		ResourceID<Resource> GetResorce(UINT index)
+		ResourceID<Resource> GetResorce(UINT index) const
 		{
 			WAVEE_ASSERT_MESSAGE(index < numElements, "Resource index out of range!");
 			return ResourceID<Resource>{startID + index};

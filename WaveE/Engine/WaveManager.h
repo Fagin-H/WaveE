@@ -63,6 +63,7 @@ namespace WaveE
 		};
 
 		bool BeginFrame();
+		bool BeginFrameSparse();
 		void EndFrame();
 
 		// Getter functions
@@ -106,8 +107,6 @@ namespace WaveE
 
 		bool GetRayTracingSupport() const { return m_bSupportsRayTracing; }
 
-		// Game function
-
 		static constexpr UINT m_maxLights{ 4 };
 
 		struct Light
@@ -115,6 +114,28 @@ namespace WaveE
 			wma::vec4 position{ 0,0,0,0 };
 			wma::vec4 colour{ 0,0,0,0 };
 		};
+
+		struct CameraBuffer
+		{
+			wma::mat4 viewMatrix;
+			wma::mat4 projectionMatrix;
+			wma::mat4 inverseProjectionMatrix;
+			wma::vec4 viewPos;
+			wma::vec4 time;
+		};
+
+		struct LightBuffer
+		{
+			wma::vec4 ambientLight;
+			Light lights[m_maxLights];
+		};
+
+		const CameraBuffer& GetCameraBufferData() const { return m_camerBufferData; }
+		const LightBuffer& GetLightBufferData() const { return m_lightBufferData; }
+		const ResourceBlock<WBuffer>& GetCameraAndLightBuffers() const { return m_cameraAndLightBuffers; }
+
+		// Game function
+
 
 		void SetLight(Light light, UINT index);
 		void SetAmbientLight(wma::vec4 colour);
@@ -149,7 +170,8 @@ namespace WaveE
 		void BindBuffers(ResourceBlock<WBuffer> rb, SlotIndex slot);
 		void BindTextures(ResourceBlock<WTexture> rb, SlotIndex slot);
 		void BindSamplers(ResourceBlock<WSampler> rb, SlotIndex slot);
-		void BindResource(WDescriptorHeapManager::Allocation allocation, SlotIndex slot);
+		void BindResource(WDescriptorHeapManager::Allocation allocation, SlotIndex slot, bool bIsGraphics = true);
+		void BindResource(WDescriptorHeapManager::Allocation allocation, UINT slot, bool bIsGraphics = true);
 
 		// Sets the render target, viewport, and scissor rect for drawing to the whole screen
 		void SetRenderTarget(ResourceID<WTexture> RTVId, ResourceID<WTexture> DSVId = {});
@@ -166,7 +188,7 @@ namespace WaveE
 		void SetPipelineState(ResourceID<WPipelineRT> id);
 
 		void SetDefaultRootSigniture() { SetRootSigniture(&m_defaultRootSigniture); }
-		void SetRootSigniture(WRootSigniture* pRootSigniture);
+		void SetRootSigniture(WRootSigniture* pRootSigniture, bool bIsGraphics = true);
 
 		void DrawMeshWithCurrentParamaters(ResourceID<WMesh> id, UINT count = 1);
 		void DrawIndexedMeshWithCurrentParamaters(ResourceID<WMesh> id, UINT count = 1);
@@ -175,27 +197,13 @@ namespace WaveE
 		void DrawIndexedMesh(ResourceID<WMesh> mesh, ResourceID<WMaterial> material, UINT count = 1);
 
 		void DispatchRays(const WShaderBindingTable& sbt, UINT width = 0, UINT height = 0, UINT depth = 1);
+		void CopyUAVToBackBuffer(ResourceID<WBuffer> sourceUAV);
 
 	private:
 		enum BackBufferState
 		{
 			STATE_PRESENT,
 			STATE_TARGET
-		};
-
-		struct CameraBuffer
-		{
-			wma::mat4 viewMatrix;
-			wma::mat4 projectionMatrix;
-			wma::mat4 inverseProjectionMatrix;
-			wma::vec4 viewPos;
-			wma::vec4 time;
-		};
-
-		struct LightBuffer
-		{
-			wma::vec4 ambientLight;
-			Light lights[m_maxLights];
 		};
 
 		WaveManager(const WaveEDescriptor& rDescriptor);
