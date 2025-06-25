@@ -17,7 +17,7 @@ void ClosestHit_LitObject(inout RayPayload payload, in BuiltInTriangleIntersecti
     int2 coord = floor(attribs.barycentrics * screenSize);
     float4 albedocolour = g_albedo.Load(int3(coord, 0));
     float3 vertexNormal = attr.normal;
-    float3 normal = normalize(mul((float3x3)viewMatrix, vertexNormal)); // To world space
+    float3 normal = vertexNormal; // To world space
 
     float3 lightcolour = ambientColour.rgb * ambientColour.a;
 

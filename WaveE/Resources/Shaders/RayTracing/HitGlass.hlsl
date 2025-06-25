@@ -37,10 +37,10 @@ void ClosestHit_Glass(inout RayPayload payload, in BuiltInTriangleIntersectionAt
     float3 position = WorldRayOrigin() + WorldRayDirection() * RayTCurrent();
     float3 viewDir = normalize(viewPos.xyz - position);
     float3 vertexNormal = attr.normal;
-    float3 normal = normalize(mul((float3x3)viewMatrix, vertexNormal)); // To world space
+    float3 normal = vertexNormal; // To world space
 
     // Handle normal flipping when inside the object
-    float3 I = -WorldRayDirection();
+    float3 I = WorldRayDirection();
     float n1 = payload.isInside ? indexOfRefraction.x : 1;
     float n2 = payload.isInside ? 1 : indexOfRefraction.x;
 
@@ -90,5 +90,6 @@ void ClosestHit_Glass(inout RayPayload payload, in BuiltInTriangleIntersectionAt
             refractedcolour = float3(0,0,0);
         }
     }
-    payload.colour = (reflectedcolour + refractedcolour) * payload.attenuation;
+    payload.colour = refractedcolour * payload.attenuation;
+    //payload.colour = (reflectedcolour + refractedcolour) * payload.attenuation;
 }

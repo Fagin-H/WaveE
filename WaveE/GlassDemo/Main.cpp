@@ -300,12 +300,12 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow)
 		//vTLASInstanceDescs[4].hitGroup = 1;
 
 		vTLASInstanceDescs[0].BLAS = sphereBLAS;
-		vTLASInstanceDescs[0].transform = wma::mat4::identity();//wma::transpose(cubeWorldMatrix);
+		vTLASInstanceDescs[0].transform = wma::transpose(cubeWorldMatrix);
 		vTLASInstanceDescs[0].instanceID = 0;
 		vTLASInstanceDescs[0].hitGroup = 0;
 
 		vTLASInstanceDescs[1].BLAS = sphereBLAS;
-		vTLASInstanceDescs[1].transform = wma::transpose(icosphereWorldMatrix);
+		vTLASInstanceDescs[1].transform = wma::mat4::identity();//wma::transpose(icosphereWorldMatrix);
 		vTLASInstanceDescs[1].instanceID = 0;
 		vTLASInstanceDescs[1].hitGroup = 1;
 

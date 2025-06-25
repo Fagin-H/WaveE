@@ -8,7 +8,7 @@ void RayGen() {
     uint2 pixelIndex = DispatchRaysIndex().xy;
     uint2 screenSize = DispatchRaysDimensions().xy;
 
-    float aspect = screenSize.x / screenSize.y;
+    float aspect = ((float)screenSize.x) / screenSize.y;
     float2 d = (((pixelIndex.xy + 0.5f) / screenSize.xy) * 2.f - 1.f);
 
     float2 uv = (pixelIndex + 0.5f) / screenSize;
