@@ -18,7 +18,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow)
     WaveManager::Init(waveEDesc);
 
     // Create meshes
-	ResourceID<WMesh> cubMeshID = WResourceManager::Instance()->GetMeshID("cube");
+	ResourceID<WMesh> cubeMeshID = WResourceManager::Instance()->GetMeshID("cube");
 	ResourceID<WMesh> planeMeshID = WResourceManager::Instance()->GetMeshID("plane");
 	ResourceID<WMesh> icosphereMeshID = WResourceManager::Instance()->GetMeshID("icosphere");
 	ResourceID<WMesh> sphereMeshID = WResourceManager::Instance()->GetMeshID("sphere");
@@ -31,7 +31,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow)
 	{
 		WaveManager::WorldMatrixDescriptor worldMatrixDesc;
 
-		worldMatrixDesc.worldPos = wma::vec3{ 2, 1, 15 };
+		worldMatrixDesc.worldPos = wma::vec3{ -4, 1, 0 };
 		worldMatrixDesc.xRotation = 90;
 
 		WaveInstance->CreateWorldMatrix(cubeWorldMatrix, worldMatrixDesc);
@@ -252,7 +252,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow)
 	ResourceID<WBottomLevelAS> convexLenseBLAS{};
 	{
 		WBLASDescriptor BLASDescriptor;
-		BLASDescriptor.meshID = cubMeshID;
+		BLASDescriptor.meshID = cubeMeshID;
 		cubeBLAS = WResourceManager::Instance()->CreateResource(BLASDescriptor);
 
 		BLASDescriptor.meshID = planeMeshID;
@@ -552,7 +552,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow)
 
 	// Glass setup
 	ResourceID<WMesh> vAllMeshesForGlass[] = { 
-		cubMeshID,
+		cubeMeshID,
 		icosphereMeshID,
 		sphereMeshID,
 		concaveLensMeshID,
@@ -566,7 +566,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow)
 		wma::rotate(wma::scale(wma::mat4::identity(), wma::vec3{1.5f, 1.5f, 1.5f}), wma::radians(90), wma::vec3{1, 0, 0})
 	};
 
-	std::vector<ResourceID<WMesh>> onScreenMeshes{ sphereMeshID, cubMeshID, icosphereMeshID };
+	std::vector<ResourceID<WMesh>> onScreenMeshes{ sphereMeshID, cubeMeshID, icosphereMeshID };
 	std::vector<wma::mat4> onScreenMeshMatrices{ wma::mat4::identity(), glassCubeWorldMatrix, glassIcosphereWorldMatrix };
 	std::vector<GlassBuffer> onScreenMeshData{ glassBufferData, glassBufferData, glassBufferData };
 
@@ -896,7 +896,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow)
 				WaveInstance->DrawMesh(skyboxMeshID, skyboxMaterial);
 
 				drawBuffer.GetResource()->UploadData(&cubeWorldMatrix, sizeof(wma::mat4));
-				WaveInstance->DrawMesh(cubMeshID, waveMaterial);
+				WaveInstance->DrawMesh(cubeMeshID, waveMaterial);
 
 				drawBuffer.GetResource()->UploadData(&icosphereWorldMatrix, sizeof(wma::mat4));
 				WaveInstance->DrawMesh(icosphereMeshID, iceMaterial);

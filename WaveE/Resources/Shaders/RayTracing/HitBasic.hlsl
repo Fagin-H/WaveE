@@ -13,9 +13,10 @@ void ClosestHit_LitObject(inout RayPayload payload, in BuiltInTriangleIntersecti
 
     float3 position = WorldRayOrigin() + WorldRayDirection() * RayTCurrent();
     float3 viewDir = normalize(viewPos.xyz - position);
-    uint2 screenSize = DispatchRaysDimensions().xy;
-    int2 coord = floor(attribs.barycentrics * screenSize);
-    float4 albedocolour = g_albedo.Load(int3(coord, 0));
+    uint width;
+	uint height;
+	g_albedo.GetDimensions(width, height);
+    float4 albedocolour = g_albedo.Load(int3(attr.uv * float2(width, height), 0));
     float3 vertexNormal = attr.normal;
     float3 normal = vertexNormal; // To world space
 

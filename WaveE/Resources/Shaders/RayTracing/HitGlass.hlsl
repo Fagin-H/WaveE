@@ -38,22 +38,26 @@ void ClosestHit_Glass(inout RayPayload payload, in BuiltInTriangleIntersectionAt
     float3 viewDir = normalize(viewPos.xyz - position);
     float3 vertexNormal = attr.normal;
     float3 normal = vertexNormal; // To world space
-
-    // Handle normal flipping when inside the object
+    if(payload.isInside)
+    {
+        normal *= -1;
+    }
+    
     float3 I = WorldRayDirection();
     float n1 = payload.isInside ? indexOfRefraction.x : 1;
     float n2 = payload.isInside ? 1 : indexOfRefraction.x;
 
     // Fresnel term for reflection/refraction weighting
     float fresnel = FresnelReflectAmount(n1, n2, normal, I);
-
+    fresnel = clamp(fresnel, 0, 1);
     float3 reflectedcolour = float3(0,0,0);
     float3 refractedcolour = float3(0,0,0);
-
+    float3 refractDir;
+    RayPayload refractPayload;
     if (payload.depth < MAX_RECURSION_DEPTH)
     {
         RayPayload newPayload;
-        newPayload.attenuation = payload.attenuation * fresnel;
+        newPayload.attenuation = fresnel;
         newPayload.depth = payload.depth + 1;
         newPayload.isInside = payload.isInside;
 
@@ -67,29 +71,23 @@ void ClosestHit_Glass(inout RayPayload payload, in BuiltInTriangleIntersectionAt
         reflectedcolour = newPayload.colour;
 
         // Refraction
-        float3 refractDir = refract(I, normal, n1 / n2);
+        refractDir = refract(I, normal, n1 / n2);
         if (length(refractDir) > 0.0001f)
         {
-            RayPayload refractPayload;
-            refractPayload.attenuation = payload.attenuation * (1.0 - fresnel);
+            refractPayload.attenuation = (1.0 - fresnel);
             refractPayload.depth = payload.depth + 1;
             refractPayload.isInside = !payload.isInside;
 
             RayDesc refractRay;
             refractRay.Direction = refractDir;
-            refractRay.Origin = position - 0.001 * refractDir;
+            refractRay.Origin = position + 0.001 * refractDir;
             refractRay.TMin = 0.001;
             refractRay.TMax = 10000;
 
             TraceRay(SceneBVH, RAY_FLAG_NONE, 0xFF, 0, 0, 0, refractRay, refractPayload);
             refractedcolour = refractPayload.colour;
         }
-        else
-        {
-            // Total internal reflection fallback → only reflection happens
-            refractedcolour = float3(0,0,0);
-        }
     }
-    payload.colour = refractedcolour * payload.attenuation;
-    //payload.colour = (reflectedcolour + refractedcolour) * payload.attenuation;
+
+    payload.colour = (reflectedcolour + refractedcolour) * payload.attenuation;
 }
