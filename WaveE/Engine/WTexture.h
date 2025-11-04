@@ -38,6 +38,8 @@ namespace WaveE
 
 		ID3D12Resource* GetTexture() const { return m_pTexture.Get(); }
 
+		VkImageView GetView() const;
+
 		void UploadData(const void* pData);
 
 		enum State

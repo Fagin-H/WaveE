@@ -27,10 +27,6 @@ namespace WaveE
 		ResourceID<WPipeline> CreateResource(const WPipelineDescriptor& rDescriptor);
 		ResourceID<WMaterial> CreateResource(const WMaterialDescriptor& rDescriptor);
 
-		ResourceBlock<WTexture> CreateResourceBlock(WTextureDescriptor* pDescriptors, UINT numDescriptors);
-		ResourceBlock<WBuffer> CreateResourceBlock(WBufferDescriptor* pDescriptors, UINT numDescriptors);
-		ResourceBlock<WSampler> CreateResourceBlock(WSamplerDescriptor* pDescriptors, UINT numDescriptors);
-
 		WTexture* GetResource(ResourceID<WTexture> id) const;
 		WTexture* GetTexture(const std::string& textureName) const;
 		WBuffer* GetResource(ResourceID<WBuffer> id) const;
@@ -41,7 +37,6 @@ namespace WaveE
 		WShader* GetShader(const std::string& shaderName) const;
 		WPipeline* GetResource(ResourceID<WPipeline> id) const;
 		WMaterial* GetResource(ResourceID<WMaterial> id) const;
-
 
 		ResourceID<WTexture> GetTextureID(const std::string& textureName) const;
 		ResourceID<WMesh> GetMeshID(const std::string& meshName) const;

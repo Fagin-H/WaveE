@@ -1,5 +1,5 @@
 #pragma once
-
+////////////////////////DELETE!!!!!!!!!!!!!!!!!!!!!!
 namespace WaveE
 {
 	class WRootSigniture

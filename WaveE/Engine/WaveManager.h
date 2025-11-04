@@ -3,7 +3,7 @@
 #include <bitset>
 
 #include "WInput.h"
-#include "WDescriptorHeapManager.h"
+#include "WDescriptorManager.h"
 #include "WUploadManager.h"
 #include "WRootSigniture.h"
 #include "WSampler.h"
@@ -65,10 +65,10 @@ namespace WaveE
 		void EndFrame();
 
 		// Getter functions
-		WaveEDevice* GetDevice() const { return m_pDevice.Get(); }
-		WaveECommandList* GetCommandList() const { return m_pCommandList.Get(); }
-		WaveECommandQueue* GetCommandQueue() const { return m_pCommandQueue.Get(); }
-		WaveESwapChain* GetSwapChain() const { return m_pSwapChain.Get(); }
+		WaveEDevice GetDevice() const { return m_pDevice; }
+		WaveECommandBuffer GetCommandBuffer() const { return m_pCommandBuffer; }
+		WaveEQueue GetCommandQueue() const { return m_pCommandQueue; }
+		WaveESwapChain GetSwapChain() const { return m_pSwapChain; }
 		ID3D12Resource* GetCurrentBackBuffer() const { return m_pBackBuffers[m_frameIndex].Get(); }
 
 		WDescriptorHeapManager* GetCBV_SRV_UAVHeap() { return &m_cbvSrvUavHeap; }
@@ -215,8 +215,6 @@ namespace WaveE
 			IDXGIAdapter1** ppAdapter,
 			bool requestHighPerformanceAdapter = false);
 
-		void CreateDefaultRootSigniture();
-
 		// Create the hlsl include file for named slots
 		// If the default slot layout changes the shaders don't need to be changes
 		// Just replace the old hlsli file with the new one and recompile
@@ -244,6 +242,10 @@ namespace WaveE
 
 		// Vulkan variables
 		static const UINT m_frameCount{ 2 };
+		const UINT m_maxTextures{ 100 };
+		const UINT m_maxUniformBuffers{ 100 };
+		const UINT m_maxStorageBuffers{ 100 };
+		const UINT m_maxSamplers{ 4 };
 
 		WaveEDevice m_pDevice{ nullptr };
 		WaveEPhysicalDevice m_pPhysicalDevice{ nullptr };
@@ -251,7 +253,7 @@ namespace WaveE
 		WaveEQueue m_pCommandQueue{ nullptr };
 		WaveEInstance m_pInstance{ nullptr };
 		WaveESwapChain m_pSwapChain{ nullptr };
-		WaveESurface m_vkSurface{ nullptr };
+		WaveESurface m_pSurface{ nullptr };
 
 		VkImageView m_vBackBufferViews[m_frameCount];
 
@@ -282,6 +284,8 @@ namespace WaveE
 		MouseState m_previousMouseState;
 
 		// WaveE variables
+		WDescriptorManager m_descriptorManager;
+
 		WUploadManager m_uploadManager;
 		
 		ResourceID<WTexture> m_defaultDepthTexture;

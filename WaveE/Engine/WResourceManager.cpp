@@ -100,63 +100,6 @@ namespace WaveE
 		return ResourceID<WMaterial>{static_cast<UINT>(m_vpMaterials.size()) - 1};
 	}
 
-	ResourceBlock<WTexture> WResourceManager::CreateResourceBlock(WTextureDescriptor* pDescriptors, UINT numDescriptors)
-	{
-		WAVEE_ASSERT_MESSAGE(numDescriptors > 0, "Can't create resource block of size 0!");
-		WAVEE_ASSERT_MESSAGE(pDescriptors, "Descriptors not provided!");
-
-		ResourceBlock<WTexture> resourceBlock;
-		resourceBlock.numElements = numDescriptors;
-		resourceBlock.startID = m_vpTextures.size();
-		resourceBlock.allocation = WaveManager::Instance()->GetCBV_SRV_UAVHeap()->Allocate(numDescriptors);
-
-		for (UINT i = 0; i < numDescriptors; i++)
-		{
-			const WTextureDescriptor& rDescriptor = pDescriptors[i];
-			CreateResource(rDescriptor, resourceBlock.allocation, i);
-		}
-
-		return resourceBlock;
-	}
-
-	ResourceBlock<WBuffer> WResourceManager::CreateResourceBlock(WBufferDescriptor* pDescriptors, UINT numDescriptors)
-	{
-		WAVEE_ASSERT_MESSAGE(numDescriptors > 0, "Can't create resource block of size 0!");
-		WAVEE_ASSERT_MESSAGE(pDescriptors, "Descriptors not provided!");
-
-		ResourceBlock<WBuffer> resourceBlock;
-		resourceBlock.numElements = numDescriptors;
-		resourceBlock.startID = m_vpBuffers.size();
-		resourceBlock.allocation = WaveManager::Instance()->GetCBV_SRV_UAVHeap()->Allocate(numDescriptors);
-
-		for (UINT i = 0; i < numDescriptors; i++)
-		{
-			const WBufferDescriptor& rDescriptor = pDescriptors[i];
-			CreateResource(rDescriptor, resourceBlock.allocation, i);
-		}
-
-		return resourceBlock;
-	}
-
-	ResourceBlock<WSampler> WResourceManager::CreateResourceBlock(WSamplerDescriptor* pDescriptors, UINT numDescriptors)
-	{
-		WAVEE_ASSERT_MESSAGE(numDescriptors > 0, "Can't create resource block of size 0!");
-		WAVEE_ASSERT_MESSAGE(pDescriptors, "Descriptors not provided!");
-
-		ResourceBlock<WSampler> resourceBlock;
-		resourceBlock.numElements = numDescriptors;
-		resourceBlock.startID = m_vpSamplers.size();
-		resourceBlock.allocation = WaveManager::Instance()->GetSamplerHeap()->Allocate(numDescriptors);
-
-		for (UINT i = 0; i < numDescriptors; i++)
-		{
-			const WSamplerDescriptor& rDescriptor = pDescriptors[i];
-			CreateResource(rDescriptor, resourceBlock.allocation, i);
-		}
-
-		return resourceBlock;
-	}
-
 	WTexture* WResourceManager::GetResource(ResourceID<WTexture> id) const
 	{
 		WAVEE_ASSERT_MESSAGE(id.id < m_vpTextures.size(), "Texture ID out of range!");

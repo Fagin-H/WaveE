@@ -34,6 +34,8 @@ namespace WaveE
 		WSampler(const WSamplerDescriptor& rDescriptor, WDescriptorHeapManager::Allocation allocation = WDescriptorHeapManager::InvalidAllocation(), UINT offset = 0);
 		~WSampler();
 
+		VkSampler GetSampler() const;
+
 		D3D12_CPU_DESCRIPTOR_HANDLE GetCPUDescriptorHandle() const;
 		WDescriptorHeapManager::Allocation GetAllocation() const { return m_allocation; }
 	private:

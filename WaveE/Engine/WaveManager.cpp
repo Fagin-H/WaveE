@@ -29,26 +29,9 @@ namespace WaveE
 		WMeshLoader::Init();
 		WInput::Init();
 
-		m_cbvSrvUavHeap.Init(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE, m_descriptorHeapCountCBV_SRV_UAV);
-		m_rtvHeap.Init(D3D12_DESCRIPTOR_HEAP_TYPE_RTV, D3D12_DESCRIPTOR_HEAP_FLAG_NONE, m_descriptorHeapCountRTV);
-		m_dsvHeap.Init(D3D12_DESCRIPTOR_HEAP_TYPE_DSV, D3D12_DESCRIPTOR_HEAP_FLAG_NONE, m_descriptorHeapCountDSV);
-		m_samplerHeap.Init(D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER, D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE, m_descriptorHeapCountSampler);
-
-		// Create render target views for backbuffers
-		for (UINT i = 0; i < m_frameCount; i++)
-		{
-			m_backBufferAllocations[i] = m_rtvHeap.Allocate(1);
-
-			D3D12_RENDER_TARGET_VIEW_DESC renderTargetViewDesc;
-			renderTargetViewDesc.Format = DXGI_FORMAT_B8G8R8A8_UNORM_SRGB;
-			renderTargetViewDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
-
-			m_pDevice->CreateRenderTargetView(m_pBackBuffers[i].Get(), nullptr, m_rtvHeap.GetCPUHandle(m_backBufferAllocations[i]));
-		}
-
+		m_descriptorManager.Init(m_maxTextures, m_maxUniformBuffers, m_maxStorageBuffers, m_maxSamplers);
 		m_uploadManager.Init(m_bigUploadBufferSize, m_bigUploadBufferCount, m_smallUploadBufferSize, m_smallUploadBufferCount);
 
-		CreateDefaultRootSigniture();
 		CreateSlotHLSLIFile();
 
 		// Load Resources
@@ -64,7 +47,10 @@ namespace WaveE
 			WSamplerDescriptor{ WSamplerDescriptor::Filter::Linear, WSamplerDescriptor::AddressMode::Clamp }
 		};
 
-		m_defaultSamplers = WResourceManager::Instance()->CreateResourceBlock(samplerDescriptors, 4);
+		for (int i = 0; i < 4; i++) {
+			ResourceID<WSampler> samplerID = WResourceManager::Instance()->CreateResource(samplerDescriptors[i]);
+			m_descriptorManager.AddResource(samplerID, i);
+		}
 
 		// Define the default vertex input layout.
 		m_defaultInputElements[0] = D3D12_INPUT_ELEMENT_DESC{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 };
@@ -299,7 +285,7 @@ namespace WaveE
 		surfaceCreateInfo.hinstance = m_hInstance;
 		surfaceCreateInfo.hwnd = m_hwnd;
 
-		result = vkCreateWin32SurfaceKHR(m_pInstance, &surfaceCreateInfo, nullptr, &m_vkSurface);
+		result = vkCreateWin32SurfaceKHR(m_pInstance, &surfaceCreateInfo, nullptr, &m_pSurface);
 
 		WAVEE_ASSERT_MESSAGE(result == VK_SUCCESS, "Failed to create surface!");
 
@@ -307,7 +293,7 @@ namespace WaveE
 
 		VkSwapchainCreateInfoKHR swapchainInfo{};
 		swapchainInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
-		swapchainInfo.surface = m_vkSurface;
+		swapchainInfo.surface = m_pSurface;
 		swapchainInfo.minImageCount = m_frameCount;
 		swapchainInfo.imageFormat = VK_FORMAT_R8G8B8A8_UNORM;
 		swapchainInfo.imageColorSpace = VK_COLOR_SPACE_SRGB_NONLINEAR_KHR;
@@ -355,24 +341,24 @@ namespace WaveE
 		}
 
 		// Create command pool
-		VkCommandPoolCreateInfo poolInfo{};
-		poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
-		poolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
-		poolInfo.queueFamilyIndex = 0;
+		VkCommandPoolCreateInfo commandPoolInfo{};
+		commandPoolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+		commandPoolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
+		commandPoolInfo.queueFamilyIndex = 0;
 
 		VkCommandPool commandPool;
 
-		result = vkCreateCommandPool(m_pDevice, &poolInfo, nullptr, &commandPool);
+		result = vkCreateCommandPool(m_pDevice, &commandPoolInfo, nullptr, &commandPool);
 		WAVEE_ASSERT_MESSAGE(result == VK_SUCCESS, "Failed to create command pool!");
 
 		// Create command buffer
-		VkCommandBufferAllocateInfo allocInfo{};
-		allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-		allocInfo.commandPool = commandPool;
-		allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-		allocInfo.commandBufferCount = 1;
+		VkCommandBufferAllocateInfo commandBufferAllocInfo{};
+		commandBufferAllocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+		commandBufferAllocInfo.commandPool = commandPool;
+		commandBufferAllocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+		commandBufferAllocInfo.commandBufferCount = 1;
 
-		result = vkAllocateCommandBuffers(m_pDevice, &allocInfo, &m_pCommandBuffer);
+		result = vkAllocateCommandBuffers(m_pDevice, &commandBufferAllocInfo, &m_pCommandBuffer);
 		WAVEE_ASSERT_MESSAGE(result == VK_SUCCESS, "Failed to create command buffer!");
 
 		// Create synchronization objects
@@ -1006,36 +992,6 @@ namespace WaveE
 				}
 			}
 		}
-	}
-
-	void WaveManager::CreateDefaultRootSigniture()
-	{
-		constexpr UINT numDescriptorTables = 7;
-		WRootSigniture::DescriptorTable descriptorTables[numDescriptorTables];
-		// Default Samplers
-		descriptorTables[0].numSamplers = m_defaultSamplerCount;
-		
-		// Per frame constants
-		descriptorTables[1].numCBVs = m_frameCVBCount;
-
-		// Per draw constants
-		descriptorTables[2].numCBVs = m_drawCBVCount;
-
-		// Global
-		descriptorTables[3].numCBVs = m_globalCBVCount;
-		descriptorTables[3].numSRVs = m_globalSRVCount;
-		descriptorTables[4].numSamplers = m_globalSamplerCount;
-
-		// Material
-		descriptorTables[5].numCBVs = m_materialCBVCount;
-		descriptorTables[5].numSRVs = m_materialSRVCount;
-		descriptorTables[6].numSamplers = m_materialSamplerCount;
-
-		WRootSigniture::RootSignatureDescriptor rootSignitureDescriptor;
-		rootSignitureDescriptor.descriptorTables = descriptorTables;
-		rootSignitureDescriptor.numDescriptorTables = numDescriptorTables;
-
-		m_defaultRootSigniture.CreateRootSigniture(rootSignitureDescriptor);
 	}
 
 	void WaveManager::CreateSlotHLSLIFile()

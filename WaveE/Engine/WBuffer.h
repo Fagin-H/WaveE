@@ -27,13 +27,16 @@ namespace WaveE
 		WBuffer(const WBufferDescriptor& rDescriptor, WDescriptorHeapManager::Allocation allocation = WDescriptorHeapManager::InvalidAllocation(), UINT offset = 0);
 		~WBuffer();
 
-		ID3D12Resource* GetBuffer() { return m_pBuffer.Get(); }
+		//ID3D12Resource* GetBuffer() { return m_pBuffer.Get(); }
+		VkBuffer GetBuffer() const;
 
 		void UploadData(const void* pData, size_t sizeBytes);
 
 		D3D12_CPU_DESCRIPTOR_HANDLE GetCPUDescriptorHandle() const;
 
 		WDescriptorHeapManager::Allocation GetAllocation() const { return m_allocation; }
+
+		bool IsStorage() const { return true; } //IMPLEMENT!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 	private:
 		size_t m_sizeBytes{ 0 };
 		WBufferDescriptor::Type m_type;
