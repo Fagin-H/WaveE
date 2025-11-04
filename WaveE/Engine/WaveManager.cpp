@@ -21,7 +21,7 @@ namespace WaveE
 		m_targetFrameTime = 1.f / rDescriptor.targetFrameRate;
 
 		InitWindow(rDescriptor);
-		InitDX12(rDescriptor);
+		InitVulkan(rDescriptor);
 
 		// Init all singletons
 		WTextureLoader::Init();
@@ -222,116 +222,174 @@ namespace WaveE
 		WAVEE_ASSERT_MESSAGE(RegisterRawInputDevices(&rid, 1, sizeof(rid)), "Failed to register raw input!");
 	}
 
-	void WaveManager::InitDX12(const WaveEDescriptor& rDescriptor)
+	void WaveManager::InitVulkan(const WaveEDescriptor& rDescriptor)
 	{
-		UINT dxgiFactoryFlags = 0;
+		// Create Instance
+		std::vector<const char*> instanceExtensions = { VK_KHR_SURFACE_EXTENSION_NAME, VK_KHR_WIN32_SURFACE_EXTENSION_NAME };
+
+		VkApplicationInfo appInfo{};
+		appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
+		appInfo.pApplicationName = rDescriptor.title;
+		appInfo.pEngineName = "WaveE";
+		appInfo.apiVersion = VK_API_VERSION_1_2;
+
+		VkInstanceCreateInfo instanceCreateInfo{};
+		instanceCreateInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
+		instanceCreateInfo.enabledExtensionCount = (uint32_t)instanceExtensions.size();
+		instanceCreateInfo.ppEnabledExtensionNames = instanceExtensions.data();
+		instanceCreateInfo.pApplicationInfo = &appInfo;
 
 #if defined(_DEBUG)
-		// Enable the debug layer (requires the Graphics Tools "optional feature").
-		// NOTE: Enabling the debug layer after device creation will invalidate the active device.
-		{
-			ComPtr<ID3D12Debug> debugController;
-			if (SUCCEEDED(D3D12GetDebugInterface(IID_PPV_ARGS(&debugController))))
-			{
-				debugController->EnableDebugLayer();
-
-				// Enable additional debug layers.
-				dxgiFactoryFlags |= DXGI_CREATE_FACTORY_DEBUG;
-
-				ComPtr<ID3D12Debug1> debugController1;
-				if (SUCCEEDED(debugController.As(&debugController1)))
-				{
-					debugController1->SetEnableGPUBasedValidation(TRUE);
-				}
-
-			}
-			else
-			{
-				//WAVEE_ASSERT_MESSAGE(false, "Failed to get debug interface!");
-			}
-		}
+		//instanceExtensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
+		const std::vector<const char*> validationLayers = { "VK_LAYER_KHRONOS_validation" };
+		instanceCreateInfo.enabledLayerCount = validationLayers.size();
+		instanceCreateInfo.ppEnabledLayerNames = validationLayers.data();
 #endif
-		// Create factory
-		ComPtr<IDXGIFactory4> factory;
-		HRESULT hr = CreateDXGIFactory2(dxgiFactoryFlags, IID_PPV_ARGS(&factory));
 
-		WAVEE_ASSERT_MESSAGE(SUCCEEDED(hr), "Failed to create factory!");
+		VkResult result = vkCreateInstance(&instanceCreateInfo, nullptr, &m_pInstance);
 
-		ComPtr<IDXGIAdapter1> hardwareAdapter;
-		GetHardwareAdapter(factory.Get(), &hardwareAdapter);
+		WAVEE_ASSERT_MESSAGE(result == VK_SUCCESS, "Failed to create instance!");
+
+		// Enumerate physical devices
+		uint32_t gpuCount{ 0 };
+		result = vkEnumeratePhysicalDevices(m_pInstance, &gpuCount, nullptr);
+		WAVEE_ASSERT_MESSAGE(result == VK_SUCCESS, "Failed to enumerate physical devices!");
+
+		std::vector<VkPhysicalDevice> physicalDevices(gpuCount);
+		result = vkEnumeratePhysicalDevices(m_pInstance, &gpuCount, physicalDevices.data());
+		WAVEE_ASSERT_MESSAGE(result == VK_SUCCESS, "Failed to enumerate physical devices!");
+
+		m_pPhysicalDevice = physicalDevices[0];
 
 		// Create device
-		hr = D3D12CreateDevice(
-			hardwareAdapter.Get(),
-			D3D_FEATURE_LEVEL_11_0,
-			IID_PPV_ARGS(&m_pDevice)
-		);
+		float priortiy = 1.f;
+		VkDeviceQueueCreateInfo queueCreateInfo{};
+		queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+		queueCreateInfo.queueFamilyIndex = 0;
+		queueCreateInfo.queueCount = 1;
+		queueCreateInfo.pQueuePriorities = &priortiy;
 
-		WAVEE_ASSERT_MESSAGE(SUCCEEDED(hr), "Failed to create device!");
+		std::vector<const char*> deviceExtensions = { VK_KHR_SWAPCHAIN_EXTENSION_NAME, VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME };
 
-		// Describe and create the command queue.
-		D3D12_COMMAND_QUEUE_DESC queueDesc = {};
-		queueDesc.Flags = D3D12_COMMAND_QUEUE_FLAG_NONE;
-		queueDesc.Type = D3D12_COMMAND_LIST_TYPE_DIRECT;
+		VkPhysicalDeviceDescriptorIndexingFeatures indexingFeatures{};
+		indexingFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_FEATURES;
+		indexingFeatures.shaderSampledImageArrayNonUniformIndexing = VK_TRUE;
+		indexingFeatures.shaderStorageBufferArrayNonUniformIndexing = VK_TRUE;
+		indexingFeatures.descriptorBindingPartiallyBound = VK_TRUE;
+		indexingFeatures.descriptorBindingVariableDescriptorCount = VK_TRUE;
+		indexingFeatures.descriptorBindingSampledImageUpdateAfterBind = VK_TRUE;
 
-		hr = m_pDevice->CreateCommandQueue(&queueDesc, IID_PPV_ARGS(&m_pCommandQueue));
+		VkDeviceCreateInfo deviceCreateInfo{};
+		deviceCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
+		deviceCreateInfo.queueCreateInfoCount = 1;
+		deviceCreateInfo.pQueueCreateInfos = &queueCreateInfo;
+		deviceCreateInfo.enabledExtensionCount = deviceExtensions.size();
+		deviceCreateInfo.ppEnabledExtensionNames = deviceExtensions.data();
+		deviceCreateInfo.pNext = &indexingFeatures;
+
+		result = vkCreateDevice(m_pPhysicalDevice, &deviceCreateInfo, nullptr, &m_pDevice);
+
+		WAVEE_ASSERT_MESSAGE(result == VK_SUCCESS, "Failed to create device!");
+
+		vkGetDeviceQueue(m_pDevice, 0, 0, &m_pCommandQueue);
+
+		// Create surface
+		VkWin32SurfaceCreateInfoKHR surfaceCreateInfo{};
+		surfaceCreateInfo.sType = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR;
+		surfaceCreateInfo.hinstance = m_hInstance;
+		surfaceCreateInfo.hwnd = m_hwnd;
+
+		result = vkCreateWin32SurfaceKHR(m_pInstance, &surfaceCreateInfo, nullptr, &m_vkSurface);
+
+		WAVEE_ASSERT_MESSAGE(result == VK_SUCCESS, "Failed to create surface!");
+
+		// Create Swapchain
+
+		VkSwapchainCreateInfoKHR swapchainInfo{};
+		swapchainInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
+		swapchainInfo.surface = m_vkSurface;
+		swapchainInfo.minImageCount = m_frameCount;
+		swapchainInfo.imageFormat = VK_FORMAT_R8G8B8A8_UNORM;
+		swapchainInfo.imageColorSpace = VK_COLOR_SPACE_SRGB_NONLINEAR_KHR;
+		swapchainInfo.imageExtent.width = rDescriptor.width;
+		swapchainInfo.imageExtent.height = rDescriptor.height;
+		swapchainInfo.imageArrayLayers = 1;
+		swapchainInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+		swapchainInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
+		swapchainInfo.preTransform = VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR;
+		swapchainInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
+		swapchainInfo.presentMode = VK_PRESENT_MODE_FIFO_KHR;
+		swapchainInfo.clipped = VK_TRUE;
+		swapchainInfo.oldSwapchain = VK_NULL_HANDLE;
 		
-		WAVEE_ASSERT_MESSAGE(SUCCEEDED(hr), "Failed to create command queue!");
+		result = vkCreateSwapchainKHR(m_pDevice, &swapchainInfo, nullptr, &m_pSwapChain);
 
-		// Describe and create the swap chain.
-		DXGI_SWAP_CHAIN_DESC1 swapChainDesc = {};
-		swapChainDesc.BufferCount = m_frameCount;
-		swapChainDesc.Width = m_width;
-		swapChainDesc.Height = m_height;
-		swapChainDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-		swapChainDesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
-		swapChainDesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
-		swapChainDesc.SampleDesc.Count = 1;
+		WAVEE_ASSERT_MESSAGE(result == VK_SUCCESS, "Failed to create swapchain!");
 
-		ComPtr<IDXGISwapChain1> swapChain;
-		hr = factory->CreateSwapChainForHwnd(
-			m_pCommandQueue.Get(),        // Swap chain needs the queue so that it can force a flush on it.
-			m_hwnd,
-			&swapChainDesc,
-			nullptr,
-			nullptr,
-			&swapChain
-		);
+		// Create image views
+		uint32_t swapchainImageCount{ 0 };
+		result = vkGetSwapchainImagesKHR(m_pDevice, m_pSwapChain, &swapchainImageCount, nullptr);
+		WAVEE_ASSERT_MESSAGE(result == VK_SUCCESS, "Failed to get swapchain image count!");
+		WAVEE_ASSERT_MESSAGE(swapchainImageCount == m_frameCount, "Wrong swapchain image count!");
+		std::vector<VkImage> swapchainImages{ swapchainImageCount };
+		result = vkGetSwapchainImagesKHR(m_pDevice, m_pSwapChain, &swapchainImageCount, swapchainImages.data());
+		WAVEE_ASSERT_MESSAGE(result == VK_SUCCESS, "Failed to get swapchain images!");
 
-		WAVEE_ASSERT_MESSAGE(SUCCEEDED(hr), "Failed to create swap chain!");
-
-		hr = swapChain.As(&m_pSwapChain);
-
-		WAVEE_ASSERT_MESSAGE(SUCCEEDED(hr), "Failed to create swap chain!");
-
-		m_frameIndex = m_pSwapChain->GetCurrentBackBufferIndex();
-
-		// Create the command allocators and back buffers
-		for (UINT i = 0; i < m_frameCount; i++)
-		{
-			hr = m_pDevice->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&m_pCommandAllocators[i]));
-			WAVEE_ASSERT_MESSAGE(SUCCEEDED(hr), "Failed to create command allocator!");
-
-			hr = m_pSwapChain->GetBuffer(i, IID_PPV_ARGS(&m_pBackBuffers[i]));
-			WAVEE_ASSERT_MESSAGE(SUCCEEDED(hr), "Failed to get back buffer!");
-
-			m_backBufferStates[i] = STATE_PRESENT;
+		for (size_t i = 0; i < m_frameCount; i++) {
+			VkImageViewCreateInfo viewInfo{};
+			viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+			viewInfo.image = swapchainImages[i];
+			viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+			viewInfo.format = VK_FORMAT_R8G8B8A8_UNORM;
+			viewInfo.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
+			viewInfo.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
+			viewInfo.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
+			viewInfo.components.a = VK_COMPONENT_SWIZZLE_IDENTITY;
+			viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+			viewInfo.subresourceRange.baseMipLevel = 0;
+			viewInfo.subresourceRange.levelCount = 1;
+			viewInfo.subresourceRange.baseArrayLayer = 0;
+			viewInfo.subresourceRange.layerCount = 0;
+			result = vkCreateImageView(m_pDevice, &viewInfo, nullptr, &m_vBackBufferViews[i]);
+			WAVEE_ASSERT_MESSAGE(result == VK_SUCCESS, "Failed to create image view!");
 		}
 
-		// Create the command list.
-		hr = m_pDevice->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, m_pCommandAllocators[m_frameIndex].Get(), nullptr, IID_PPV_ARGS(&m_pCommandList));
-		WAVEE_ASSERT_MESSAGE(SUCCEEDED(hr), "Failed to create command list!");
+		// Create command pool
+		VkCommandPoolCreateInfo poolInfo{};
+		poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+		poolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
+		poolInfo.queueFamilyIndex = 0;
+
+		VkCommandPool commandPool;
+
+		result = vkCreateCommandPool(m_pDevice, &poolInfo, nullptr, &commandPool);
+		WAVEE_ASSERT_MESSAGE(result == VK_SUCCESS, "Failed to create command pool!");
+
+		// Create command buffer
+		VkCommandBufferAllocateInfo allocInfo{};
+		allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+		allocInfo.commandPool = commandPool;
+		allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+		allocInfo.commandBufferCount = 1;
+
+		result = vkAllocateCommandBuffers(m_pDevice, &allocInfo, &m_pCommandBuffer);
+		WAVEE_ASSERT_MESSAGE(result == VK_SUCCESS, "Failed to create command buffer!");
 
 		// Create synchronization objects
-		{
-			hr = m_pDevice->CreateFence(m_fenceValues[m_frameIndex], D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&m_pFence));
-			WAVEE_ASSERT_MESSAGE(SUCCEEDED(hr), "Failed to create fence!");
-			m_fenceValues[m_frameIndex]++;
+		VkSemaphoreCreateInfo semaphoreInfo{};
+		semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
 
-			// Create an event handle to use for frame synchronization.
-			m_fenceEvent = CreateEvent(nullptr, FALSE, FALSE, nullptr);
-			WAVEE_ASSERT_MESSAGE(m_fenceEvent, "Failed to create fence event!");
-		}
+		result = vkCreateSemaphore(m_pDevice, &semaphoreInfo, nullptr, &m_pImageAvailableSemaphore);
+		WAVEE_ASSERT_MESSAGE(result == VK_SUCCESS, "Failed to create command semaphore!");
+		result = vkCreateSemaphore(m_pDevice, &semaphoreInfo, nullptr, &m_pRenderFinishedSemaphore);
+		WAVEE_ASSERT_MESSAGE(result == VK_SUCCESS, "Failed to create command semaphore!");
+
+		VkFenceCreateInfo fenceInfo{};
+		fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+		fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
+
+		result = vkCreateFence(m_pDevice, &fenceInfo, nullptr, &m_pFence);
+		WAVEE_ASSERT_MESSAGE(result == VK_SUCCESS, "Failed to create command fence!");
 	}
 
 	LRESULT CALLBACK WaveManager::WindowProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)

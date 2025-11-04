@@ -24,9 +24,10 @@
 #include <atlwin.h>
 #include "hidusage.h"
 
-#include <d3d12.h>
-#include <dxgi1_6.h>
-#include <D3Dcompiler.h>
+#include <vulkan/vulkan.h>
+#include <vulkan/vulkan_core.h>
+#include <vulkan/vulkan_win32.h>
+
 #include <DirectXMath.h>
 
 #include <string>
@@ -36,7 +37,6 @@
 #include <shellapi.h>
 
 #include "WMaths.h"
-#include "DX12Helper.h"
 #include <strsafe.h>
 
 namespace WaveE
@@ -53,15 +53,14 @@ namespace WaveE
 		return valueToAlign + adjustment;
 	}
 
-	// Useful Usings
-	template <class T>
-	using ComPtr = Microsoft::WRL::ComPtr<T>;
-
 	// Using for device and others in case the version changes
-	using WaveEDevice = ID3D12Device1;
-	using WaveECommandList = ID3D12GraphicsCommandList;
-	using WaveECommandQueue = ID3D12CommandQueue;
-	using WaveESwapChain = IDXGISwapChain3;
+	using WaveEDevice = VkDevice;
+	using WaveEPhysicalDevice = VkPhysicalDevice;
+	using WaveECommandBuffer = VkCommandBuffer;
+	using WaveEQueue = VkQueue;
+	using WaveEInstance = VkInstance;
+	using WaveESwapChain = VkSwapchainKHR;
+	using WaveESurface = VkSurfaceKHR;
 
 	// Useful Macros
 

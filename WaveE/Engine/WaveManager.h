@@ -195,7 +195,7 @@ namespace WaveE
 		~WaveManager();
 
 		void InitWindow(const WaveEDescriptor& rDescriptor);
-		void InitDX12(const WaveEDescriptor& rDescriptor);
+		void InitVulkan(const WaveEDescriptor& rDescriptor);
 
 		// Updates the window loop, return true if the program should quit
 		bool UpdateWindowLoop();
@@ -242,22 +242,32 @@ namespace WaveE
 		void UpdateInputStates();
 		void UpdateGameCamera();
 
-		// DX12 variables
+		// Vulkan variables
 		static const UINT m_frameCount{ 2 };
 
-		ComPtr<WaveEDevice> m_pDevice;
-		ComPtr<WaveECommandList> m_pCommandList;
-		ComPtr<WaveECommandQueue> m_pCommandQueue;
-		ComPtr<WaveESwapChain> m_pSwapChain;
-		ComPtr<ID3D12CommandAllocator> m_pCommandAllocators[m_frameCount];
-		ComPtr<ID3D12Resource> m_pBackBuffers[m_frameCount];
-		WDescriptorHeapManager::Allocation m_backBufferAllocations[m_frameCount];
-		BackBufferState m_backBufferStates[m_frameCount];
+		WaveEDevice m_pDevice{ nullptr };
+		WaveEPhysicalDevice m_pPhysicalDevice{ nullptr };
+		WaveECommandBuffer  m_pCommandBuffer{ nullptr };
+		WaveEQueue m_pCommandQueue{ nullptr };
+		WaveEInstance m_pInstance{ nullptr };
+		WaveESwapChain m_pSwapChain{ nullptr };
+		WaveESurface m_vkSurface{ nullptr };
+
+		VkImageView m_vBackBufferViews[m_frameCount];
+
+		//ID3D12CommandAllocator m_pCommandAllocators[m_frameCount];
+		//ID3D12Resource m_pBackBuffers[m_frameCount];
+		//WDescriptorHeapManager::Allocation m_backBufferAllocations[m_frameCount];
+		//BackBufferState m_backBufferStates[m_frameCount];
 
 		UINT m_frameIndex;
-		HANDLE m_fenceEvent;
-		ComPtr<ID3D12Fence> m_pFence;
-		UINT64 m_fenceValues[m_frameCount];
+		VkFence m_pFence;
+		VkSemaphore m_pImageAvailableSemaphore;
+		VkSemaphore m_pRenderFinishedSemaphore;
+
+		//HANDLE m_fenceEvent;
+		//ID3D12Fence m_pFence;
+		//UINT64 m_fenceValues[m_frameCount];
 
 		// Windows variables
 		HWND m_hwnd{ NULL };
@@ -272,25 +282,12 @@ namespace WaveE
 		MouseState m_previousMouseState;
 
 		// WaveE variables
-		WDescriptorHeapManager m_cbvSrvUavHeap;
-		WDescriptorHeapManager m_rtvHeap;
-		WDescriptorHeapManager m_dsvHeap;
-		WDescriptorHeapManager m_samplerHeap;
-
 		WUploadManager m_uploadManager;
-
-		WRootSigniture m_defaultRootSigniture;
-
-		ResourceBlock<WSampler> m_defaultSamplers;
-
-		D3D12_INPUT_ELEMENT_DESC m_defaultInputElements[3];
-		D3D12_INPUT_LAYOUT_DESC m_defaultInputLayout;
 		
-		ResourceID<WPipeline> m_defaultPipeline3D;
 		ResourceID<WTexture> m_defaultDepthTexture;
 		const char* m_defaultPixelShaderName{ "SimpleLighting_PS" };
 		const char* m_defaultVertexShaderName{ "SimpleLighting_VS" };
-		const DXGI_FORMAT m_defaultDepthType{ DXGI_FORMAT_D32_FLOAT };
+		//const DXGI_FORMAT m_defaultDepthType{ DXGI_FORMAT_D32_FLOAT };
 
 		ResourceID<WPipeline> m_currentPipeline{};
 		ResourceID<WMaterial> m_currentMaterial{};
@@ -318,25 +315,10 @@ namespace WaveE
 		LightBuffer m_lightBufferData;
 
 		// Constants
-		const UINT m_descriptorHeapCountCBV_SRV_UAV{ 1024 };
-		const UINT m_descriptorHeapCountRTV{ 32 };
-		const UINT m_descriptorHeapCountDSV{ 32 };
-		const UINT m_descriptorHeapCountSampler{ 32 };
-
 		const UINT m_bigUploadBufferCount{ 10 };
 		const UINT m_smallUploadBufferCount{ 50 };
 		const size_t m_bigUploadBufferSize{ 1024 * 1024 * 32 * 2 };
 		const size_t m_smallUploadBufferSize{ 1024 * 32 };
-
-		const UINT m_defaultSamplerCount{ 4 };
-		const UINT m_frameCVBCount{ 2 };
-		const UINT m_drawCBVCount{ 1 };
-		const UINT m_globalCBVCount{ 1 };
-		const UINT m_globalSRVCount{ 8 };
-		const UINT m_globalSamplerCount{ m_globalSRVCount };
-		const UINT m_materialCBVCount{ 1 };
-		const UINT m_materialSRVCount{ 4 };
-		const UINT m_materialSamplerCount{ m_materialSRVCount };
 	};
 }
 
