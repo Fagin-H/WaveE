@@ -66,6 +66,7 @@ namespace WaveE
 
 		// Getter functions
 		WaveEDevice GetDevice() const { return m_pDevice; }
+		WaveEPhysicalDevice GetPhysicalDevice() const { return m_pPhysicalDevice; }
 		WaveECommandBuffer GetCommandBuffer() const { return m_pCommandBuffer; }
 		WaveEQueue GetCommandQueue() const { return m_pCommandQueue; }
 		WaveESwapChain GetSwapChain() const { return m_pSwapChain; }
@@ -77,6 +78,7 @@ namespace WaveE
 		WDescriptorHeapManager* GetSamplerHeap() { return &m_samplerHeap; }
 
 		WUploadManager* GetUploadManager() { return &m_uploadManager; }
+		WDescriptorManager* GetDescriptorManager() {return &m_descriptorManager; }
 
 		ResourceID<WPipeline> GetDefaultPipelineState() const { return m_defaultPipeline3D; }
 		WRootSigniture* GetDefaultRootSigniture() { return &m_defaultRootSigniture; }
@@ -302,7 +304,8 @@ namespace WaveE
 		// #TODO Implement window size change logic
 		bool m_hasWindowSizeChanged{ false };
 
-		ResourceBlock<WBuffer> m_cameraAndLightBuffers;
+		ResourceID<WBuffer> m_cameraBuffer;
+		ResourceID<WBuffer> m_lightBuffer;
 
 		// Game variables
 		double m_gameTime{ 0 };

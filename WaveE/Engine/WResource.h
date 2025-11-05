@@ -1,5 +1,4 @@
 #pragma once
-#include "WDescriptorHeapManager.h"
 
 namespace WaveE
 {

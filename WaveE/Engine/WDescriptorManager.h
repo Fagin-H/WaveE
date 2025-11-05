@@ -8,11 +8,20 @@ namespace WaveE
 	public:
 		WAVEE_NO_COPY(WDescriptorManager);
 
+		WDescriptorManager();
 		void Init(int maxTextures, int maxUniformBuffers, int maxStorageBuffers, int maxSamplers);
 
 		UINT AddResource(ResourceID<WTexture> textureID, int slot = -1);
 		UINT AddResource(ResourceID<WBuffer> bufferID, int slot = -1);
 		UINT AddResource(ResourceID<WSampler> samplerID, int slot = -1);
+
+		UINT AddResource(VkBuffer buffer, bool isStorage, int slot = -1);
+		UINT AddResource(VkImageView texture, int slot = -1);
+		UINT AddResource(VkSampler sampler, int slot = -1);
+
+		UINT GetBinding(ResourceID<WTexture> textureID) const;
+		UINT GetBinding(ResourceID<WBuffer> bufferID) const;
+		UINT GetBinding(ResourceID<WSampler> samplerID) const;
 
 	private:
 		void AddResource(VkDescriptorImageInfo* pImageInfo, VkDescriptorBufferInfo* pBufferInfo, VkDescriptorType type, int binding, int slot);

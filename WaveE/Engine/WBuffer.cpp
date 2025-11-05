@@ -4,139 +4,84 @@
 
 namespace WaveE
 {
-	D3D12_RESOURCE_STATES GetResourceState(const WBufferDescriptor& rDescriptor)
+	VkBufferUsageFlags GetUseageFlags(const WBufferDescriptor& rDescriptor)
 	{
-		D3D12_RESOURCE_STATES resourceState = D3D12_RESOURCE_STATE_GENERIC_READ;
+		VkBufferUsageFlags usageFlags = VK_BUFFER_USAGE_TRANSFER_DST_BIT;
 
-		if (!rDescriptor.isDynamic)
-		{
-			switch (rDescriptor.type)
-			{
-			case WBufferDescriptor::Constant: [[fallthrough]];
-			case WBufferDescriptor::Vertex: resourceState = D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER; break;
-			case WBufferDescriptor::Index: resourceState = D3D12_RESOURCE_STATE_INDEX_BUFFER; break;
-			case WBufferDescriptor::SRV: resourceState = D3D12_RESOURCE_STATE_ALL_SHADER_RESOURCE; break;
-			case WBufferDescriptor::UAV: resourceState = D3D12_RESOURCE_STATE_UNORDERED_ACCESS; break;
-			}
+		switch (rDescriptor.type) {
+			case WBufferDescriptor::Uniform: usageFlags |= VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT; break;
+			case WBufferDescriptor::StorageRO: [[fallthrough]];
+			case WBufferDescriptor::StorageRW: usageFlags |= VK_BUFFER_USAGE_STORAGE_BUFFER_BIT; break;
+			case WBufferDescriptor::Vertex: usageFlags |= VK_BUFFER_USAGE_VERTEX_BUFFER_BIT; break;
+			case WBufferDescriptor::Index: usageFlags |= VK_BUFFER_USAGE_INDEX_BUFFER_BIT; break;
 		}
 
-		return resourceState;
+		return usageFlags;
 	}
 
-	D3D12_RESOURCE_STATES GetInitialResourceState(const WBufferDescriptor& rDescriptor)
+	uint32_t FindMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties)
 	{
-		D3D12_RESOURCE_STATES resourceState = D3D12_RESOURCE_STATE_GENERIC_READ;
+		WaveEPhysicalDevice pPhysicalDevice = WaveManager::Instance()->GetPhysicalDevice();
+		VkPhysicalDeviceMemoryProperties memProps;
+		vkGetPhysicalDeviceMemoryProperties(pPhysicalDevice, &memProps);
 
-		if (!rDescriptor.isDynamic)
+		for (uint32_t i = 0; i < memProps.memoryTypeCount; i++)
 		{
-			switch (rDescriptor.type)
-			{
-			case WBufferDescriptor::Constant: [[fallthrough]];
-			case WBufferDescriptor::Vertex: resourceState = D3D12_RESOURCE_STATE_COMMON; break;
-			case WBufferDescriptor::Index: resourceState = D3D12_RESOURCE_STATE_INDEX_BUFFER; break;
-			case WBufferDescriptor::SRV: resourceState = D3D12_RESOURCE_STATE_ALL_SHADER_RESOURCE; break;
-			case WBufferDescriptor::UAV: resourceState = D3D12_RESOURCE_STATE_UNORDERED_ACCESS; break;
-			}
+			bool typeValid = typeFilter & (1 << i);
+			bool hasProps = (memProps.memoryTypes[i].propertyFlags & properties) == properties;
+
+			if (typeValid && hasProps)
+				return i;
 		}
 
-		return resourceState;
+		WAVEE_ASSERT_MESSAGE(false, "Failed to find suitable Vulkan memory type!");
 	}
 
-	WBuffer::WBuffer(const WBufferDescriptor& rDescriptor, WDescriptorHeapManager::Allocation allocation, UINT offset)
-		: m_allocation{ allocation }
-		, m_offset{offset}
-		, m_doesOwnAllocation{ WDescriptorHeapManager::IsInvalidAllocation(allocation) }
+	WBuffer::WBuffer(const WBufferDescriptor& rDescriptor)
 	{
 		bool initialData = rDescriptor.pInitalData;
 		m_sizeBytes = rDescriptor.sizeBytes;
 		m_type = rDescriptor.type;
-		m_state = GetResourceState(rDescriptor);
-		D3D12_RESOURCE_STATES initialState = GetInitialResourceState(rDescriptor);
+		m_isDynamic = rDescriptor.isDynamic;
 
-		D3D12_HEAP_PROPERTIES heapProperties = CreateHeapProperties(D3D12_HEAP_TYPE_DEFAULT);
-		D3D12_RESOURCE_DESC resourceDesc = CreateBufferResourceDesc(align_value(rDescriptor.sizeBytes, 256));
-
-		WaveEDevice* pDevice = WaveManager::Instance()->GetDevice();
+		WaveEDevice pDevice = WaveManager::Instance()->GetDevice();
 
 		WAVEE_ASSERT_MESSAGE(pDevice, "Failed to get device!");
 
-		HRESULT hr = pDevice->CreateCommittedResource(&heapProperties,
-			D3D12_HEAP_FLAG_NONE,
-			&resourceDesc,
-			initialState,
-			nullptr,
-			IID_PPV_ARGS(&m_pBuffer));
+		VkBufferCreateInfo bufferInfo{};
+		bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+		bufferInfo.size = rDescriptor.sizeBytes;
+		bufferInfo.usage = GetUseageFlags(rDescriptor);
+		bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
-		WAVEE_ASSERT_MESSAGE(SUCCEEDED(hr), "Failed to create committed resource for buffer!");
+		VkResult result = vkCreateBuffer(pDevice, &bufferInfo, nullptr, &m_pBuffer);
+		WAVEE_ASSERT_MESSAGE(result == VK_SUCCESS, "Failed to create buffer!");
 
-		if (m_state != initialState)
-		{
-			// Transition state to D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER
-			WaveECommandList* pCommandList = WaveManager::Instance()->GetCommandList();
+		VkMemoryRequirements memReq;
+		vkGetBufferMemoryRequirements(pDevice, m_pBuffer, &memReq);
 
-			D3D12_RESOURCE_BARRIER barrierTransition = CreateTransitionBarrier(m_pBuffer.Get(), initialState, m_state);
-			pCommandList->ResourceBarrier(1, &barrierTransition);
-		}
+		uint32_t memoryTypeIndex = FindMemoryType(
+			memReq.memoryTypeBits,
+			rDescriptor.isDynamic
+			? (VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)
+			: VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT
+		);
 
-		WDescriptorHeapManager* pCBVDescriptorHeapManager = WaveManager::Instance()->GetCBV_SRV_UAVHeap();
-		if (m_doesOwnAllocation)
-		{
-			// Allocate CPU descriptor handle for CBV/SRV/UAV based on buffer type
-			m_allocation = pCBVDescriptorHeapManager->Allocate();
-		}
-		D3D12_CPU_DESCRIPTOR_HANDLE cpuDescriptorHandle = pCBVDescriptorHeapManager->GetCPUHandle(m_allocation.index + m_offset);
+		VkMemoryAllocateInfo allocateInfo{};
+		allocateInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+		allocateInfo.allocationSize = memReq.size;
+		allocateInfo.memoryTypeIndex = memoryTypeIndex;
 
-		switch (m_type)
-		{
-		case WBufferDescriptor::Constant:
-		{
-			D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc = {};
-			cbvDesc.BufferLocation = m_pBuffer->GetGPUVirtualAddress();
-			cbvDesc.SizeInBytes = static_cast<UINT>(align_value(m_sizeBytes, 256));
-			pDevice->CreateConstantBufferView(&cbvDesc, cpuDescriptorHandle);
-			break;
-		}
-		case WBufferDescriptor::Vertex:
-		{
-			break;
-		}
-		// #TODO update WBufferDescriptor to pass in more data to update the creation of views
-		case WBufferDescriptor::Index:
-		{
-			D3D12_SHADER_RESOURCE_VIEW_DESC viewDesc = {};
-			viewDesc.Format = DXGI_FORMAT_R32_UINT;
-			viewDesc.ViewDimension = D3D12_SRV_DIMENSION_BUFFER;
-			viewDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-			viewDesc.Buffer.FirstElement = 0;
-			viewDesc.Buffer.NumElements = static_cast<UINT>(m_sizeBytes / sizeof(UINT));
-			viewDesc.Buffer.StructureByteStride = 0;
-			viewDesc.Buffer.Flags = D3D12_BUFFER_SRV_FLAG_NONE;
-			pDevice->CreateShaderResourceView(m_pBuffer.Get(), &viewDesc, cpuDescriptorHandle);
-			break;
-		}
-		case WBufferDescriptor::SRV:
-		{
-			D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
-			srvDesc.Format = DXGI_FORMAT_R32_FLOAT;
-			srvDesc.ViewDimension = D3D12_SRV_DIMENSION_BUFFER;
-			srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-			srvDesc.Buffer.FirstElement = 0;
-			srvDesc.Buffer.NumElements = static_cast<UINT>(m_sizeBytes) / sizeof(float);
-			srvDesc.Buffer.StructureByteStride = sizeof(float);
+		result = vkAllocateMemory(pDevice, &allocateInfo, nullptr, &m_pMemory);
+		WAVEE_ASSERT_MESSAGE(result == VK_SUCCESS, "Failed to allocate memory!");
 
-			pDevice->CreateShaderResourceView(m_pBuffer.Get(), &srvDesc, cpuDescriptorHandle);
-			break;
-		}
-		case WBufferDescriptor::UAV:
-		{
-			D3D12_UNORDERED_ACCESS_VIEW_DESC viewDesc = {};
-			viewDesc.Format = DXGI_FORMAT_UNKNOWN;
-			viewDesc.ViewDimension = D3D12_UAV_DIMENSION_BUFFER;
-			pDevice->CreateUnorderedAccessView(m_pBuffer.Get(), nullptr, &viewDesc, cpuDescriptorHandle);
-			break;
-		}
-		}
+		result = vkBindBufferMemory(pDevice, m_pBuffer, m_pMemory, 0);
+		WAVEE_ASSERT_MESSAGE(result == VK_SUCCESS, "Failed to bind buffer memory!");
 
+		if (rDescriptor.type != WBufferDescriptor::Vertex && rDescriptor.type != WBufferDescriptor::Index)
+		{
+			m_slot = WaveManager::Instance()->GetDescriptorManager()->AddResource(m_pBuffer, IsStorage(), rDescriptor.descriptorSlot);
+		}
 
 		if (initialData)
 		{
@@ -146,27 +91,58 @@ namespace WaveE
 
 	WBuffer::~WBuffer()
 	{
-		if (m_doesOwnAllocation)
-		{
-			if (!WDescriptorHeapManager::IsInvalidAllocation(m_allocation))
-			{
-				WDescriptorHeapManager* pCBVDescriptorHeapManager = WaveManager::Instance()->GetCBV_SRV_UAVHeap();
-				pCBVDescriptorHeapManager->Deallocate(m_allocation);
-			}
-		}
 	}
 
 	void WBuffer::UploadData(const void* pData, size_t sizeBytes)
 	{
 		WAVEE_ASSERT_MESSAGE(sizeBytes <= m_sizeBytes, "Data too big for buffer!");
 
-		WaveManager::Instance()->GetUploadManager()->UploadDataToBuffer(m_pBuffer.Get(), pData, sizeBytes, m_state, m_state);
+		if (m_isDynamic) 
+		{
+			WaveEDevice pDevice = WaveManager::Instance()->GetDevice();
+			WAVEE_ASSERT_MESSAGE(pDevice, "Failed to get device!");
+
+			void* mapped;
+			vkMapMemory(pDevice, m_pMemory, 0, sizeBytes, 0, &mapped);
+			memcpy(mapped, pData, sizeBytes);
+			vkUnmapMemory(pDevice, m_pMemory);
+		}
+		else 
+		{
+			WaveManager::Instance()->GetUploadManager()->UploadDataToBuffer(m_pBuffer, pData, sizeBytes, m_bufferState, m_bufferState);
+		}
 	}
 
-	D3D12_CPU_DESCRIPTOR_HANDLE WBuffer::GetCPUDescriptorHandle() const
+	void WBuffer::Transition(WBufferState newState)
 	{
-		WDescriptorHeapManager* pCBVDescriptorHeapManager = WaveManager::Instance()->GetCBV_SRV_UAVHeap();
-		return pCBVDescriptorHeapManager->GetCPUHandle(m_allocation.index + m_offset);
-	}
+		if (m_bufferState == newState)
+		{
+			return;
+		}
 
+		WaveECommandBuffer pCmdBuffer = WaveManager::Instance()->GetCommandBuffer();
+
+		VkBufferMemoryBarrier barrier{};
+		barrier.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
+		barrier.buffer = m_pBuffer;
+		barrier.offset = 0;
+		barrier.size = VK_WHOLE_SIZE;
+
+		barrier.srcAccessMask = GetAccessMask(m_bufferState);
+		barrier.dstAccessMask = GetAccessMask(newState);
+		barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+		barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+
+		vkCmdPipelineBarrier(
+			pCmdBuffer,
+			GetPipelineStage(m_bufferState),
+			GetPipelineStage(newState),
+			0,
+			0, nullptr,
+			1, &barrier,
+			0, nullptr
+		);
+
+		m_bufferState = newState;
+	}
 }

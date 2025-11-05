@@ -52,13 +52,6 @@ namespace WaveE
 			m_descriptorManager.AddResource(samplerID, i);
 		}
 
-		// Define the default vertex input layout.
-		m_defaultInputElements[0] = D3D12_INPUT_ELEMENT_DESC{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 };
-		m_defaultInputElements[1] = D3D12_INPUT_ELEMENT_DESC{ "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 12, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 };
-		m_defaultInputElements[2] = D3D12_INPUT_ELEMENT_DESC{ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 24, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 };
-
-		m_defaultInputLayout = { m_defaultInputElements, _countof(m_defaultInputElements) };
-		
 		// Default pipeline
 		WPipelineDescriptor pipelineDescriptor;
 		pipelineDescriptor.pVertexShader = WResourceManager::Instance()->GetShader(m_defaultVertexShaderName);
@@ -81,7 +74,10 @@ namespace WaveE
 		cameraAndLightBufferDescriptors[0].sizeBytes = sizeof(CameraBuffer);
 		cameraAndLightBufferDescriptors[1].sizeBytes = sizeof(LightBuffer);
 
-		m_cameraAndLightBuffers = WResourceManager::Instance()->CreateResourceBlock(cameraAndLightBufferDescriptors, 2);
+		m_cameraBuffer = WResourceManager::Instance()->CreateResource(cameraAndLightBufferDescriptors[0]);
+		m_lightBuffer = WResourceManager::Instance()->CreateResource(cameraAndLightBufferDescriptors[1]);
+		m_descriptorManager.AddResource(m_cameraBuffer, 0);
+		m_descriptorManager.AddResource(m_lightBuffer, 1);
 
 		// Time
 		InitTime();
