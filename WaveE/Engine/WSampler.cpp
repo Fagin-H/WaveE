@@ -4,72 +4,58 @@
 
 namespace WaveE
 {
-	D3D12_FILTER ConvertFilter(const WSamplerDescriptor::Filter filter)
+	VkFilter ConvertFilter(const WSamplerDescriptor::Filter filter)
 	{
 		switch (filter)
 		{
-		case WSamplerDescriptor::Point: return D3D12_FILTER_MIN_MAG_MIP_POINT;
-		case WSamplerDescriptor::Linear: return D3D12_FILTER_MIN_MAG_MIP_LINEAR;
-		case WSamplerDescriptor::Anisotropic: return D3D12_FILTER_ANISOTROPIC;
+			case WSamplerDescriptor::Point:       return VK_FILTER_NEAREST;
+			case WSamplerDescriptor::Linear:      return VK_FILTER_LINEAR;
+			case WSamplerDescriptor::Anisotropic: return VK_FILTER_LINEAR;
+			default:                               return VK_FILTER_LINEAR;
 		}
-		return D3D12_FILTER_MIN_MAG_MIP_LINEAR;
 	}
 
-	D3D12_TEXTURE_ADDRESS_MODE ConvertAddressMode(const WSamplerDescriptor::AddressMode addressMode)
+	VkSamplerAddressMode ConvertAddressMode(const WSamplerDescriptor::AddressMode addressMode)
 	{
 		switch (addressMode)
 		{
-		case WSamplerDescriptor::Wrap: return D3D12_TEXTURE_ADDRESS_MODE_WRAP;
-		case WSamplerDescriptor::Clamp: return D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
-		case WSamplerDescriptor::Border: return D3D12_TEXTURE_ADDRESS_MODE_BORDER;
+			case WSamplerDescriptor::Wrap:   return VK_SAMPLER_ADDRESS_MODE_REPEAT;
+			case WSamplerDescriptor::Clamp:  return VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+			case WSamplerDescriptor::Border: return VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER;
+			default:                          return VK_SAMPLER_ADDRESS_MODE_REPEAT;
 		}
-		return D3D12_TEXTURE_ADDRESS_MODE_WRAP;
 	}
 
-	WSampler::WSampler(const WSamplerDescriptor& rDescriptor, WDescriptorHeapManager::Allocation allocation, UINT offset)
-		: m_allocation{allocation}
-		, m_offset{offset}
-		, m_doesOwnAllocation{ WDescriptorHeapManager::IsInvalidAllocation(allocation) }
+	WSampler::WSampler(const WSamplerDescriptor& rDescriptor)
 	{
 
-		D3D12_SAMPLER_DESC samplerDesc = {};
-		samplerDesc.Filter = ConvertFilter(rDescriptor.filter);
-		samplerDesc.AddressU = ConvertAddressMode(rDescriptor.addressMode);
-		samplerDesc.AddressV = ConvertAddressMode(rDescriptor.addressMode);
-		samplerDesc.AddressW = ConvertAddressMode(rDescriptor.addressMode);
-		samplerDesc.MipLODBias = rDescriptor.mipLODBias;
-		samplerDesc.MaxAnisotropy = rDescriptor.maxAnisotropy;
-		samplerDesc.ComparisonFunc = D3D12_COMPARISON_FUNC_ALWAYS;
-		memcpy(samplerDesc.BorderColor, rDescriptor.borderColor, sizeof(samplerDesc.BorderColor));
-		samplerDesc.MinLOD = rDescriptor.minLOD;
-		samplerDesc.MaxLOD = rDescriptor.maxLOD;
+		WaveEDevice pDevice = WaveManager::Instance()->GetDevice();
 
-		WaveEDevice* pDevice = WaveManager::Instance()->GetDevice();
-		
-		WDescriptorHeapManager* pSamplerHeapManager = WaveManager::Instance()->GetSamplerHeap();
-		if (m_doesOwnAllocation)
-		{
-			m_allocation = pSamplerHeapManager->Allocate();
-		}
-		D3D12_CPU_DESCRIPTOR_HANDLE cpuDescriptorHandle = pSamplerHeapManager->GetCPUHandle(m_allocation.index + m_offset);
-		pDevice->CreateSampler(&samplerDesc, cpuDescriptorHandle);
+		VkSamplerCreateInfo samplerInfo{};
+		samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
+		samplerInfo.magFilter = ConvertFilter(rDescriptor.filter);
+		samplerInfo.minFilter = ConvertFilter(rDescriptor.filter);
+		samplerInfo.addressModeU = ConvertAddressMode(rDescriptor.addressMode);
+		samplerInfo.addressModeV = ConvertAddressMode(rDescriptor.addressMode);
+		samplerInfo.addressModeW = ConvertAddressMode(rDescriptor.addressMode);
+		samplerInfo.mipLodBias = rDescriptor.mipLODBias;
+		samplerInfo.anisotropyEnable = (rDescriptor.filter == WSamplerDescriptor::Anisotropic) ? VK_TRUE : VK_FALSE;
+		samplerInfo.maxAnisotropy = rDescriptor.maxAnisotropy;
+		samplerInfo.borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE;
+		samplerInfo.unnormalizedCoordinates = VK_FALSE;
+		samplerInfo.compareEnable = VK_FALSE;
+		samplerInfo.compareOp = VK_COMPARE_OP_ALWAYS;
+		samplerInfo.minLod = rDescriptor.minLOD;
+		samplerInfo.maxLod = rDescriptor.maxLOD;
+		samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
+
+		VkResult result = vkCreateSampler(pDevice, &samplerInfo, nullptr, &m_pSampler);
+		WAVEE_ASSERT_MESSAGE(result == VK_SUCCESS, "Failed to create Vulkan sampler!");
+
+		m_slot = WaveManager::Instance()->GetDescriptorManager()->AddResource(m_pSampler, rDescriptor.descriptorSlot);
 	}
 
 	WSampler::~WSampler()
 	{
-		if (m_doesOwnAllocation)
-		{
-			if (!WDescriptorHeapManager::IsInvalidAllocation(m_allocation))
-			{
-				WDescriptorHeapManager* pSamplerHeapManager = WaveManager::Instance()->GetSamplerHeap();
-				pSamplerHeapManager->Deallocate(m_allocation);
-			}
-		}
-	}
-
-	D3D12_CPU_DESCRIPTOR_HANDLE WSampler::GetCPUDescriptorHandle() const
-	{
-		WDescriptorHeapManager* pSamplerHeapManager = WaveManager::Instance()->GetSamplerHeap();
-		return pSamplerHeapManager->GetCPUHandle(m_allocation.index + m_offset);
 	}
 }

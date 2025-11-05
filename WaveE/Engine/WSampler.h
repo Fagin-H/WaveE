@@ -1,5 +1,4 @@
 #pragma once
-#include "WDescriptorHeapManager.h"
 
 namespace WaveE
 {
@@ -22,25 +21,23 @@ namespace WaveE
 		Filter filter{ Linear };
 		AddressMode addressMode{ Wrap };
 		float mipLODBias{ 0.0f };
-		UINT maxAnisotropy{ 1 };
-		float borderColor[4]{ 1.0f, 1.0f, 1.0f, 1.0f };
+		float maxAnisotropy{ 1.0 };
 		float minLOD{ 0.0f };
-		float maxLOD{ D3D12_FLOAT32_MAX };
+		float maxLOD{ 10 };
+		int descriptorSlot{ -1 };
 	};
 
 	class WSampler
 	{
 	public:
-		WSampler(const WSamplerDescriptor& rDescriptor, WDescriptorHeapManager::Allocation allocation = WDescriptorHeapManager::InvalidAllocation(), UINT offset = 0);
+		WSampler(const WSamplerDescriptor& rDescriptor);
 		~WSampler();
 
-		VkSampler GetSampler() const;
+		VkSampler GetSampler() const { return m_pSampler; };
+		int GetSlot() const { return m_slot; }
 
-		D3D12_CPU_DESCRIPTOR_HANDLE GetCPUDescriptorHandle() const;
-		WDescriptorHeapManager::Allocation GetAllocation() const { return m_allocation; }
 	private:
-		WDescriptorHeapManager::Allocation m_allocation;
-		UINT m_offset;
-		bool m_doesOwnAllocation;
+		VkSampler m_pSampler;
+		int m_slot;
 	};
 }
