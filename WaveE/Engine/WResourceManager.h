@@ -19,9 +19,9 @@ namespace WaveE
 		WAVEE_SINGLETON(WResourceManager)
 
 	public:
-		ResourceID<WTexture> CreateResource(const WTextureDescriptor& rDescriptor, WDescriptorHeapManager::Allocation allocation = WDescriptorHeapManager::InvalidAllocation(), UINT offset = 0);
-		ResourceID<WBuffer> CreateResource(const WBufferDescriptor& rDescriptor, WDescriptorHeapManager::Allocation allocation = WDescriptorHeapManager::InvalidAllocation(), UINT offset = 0);
-		ResourceID<WSampler> CreateResource(const WSamplerDescriptor& rDescriptor, WDescriptorHeapManager::Allocation allocation = WDescriptorHeapManager::InvalidAllocation(), UINT offset = 0);
+		ResourceID<WTexture> CreateResource(const WTextureDescriptor& rDescriptor);
+		ResourceID<WBuffer> CreateResource(const WBufferDescriptor& rDescriptor);
+		ResourceID<WSampler> CreateResource(const WSamplerDescriptor& rDescriptor);
 		ResourceID<WMesh> CreateResource(const WMeshDescriptor& rDescriptor);
 		ResourceID<WShader> CreateResource(const WShaderDescriptor& rDescriptor);
 		ResourceID<WPipeline> CreateResource(const WPipelineDescriptor& rDescriptor);

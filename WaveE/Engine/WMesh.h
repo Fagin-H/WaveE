@@ -47,9 +47,7 @@ namespace WaveE
 		UINT m_vertexCount;
 		UINT m_IndexCount;
 
-		D3D12_VERTEX_BUFFER_VIEW m_vertexBufferView;
-		D3D12_INDEX_BUFFER_VIEW m_indexBufferView;
-		D3D_PRIMITIVE_TOPOLOGY m_topology;
+		VkPrimitiveTopology m_topology;
 
 		bool m_isIndexed;
 	};

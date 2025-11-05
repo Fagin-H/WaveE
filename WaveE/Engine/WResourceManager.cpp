@@ -58,21 +58,21 @@ namespace WaveE
 		}
 	}
 
-	ResourceID<WTexture> WResourceManager::CreateResource(const WTextureDescriptor& rDescriptor, WDescriptorHeapManager::Allocation allocation /*= WDescriptorHeapManager::InvalidAllocation()*/, UINT offset /*= 0*/)
+	ResourceID<WTexture> WResourceManager::CreateResource(const WTextureDescriptor& rDescriptor)
 	{
-		m_vpTextures.push_back(new WTexture{ rDescriptor, allocation, offset });
+		m_vpTextures.push_back(new WTexture{ rDescriptor });
 		return ResourceID<WTexture>{static_cast<UINT>(m_vpTextures.size()) - 1};
 	}
 
-	ResourceID<WBuffer> WResourceManager::CreateResource(const WBufferDescriptor& rDescriptor, WDescriptorHeapManager::Allocation allocation /*= WDescriptorHeapManager::InvalidAllocation()*/, UINT offset /*= 0*/)
+	ResourceID<WBuffer> WResourceManager::CreateResource(const WBufferDescriptor& rDescriptor)
 	{
-		m_vpBuffers.push_back(new WBuffer{ rDescriptor, allocation, offset });
+		m_vpBuffers.push_back(new WBuffer{ rDescriptor});
 		return ResourceID<WBuffer>{static_cast<UINT>(m_vpBuffers.size()) - 1};
 	}
 
-	ResourceID<WSampler> WResourceManager::CreateResource(const WSamplerDescriptor& rDescriptor, WDescriptorHeapManager::Allocation allocation /*= WDescriptorHeapManager::InvalidAllocation()*/, UINT offset /*= 0*/)
+	ResourceID<WSampler> WResourceManager::CreateResource(const WSamplerDescriptor& rDescriptor)
 	{
-		m_vpSamplers.push_back(new WSampler{ rDescriptor, allocation, offset });
+		m_vpSamplers.push_back(new WSampler{ rDescriptor});
 		return ResourceID<WSampler>{static_cast<UINT>(m_vpSamplers.size()) - 1};
 	}
 
