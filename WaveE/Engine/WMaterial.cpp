@@ -4,95 +4,57 @@
 
 namespace WaveE
 {
-	WMaterial::WMaterial(const WMaterialDescriptor rDescriptor)
-		: m_maxBuffers{rDescriptor.maxBuffers}
-		, m_maxTextures{rDescriptor.maxTextures}
-		, m_maxSamplers{rDescriptor.maxSamplers}
+	int WMaterial::m_nextMaterialID{ 0 };
+
+	WMaterial::WMaterial(const WMaterialDescriptor& rDescriptor)
+		: m_materialID{ m_nextMaterialID++ }
+		, m_pixelShader{ rDescriptor.pixelShader }
+		, m_vertexShader{ rDescriptor.vertexShader }
 	{
-		WAVEE_ASSERT_MESSAGE(rDescriptor.numBuffers <= rDescriptor.maxBuffers, "Too many buffers!");
-		WAVEE_ASSERT_MESSAGE(rDescriptor.numTextures <= rDescriptor.maxTextures, "Too many textures!");
-		WAVEE_ASSERT_MESSAGE(rDescriptor.numSamplers <= rDescriptor.maxSamplers, "Too many samplers!");
-
-		// Pipeline
-		if (rDescriptor.pipeline.IsValid())
-		{
-			m_pipeline = rDescriptor.pipeline;
-		}
-		else
-		{
-			m_pipeline = WaveManager::Instance()->GetDefaultPipelineState();
-		}
-
-		// Buffers and textures
-		UINT totalMaxBuffersAndTextures = rDescriptor.maxBuffers + rDescriptor.maxTextures;
-
-		if (totalMaxBuffersAndTextures > 0)
-		{
-			m_buffersAndTextures = WaveManager::Instance()->GetCBV_SRV_UAVHeap()->Allocate(totalMaxBuffersAndTextures);
-
-			for (UINT i = 0; i < rDescriptor.numBuffers; i++)
-			{
-				WResourceManager::Instance()->CreateResource(rDescriptor.bufferDescriptorArray[i], m_buffersAndTextures, i);
-			}
-			for (UINT i = 0; i < rDescriptor.numTextures; i++)
-			{
-				WResourceManager::Instance()->CreateResource(rDescriptor.textureDescriptorArray[i], m_buffersAndTextures, i + rDescriptor.maxBuffers);
-			}
-		}
-
-		// Samplers
-		if (rDescriptor.numSamplers > 0)
-		{
-			m_samplers = WResourceManager::Instance()->CreateResourceBlock(rDescriptor.samplerDescriptorArray, rDescriptor.numSamplers);
-		}
+		memcpy(&m_vUniformBuffers[0], &rDescriptor.vUniformBuffers[0], sizeof(ResourceID<WBuffer>) * MAX_MATERIAL_SLOTS);
+		memcpy(&m_vStorageBuffers[0], &rDescriptor.vStorageBuffers[0], sizeof(ResourceID<WBuffer>) * MAX_MATERIAL_SLOTS);
+		memcpy(&m_vTextures[0], &rDescriptor.vTextures[0], sizeof(ResourceID<WTexture>) * MAX_MATERIAL_SLOTS);
+		memcpy(&m_vSamplers[0], &rDescriptor.vSamplers[0], sizeof(ResourceID<WSampler>) * MAX_MATERIAL_SLOTS);
 	}
 
 	void WMaterial::SwapBuffer(ResourceID<WBuffer> bufferID, UINT index)
 	{
-		WAVEE_ASSERT_MESSAGE(index < m_maxBuffers, "Buffer index out of range!");
+		WAVEE_ASSERT_MESSAGE(index < MAX_MATERIAL_SLOTS, "Buffer index out of range!");
+		
+		bool isStorage = bufferID.GetResource()->IsStorage();
 
-		WaveEDevice* pDevice = WaveManager::Instance()->GetDevice();
-
-		D3D12_CONSTANT_BUFFER_VIEW_DESC bufferViewDescriptor;
-		bufferViewDescriptor.BufferLocation = bufferID.GetResource()->GetBuffer()->GetGPUVirtualAddress();
-		bufferViewDescriptor.SizeInBytes = bufferID.GetResource()->GetBuffer()->GetDesc().Width;
-
-		WDescriptorHeapManager* pHeap = WaveManager::Instance()->GetCBV_SRV_UAVHeap();
-
-		pDevice->CreateConstantBufferView(&bufferViewDescriptor, pHeap->GetCPUHandle(m_buffersAndTextures.index + index));
+		if (isStorage)
+		{
+			m_vStorageBuffers[index] = bufferID;
+		}
+		else
+		{
+			m_vUniformBuffers[index] = bufferID;
+		}
 	}
 
 	void WMaterial::SwapTexture(ResourceID<WTexture> textureID, UINT index)
 	{
-		WAVEE_ASSERT_MESSAGE(index < m_maxTextures, "Texture index out of range!");
+		WAVEE_ASSERT_MESSAGE(index < MAX_MATERIAL_SLOTS, "Texture index out of range!");
 
-		// Textures are after buffers in same heap
-		index += m_maxBuffers;
-
-		WaveEDevice* pDevice = WaveManager::Instance()->GetDevice();
-
-		WDescriptorHeapManager* pHeap = WaveManager::Instance()->GetCBV_SRV_UAVHeap();
-
-		pDevice->CreateShaderResourceView(textureID.GetResource()->GetTexture(), nullptr, pHeap->GetCPUHandle(m_buffersAndTextures.index + index));
+		m_vTextures[index] = textureID;
 	}
 
-	void WMaterial::BindMaterial()
+	void WMaterial::SwapSampler(ResourceID<WSampler> samplerID, UINT index)
 	{
-		WaveManager::Instance()->SetPipelineState(m_pipeline);
-		
-		if (m_samplers.IsValid())
-		{
-			WaveManager::Instance()->BindSamplers(m_samplers, WaveManager::MATERIAL_SAMPLERS);
-		}
+		WAVEE_ASSERT_MESSAGE(index < MAX_MATERIAL_SLOTS, "Sampler index out of range!");
 
-		if (m_buffersAndTextures.IsValid())
-		{
-			WaveManager::Instance()->BindResource(m_buffersAndTextures, WaveManager::MATERIAL_CBV_SRV);
-		}
+		m_vSamplers[index] = samplerID;
+	}
 
-		if (m_samplers.IsValid())
+	void WMaterial::FillMaterialBuffer(MaterialBuffer& materialBuffer) const
+	{
+		for (int i = 0; i < MAX_MATERIAL_SLOTS; i++)
 		{
-			WaveManager::Instance()->BindSamplers(m_samplers, WaveManager::MATERIAL_SAMPLERS);
+			materialBuffer.uniformBuffers[i] = m_vUniformBuffers[i].GetResource()->GetSlot();
+			materialBuffer.storageBuffers[i] = m_vStorageBuffers[i].GetResource()->GetSlot();
+			materialBuffer.textures[i] = m_vTextures[i].GetResource()->GetSlot();
+			materialBuffer.samplers[i] = m_vSamplers[i].GetResource()->GetSlot();
 		}
 	}
 }
