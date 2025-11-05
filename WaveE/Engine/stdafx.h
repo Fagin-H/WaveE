@@ -41,36 +41,14 @@
 
 namespace WaveE
 {
-	// Useful Functions
-	template <typename T>
-	T align_value(T valueToAlign, int alignment)
-	{
-		// Calculate how much `valueToAlign` needs to be adjusted to be aligned
-		T remainder = valueToAlign % alignment;
-		T adjustment = (remainder == 0) ? 0 : (alignment - remainder);
-
-		// Align `valueToAlign` based on the adjustment calculated
-		return valueToAlign + adjustment;
-	}
-
-	// Using for device and others in case the version changes
-	using WaveEDevice = VkDevice;
-	using WaveEPhysicalDevice = VkPhysicalDevice;
-	using WaveECommandBuffer = VkCommandBuffer;
-	using WaveEQueue = VkQueue;
-	using WaveEInstance = VkInstance;
-	using WaveESwapChain = VkSwapchainKHR;
-	using WaveESurface = VkSurfaceKHR;
-
 	// Useful Macros
+#define WaveInstance WaveManager::Instance()
 
-	#define WaveInstance WaveManager::Instance()
-
-	#define WAVEE_NO_COPY(classname) \
+#define WAVEE_NO_COPY(classname) \
 		classname(const classname&) = delete; \
 		classname& operator=(const classname&) = delete;
 
-	#define WAVEE_SINGLETON(classname) \
+#define WAVEE_SINGLETON(classname) \
 		WAVEE_NO_COPY(classname) \
 		public: \
 			static classname* Instance() \
@@ -92,22 +70,22 @@ namespace WaveE
 		private: \
 			static classname* ms_pInstance;
 
-	#define WAVEE_SINGLETON_CPP(classname) \
+#define WAVEE_SINGLETON_CPP(classname) \
 		classname* classname::ms_pInstance = nullptr;
 
-	#define WAVEE_ASSERT(condition) \
+#define WAVEE_ASSERT(condition) \
 		{\
 		bool WAVEE_ASSERT_RESULT = condition;\
 		assert(WAVEE_ASSERT_RESULT);\
 		}
 
-	#define WAVEE_ASSERT_MESSAGE(condition, message) \
+#define WAVEE_ASSERT_MESSAGE(condition, message) \
 		{\
 		bool WAVEE_ASSERT_RESULT = condition;\
 		assert(WAVEE_ASSERT_RESULT);\
 		}
 
-	#define WAVEE_ERROR_DWORD(errorCode)						\
+#define WAVEE_ERROR_DWORD(errorCode)						\
 	{															\
 		LPCTSTR strErrorMessage = NULL;\
 		FormatMessage(\
@@ -120,5 +98,44 @@ namespace WaveE
 		NULL);\
 		OutputDebugString(strErrorMessage);\
 		WAVEE_ASSERT(false);\
-	}															
+	}										
+
+	// Useful Functions
+	template <typename T>
+	T align_value(T valueToAlign, int alignment)
+	{
+		// Calculate how much `valueToAlign` needs to be adjusted to be aligned
+		T remainder = valueToAlign % alignment;
+		T adjustment = (remainder == 0) ? 0 : (alignment - remainder);
+
+		// Align `valueToAlign` based on the adjustment calculated
+		return valueToAlign + adjustment;
+	}
+
+	uint32_t FindMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties)
+	{
+		WaveEPhysicalDevice pPhysicalDevice = WaveManager::Instance()->GetPhysicalDevice();
+		VkPhysicalDeviceMemoryProperties memProps;
+		vkGetPhysicalDeviceMemoryProperties(pPhysicalDevice, &memProps);
+
+		for (uint32_t i = 0; i < memProps.memoryTypeCount; i++)
+		{
+			bool typeValid = typeFilter & (1 << i);
+			bool hasProps = (memProps.memoryTypes[i].propertyFlags & properties) == properties;
+
+			if (typeValid && hasProps)
+				return i;
+		}
+
+		WAVEE_ASSERT_MESSAGE(false, "Failed to find suitable Vulkan memory type!");
+	}
+
+	// Using for device and others in case the version changes
+	using WaveEDevice = VkDevice;
+	using WaveEPhysicalDevice = VkPhysicalDevice;
+	using WaveECommandBuffer = VkCommandBuffer;
+	using WaveEQueue = VkQueue;
+	using WaveEInstance = VkInstance;
+	using WaveESwapChain = VkSwapchainKHR;
+	using WaveESurface = VkSurfaceKHR;					
 }

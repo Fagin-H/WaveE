@@ -4,37 +4,6 @@
 
 namespace WaveE
 {
-	DXGI_FORMAT GetDXGIFormat(WTextureDescriptor::Format format)
-	{
-		switch (format)
-		{
-		case WTextureDescriptor::RGBA:
-			return DXGI_FORMAT_R8G8B8A8_UNORM;
-		case WTextureDescriptor::SRGBA:
-			return DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
-		case WTextureDescriptor::RGBAF16:
-			return DXGI_FORMAT_R16G16B16A16_FLOAT;
-		case WTextureDescriptor::DepthFloat:
-			return DXGI_FORMAT_D32_FLOAT;
-		case WTextureDescriptor::DepthTypeless:
-			return DXGI_FORMAT_R32_TYPELESS;
-		default:
-			return DXGI_FORMAT_UNKNOWN;
-		}
-	}
-
-	DXGI_FORMAT GetDXGIFormatForDepth(WTextureDescriptor::Format format, bool isForSRV = true)
-	{
-		switch (format)
-		{
-		case WTextureDescriptor::DepthTypeless: [[fallthrough]];
-		case WTextureDescriptor::DepthFloat:
-			return isForSRV ? DXGI_FORMAT_R32_FLOAT : DXGI_FORMAT_D32_FLOAT;
-		default:
-			return DXGI_FORMAT_UNKNOWN;
-		}
-	}
-
 	size_t GetBytesPerPixel(DXGI_FORMAT format)
 	{
 		switch (format)
@@ -51,301 +20,267 @@ namespace WaveE
 		return -1;
 	}
 
-	D3D12_RESOURCE_FLAGS GetResourceFlags(WTextureDescriptor::Usage usage, WTextureDescriptor::Format format)
+	VkFormat GetVulkanFormat(WTextureDescriptor::Format format) 
 	{
-		D3D12_RESOURCE_FLAGS flags = {};
-
-		if (usage & WTextureDescriptor::Usage::RenderTarget)
+		switch (format)
 		{
-			if (format == WTextureDescriptor::Format::DepthFloat || format == WTextureDescriptor::Format::DepthTypeless)
-			{
-				flags |= D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
-			}
-			else
-			{
-				flags |= D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
-			}
+			case WTextureDescriptor::Format::RGBA:
+				return VK_FORMAT_R8G8B8A8_UNORM;
+			case WTextureDescriptor::Format::SRGBA:
+				return VK_FORMAT_R8G8B8A8_SRGB;
+			case WTextureDescriptor::Format::RGBAF16:
+				return VK_FORMAT_R16G16B16A16_SFLOAT;
+			case WTextureDescriptor::Format::DepthFloat:
+				return VK_FORMAT_D32_SFLOAT;
+			default:
+				WAVEE_ASSERT_MESSAGE(false, "Unsupported texture format!");
+				return VK_FORMAT_UNDEFINED;
 		}
-		if (!(usage & WTextureDescriptor::Usage::ShaderResource) && (format == WTextureDescriptor::DepthFloat || format == WTextureDescriptor::DepthTypeless))
+	}
+
+	VkImageUsageFlags GetImageUsageFlags(WTextureDescriptor::Usage usage)
+	{
+		VkImageUsageFlags flags = 0;
+
+		if (usage & WTextureDescriptor::ShaderResource)
 		{
-			flags |= D3D12_RESOURCE_FLAG_DENY_SHADER_RESOURCE;
+			// TransferSrc allows copying the image back if needed
+			flags |= VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
+		}
+
+		if (usage & WTextureDescriptor::RenderTarget)
+		{
+			// TransferDst allows uploading data to the render target
+			flags |= VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
 		}
 
 		return flags;
 	}
 
-	D3D12_RESOURCE_STATES GetResourceState(WTextureDescriptor::Format format, bool isShaderResource)
+	UINT GetBytesPerPixel(WTextureDescriptor::Format format)
 	{
-		if (isShaderResource)
-		{;
-
-			switch (format)
-			{
-			case WaveE::WTextureDescriptor::RGBA: [[fallthrough]];
-			case WaveE::WTextureDescriptor::SRGBA: [[fallthrough]];
-			case WaveE::WTextureDescriptor::RGBAF16:
-				return D3D12_RESOURCE_STATE_GENERIC_READ;
-			case WaveE::WTextureDescriptor::DepthFloat: [[fallthrough]];
-			case WaveE::WTextureDescriptor::DepthTypeless:
-				return D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
-			}
-		}
-		else
+		switch (format)
 		{
-			switch (format)
-			{
-			case WaveE::WTextureDescriptor::RGBA: [[fallthrough]];
-			case WaveE::WTextureDescriptor::SRGBA: [[fallthrough]];
-			case WaveE::WTextureDescriptor::RGBAF16:
-				return D3D12_RESOURCE_STATE_RENDER_TARGET;
-			case WaveE::WTextureDescriptor::DepthFloat: [[fallthrough]];
-			case WaveE::WTextureDescriptor::DepthTypeless:
-				return D3D12_RESOURCE_STATE_DEPTH_WRITE;
-			}
+			case WTextureDescriptor::Format::RGBA:
+			case WTextureDescriptor::Format::SRGBA:
+				return 4; // 4 channels × 1 byte each
+			case WTextureDescriptor::Format::RGBAF16:
+				return 8; // 4 channels × 2 bytes each (16-bit float)
+			case WTextureDescriptor::Format::DepthFloat:
+				return 4; // 32-bit float depth
+			default:
+				WAVEE_ASSERT_MESSAGE(false, "Unsupported texture format for bytes per pixel!");
+				return 0;
 		}
-
-		WAVEE_ASSERT_MESSAGE(false, "Did not find resourceState");
-		return D3D12_RESOURCE_STATE_GENERIC_READ;
 	}
 
-	WTexture::WTexture(const WTextureDescriptor& rDescriptor, WDescriptorHeapManager::Allocation allocationSRV, UINT offset)
-		: m_allocationSRV{ allocationSRV }
-		, m_offsetSRV{offset}
-		, m_doesOwnAllocationSRV{ WDescriptorHeapManager::IsInvalidAllocation(allocationSRV) }
-		, m_allocationRTV_DSV{ WDescriptorHeapManager::InvalidAllocation() }
+	WTexture::WTexture(const WTextureDescriptor& rDescriptor)
 	{
 		m_width = rDescriptor.width;
 		m_height = rDescriptor.height;
-		m_currentState = rDescriptor.startAsShaderResource ? State::Input : State::Output;
+		m_currentState = rDescriptor.startAsShaderResource ? WImageState::ShaderRead : WImageState::RenderTarget;
+		m_format = rDescriptor.format;
+		m_usage = rDescriptor.usage;
 
-		m_isDepthType = rDescriptor.format == WTextureDescriptor::Format::DepthFloat || rDescriptor.format == WTextureDescriptor::Format::DepthTypeless;
+		WaveEDevice pDevice = WaveManager::Instance()->GetDevice();
 
-		D3D12_HEAP_PROPERTIES heapProperties = CreateHeapProperties(D3D12_HEAP_TYPE_DEFAULT);
-		DXGI_FORMAT dxgiFormat = GetDXGIFormat(rDescriptor.format);
-		DXGI_FORMAT dxgiFormatNonTypelessForDepthSRV = GetDXGIFormatForDepth(rDescriptor.format, true);
-		DXGI_FORMAT dxgiFormatNonTypelessForDepthDSV = GetDXGIFormatForDepth(rDescriptor.format, false);
-		D3D12_RESOURCE_FLAGS resourceFlags = GetResourceFlags(rDescriptor.usage, rDescriptor.format);
+		// Create VkImage
+		VkImageCreateInfo imageInfo{};
+		imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+		imageInfo.imageType = VK_IMAGE_TYPE_2D;
+		imageInfo.format = GetVulkanFormat(rDescriptor.format);
+		imageInfo.extent = { rDescriptor.width, rDescriptor.height, 1 };
+		imageInfo.mipLevels = 1;
+		imageInfo.arrayLayers = 1;
+		imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
+		imageInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
+		imageInfo.usage = GetImageUsageFlags(rDescriptor.usage);
+		imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+		imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 
-		m_bytesPerPixel = GetBytesPerPixel(dxgiFormat);
-		m_sizeBytes = m_width * m_height * m_bytesPerPixel;
+		VkResult result = vkCreateImage(pDevice, &imageInfo, nullptr, &m_pImage);
+		WAVEE_ASSERT_MESSAGE(result == VK_SUCCESS, "Failed to create image!");
 
-		m_renderTargetState = GetResourceState(rDescriptor.format, false);
-		m_shaderResourceState = GetResourceState(rDescriptor.format, true);
+		// Allocate and bind memory
+		VkMemoryRequirements memReq;
+		vkGetImageMemoryRequirements(pDevice, m_pImage, &memReq);
 
-		D3D12_RESOURCE_DESC resourceDesc = CreateTextureResourceDesc(dxgiFormat, rDescriptor.width, rDescriptor.height);
-		resourceDesc.Flags = resourceFlags;
-		resourceDesc.MipLevels = 1;
-
-		D3D12_CLEAR_VALUE clearValue = {};
-		if (m_isDepthType)
-		{
-			clearValue.Format = dxgiFormatNonTypelessForDepthDSV;
-		}
-		else
-		{
-			clearValue.Format = dxgiFormat;
-		}
-
-		if (m_isDepthType)
-		{
-			clearValue.DepthStencil.Depth = 1.0f;
-			clearValue.DepthStencil.Stencil = 0;
-		}
-		else
-		{
-			clearValue.Color[0] = 0.0f;
-			clearValue.Color[1] = 0.0f;
-			clearValue.Color[2] = 0.0f;
-			clearValue.Color[3] = 0.0f;
-		}
-
-		D3D12_RESOURCE_STATES initialState;
-		D3D12_RESOURCE_STATES finalState = m_currentState == State::Input ? m_shaderResourceState : m_renderTargetState;
-
-		if (rDescriptor.pInitalData)
-		{
-			initialState = D3D12_RESOURCE_STATE_COPY_DEST;
-		}
-		else
-		{
-			initialState = finalState;
-		}
-
-		WaveEDevice* pDevice = WaveManager::Instance()->GetDevice();
-
-		bool useClearValue = rDescriptor.usage & WTextureDescriptor::RenderTarget;
-
-		HRESULT hr = pDevice->CreateCommittedResource(
-			&heapProperties,
-			D3D12_HEAP_FLAG_NONE,
-			&resourceDesc,
-			initialState,
-			useClearValue ? &clearValue : nullptr,
-			IID_PPV_ARGS(&m_pTexture)
+		uint32_t memoryTypeIndex = FindMemoryType(
+			memReq.memoryTypeBits,
+			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT
 		);
 
-		WAVEE_ASSERT_MESSAGE(SUCCEEDED(hr), "Failed to create committed resource for texture!");
+		VkMemoryAllocateInfo allocInfo{};
+		allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+		allocInfo.allocationSize = memReq.size;
+		allocInfo.memoryTypeIndex = memoryTypeIndex;
 
-		if (rDescriptor.usage & WTextureDescriptor::Usage::RenderTarget)
+		result = vkAllocateMemory(pDevice, &allocInfo, nullptr, &m_pMemory);
+		WAVEE_ASSERT_MESSAGE(result == VK_SUCCESS, "Failed to allocate memory for image!");
+
+		result = vkBindImageMemory(pDevice, m_pImage, m_pMemory, 0);
+		WAVEE_ASSERT_MESSAGE(result == VK_SUCCESS, "Failed to bind image memory!");
+
+		// Allocate bindless descriptor slot
+		if (rDescriptor.usage & WTextureDescriptor::ShaderResource)
 		{
-			if (m_isDepthType)
-			{
-				D3D12_DEPTH_STENCIL_VIEW_DESC dsvDesc = {};
-				dsvDesc.Format = dxgiFormatNonTypelessForDepthDSV;
-				dsvDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
-				dsvDesc.Texture2D.MipSlice = 0;
-
-				WDescriptorHeapManager* pDSVDescriptorHeapManager = WaveManager::Instance()->GetDSVHeap();
-				m_allocationRTV_DSV = pDSVDescriptorHeapManager->Allocate();
-				D3D12_CPU_DESCRIPTOR_HANDLE cpuDescriptorHandle = pDSVDescriptorHeapManager->GetCPUHandle(m_allocationRTV_DSV);
-				pDevice->CreateDepthStencilView(m_pTexture.Get(), &dsvDesc, cpuDescriptorHandle);
-			}
-			else
-			{
-				D3D12_RENDER_TARGET_VIEW_DESC rtvDesc = {};
-				rtvDesc.Format = dxgiFormat;
-				rtvDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
-				rtvDesc.Texture2D.MipSlice = 0;
-				rtvDesc.Texture2D.PlaneSlice = 0;
-
-				WDescriptorHeapManager* pRTVDescriptorHeapManager = WaveManager::Instance()->GetRTVHeap();
-				m_allocationRTV_DSV = pRTVDescriptorHeapManager->Allocate();
-				D3D12_CPU_DESCRIPTOR_HANDLE cpuDescriptorHandle = pRTVDescriptorHeapManager->GetCPUHandle(m_allocationRTV_DSV);
-				pDevice->CreateRenderTargetView(m_pTexture.Get(), &rtvDesc, cpuDescriptorHandle);
-			}
-		}
-		if (rDescriptor.usage & WTextureDescriptor::Usage::ShaderResource)
-		{
-			WDescriptorHeapManager* pCBVDescriptorHeapManager = WaveManager::Instance()->GetCBV_SRV_UAVHeap();
-			if (m_doesOwnAllocationSRV)
-			{
-				// Allocate CPU descriptor handle for CBV/SRV/UAV based on buffer type
-				m_allocationSRV = pCBVDescriptorHeapManager->Allocate();
-			}
-			D3D12_CPU_DESCRIPTOR_HANDLE cpuDescriptorHandle = pCBVDescriptorHeapManager->GetCPUHandle(m_allocationSRV.index + m_offsetSRV);
-			
-			if (m_isDepthType)
-			{
-				D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
-				srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-				srvDesc.Format = dxgiFormatNonTypelessForDepthSRV;
-				srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
-				srvDesc.Texture2D.MostDetailedMip = 0;
-				srvDesc.Texture2D.MipLevels = 1;
-				srvDesc.Texture2D.PlaneSlice = 0;
-				srvDesc.Texture2D.ResourceMinLODClamp = 0.0f;
-
-				pDevice->CreateShaderResourceView(m_pTexture.Get(), &srvDesc, cpuDescriptorHandle);
-			}
-			else
-			{
-				D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
-				srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-				srvDesc.Format = dxgiFormat;
-				srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
-				srvDesc.Texture2D.MostDetailedMip = 0;
-				srvDesc.Texture2D.MipLevels = 1;
-				srvDesc.Texture2D.PlaneSlice = 0;
-				srvDesc.Texture2D.ResourceMinLODClamp = 0.0f;
-
-				pDevice->CreateShaderResourceView(m_pTexture.Get(), &srvDesc, cpuDescriptorHandle);
-			}
+			m_slot = WaveManager::Instance()->GetDescriptorManager()->AddResource(m_pView, rDescriptor.descriptorSlot);
 		}
 
+		// Upload initial data if present
 		if (rDescriptor.pInitalData)
 		{
-			UploadData(rDescriptor.pInitalData, initialState, finalState);
+			WaveManager::Instance()->GetUploadManager()->UploadDataToTexture(
+				m_pImage,
+				rDescriptor.pInitalData,
+				rDescriptor.width,
+				rDescriptor.height,
+				GetBytesPerPixel(rDescriptor.format),
+				m_format,
+				WImageState::Undefined,
+				m_currentState
+			);
 		}
+
+		// Create default VkImageView for shader access
+		VkImageViewCreateInfo viewInfo{};
+		viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+		viewInfo.image = m_pImage;
+		viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+		viewInfo.format = GetVulkanFormat(rDescriptor.format);
+		viewInfo.subresourceRange.aspectMask = (rDescriptor.format == WTextureDescriptor::DepthFloat) ? VK_IMAGE_ASPECT_DEPTH_BIT : VK_IMAGE_ASPECT_COLOR_BIT;
+		viewInfo.subresourceRange.baseMipLevel = 0;
+		viewInfo.subresourceRange.levelCount = 1;
+		viewInfo.subresourceRange.baseArrayLayer = 0;
+		viewInfo.subresourceRange.layerCount = 1;
+
+		result = vkCreateImageView(pDevice, &viewInfo, nullptr, &m_pView);
+		WAVEE_ASSERT_MESSAGE(result == VK_SUCCESS, "Failed to create image view!");
 	}
 
 	WTexture::~WTexture()
 	{
-		if (m_doesOwnAllocationSRV)
-		{
-			if (!WDescriptorHeapManager::IsInvalidAllocation(m_allocationSRV))
-			{
-				WDescriptorHeapManager* pCBVDescriptorHeapManager = WaveManager::Instance()->GetCBV_SRV_UAVHeap();
-				pCBVDescriptorHeapManager->Deallocate(m_allocationSRV);
-			}
-		}
-
-		if (!WDescriptorHeapManager::IsInvalidAllocation(m_allocationRTV_DSV))
-		{
-			if (m_isDepthType)
-			{
-				WDescriptorHeapManager* pDSVDescriptorHeapManager = WaveManager::Instance()->GetDSVHeap();
-				pDSVDescriptorHeapManager->Deallocate(m_allocationRTV_DSV);
-			}
-			else
-			{
-				WDescriptorHeapManager* pRTVDescriptorHeapManager = WaveManager::Instance()->GetRTVHeap();
-				pRTVDescriptorHeapManager->Deallocate(m_allocationRTV_DSV);
-			}
-		}
 	}
 
 	void WTexture::UploadData(const void* pData)
 	{
-		D3D12_RESOURCE_STATES currentState = m_currentState == State::Input ? m_shaderResourceState : m_renderTargetState;
-		UploadData(pData, currentState, currentState);
+		UploadData(pData, m_currentState, m_currentState);
 	}
 
-	void WTexture::UploadData(const void* pData, D3D12_RESOURCE_STATES currentState, D3D12_RESOURCE_STATES finalState)
+	void WTexture::UploadData(const void* pData, WImageState currentState, WImageState finalState)
 	{
-		WaveManager::Instance()->GetUploadManager()->UploadDataToTexture(m_pTexture.Get(), pData, m_bytesPerPixel, currentState, finalState);
+		WaveManager::Instance()->GetUploadManager()->UploadDataToTexture(m_pImage, pData, m_width, m_height, m_bytesPerPixel, m_format, currentState, finalState);
 	}
 
-	bool WTexture::SetState(State state)
+	bool WTexture::SetState(WImageState state)
 	{
 		if (m_currentState == state)
-		{
 			return false;
-		}
 
-		if (m_renderTargetState != m_shaderResourceState)
-		{
-			WaveECommandList* pCommandList = WaveManager::Instance()->GetCommandList();
+		VkImageMemoryBarrier barrier{};
+		barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+		barrier.oldLayout = GetImageLayout(m_currentState, m_format);
+		barrier.newLayout = GetImageLayout(state, m_format);
+		barrier.srcAccessMask = GetImageAccessMask(m_currentState, m_format);
+		barrier.dstAccessMask = GetImageAccessMask(state, m_format);
+		barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+		barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+		barrier.image = m_pImage;
+		barrier.subresourceRange.aspectMask =
+			(m_format == WTextureDescriptor::DepthFloat) ? VK_IMAGE_ASPECT_DEPTH_BIT : VK_IMAGE_ASPECT_COLOR_BIT;
+		barrier.subresourceRange.baseMipLevel = 0;
+		barrier.subresourceRange.levelCount = 1;
+		barrier.subresourceRange.baseArrayLayer = 0;
+		barrier.subresourceRange.layerCount = 1;
 
-			D3D12_RESOURCE_BARRIER barrier = {};
-			barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-			barrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
-			barrier.Transition.pResource = GetTexture();
-			barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
-			barrier.Transition.StateBefore = m_currentState == State::Input ? m_shaderResourceState : m_renderTargetState;
-			barrier.Transition.StateAfter = m_currentState == State::Input ? m_renderTargetState : m_shaderResourceState;
-
-			pCommandList->ResourceBarrier(1, &barrier);
-		}
+		WaveECommandBuffer pCommandBuffer = WaveManager::Instance()->GetCommandBuffer();
+		vkCmdPipelineBarrier(
+			pCommandBuffer,
+			GetImagePipelineStage(m_currentState, m_format),
+			GetImagePipelineStage(state, m_format),
+			0,
+			0, nullptr,
+			0, nullptr,
+			1, &barrier
+		);
 
 		m_currentState = state;
 
 		return true;
 	}
 
-	D3D12_CPU_DESCRIPTOR_HANDLE WTexture::GetCPUDescriptorHandle() const
+	VkAccessFlags GetImageAccessMask(WImageState state, WTextureDescriptor::Format format)
 	{
-		if (m_currentState == State::Input)
+		switch (state)
 		{
-			WDescriptorHeapManager* pCBVDescriptorHeapManager = WaveManager::Instance()->GetCBV_SRV_UAVHeap();
-			return pCBVDescriptorHeapManager->GetCPUHandle(m_allocationSRV.index + m_offsetSRV);
-		}
-		else
-		{
-			if (m_isDepthType)
-			{
-				WDescriptorHeapManager* pDSVDescriptorHeapManager = WaveManager::Instance()->GetDSVHeap();
-				return pDSVDescriptorHeapManager->GetCPUHandle(m_allocationRTV_DSV);
-			}
-			else
-			{
-				WDescriptorHeapManager* pRTVDescriptorHeapManager = WaveManager::Instance()->GetRTVHeap();
-				return pRTVDescriptorHeapManager->GetCPUHandle(m_allocationRTV_DSV);
-			}
+			case WImageState::Undefined:
+				return 0;
+			case WImageState::TransferDst:
+				return VK_ACCESS_TRANSFER_WRITE_BIT;
+			case WImageState::TransferSrc:
+				return VK_ACCESS_TRANSFER_READ_BIT;
+			case WImageState::ShaderRead:
+				return VK_ACCESS_SHADER_READ_BIT;
+			case WImageState::RenderTarget:
+				return (format == WTextureDescriptor::DepthFloat)
+					? VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT
+					: VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+			default:
+				return 0;
 		}
 	}
 
-	D3D12_RESOURCE_STATES WTexture::GetCurrentState() const
+	VkPipelineStageFlags GetImagePipelineStage(WImageState state, WTextureDescriptor::Format format)
 	{
-		return m_currentState == Input ? m_shaderResourceState : m_renderTargetState;
+		switch (state)
+		{
+			case WImageState::Undefined:
+				return VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+			case WImageState::TransferDst:
+			case WImageState::TransferSrc:
+				return VK_PIPELINE_STAGE_TRANSFER_BIT;
+			case WImageState::ShaderRead:
+				return VK_PIPELINE_STAGE_VERTEX_SHADER_BIT |
+					VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT |
+					VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
+			case WImageState::RenderTarget:
+				if (format == WTextureDescriptor::DepthFloat)
+				{
+					return VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT |
+						VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
+				}
+				else
+				{
+					return VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+				}
+			default:
+				return VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
+		}
+	}
+
+	VkImageLayout GetImageLayout(WImageState state, WTextureDescriptor::Format format)
+	{
+		switch (state)
+		{
+			case WImageState::Undefined:
+				return VK_IMAGE_LAYOUT_UNDEFINED;
+			case WImageState::TransferDst:
+				return VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+			case WImageState::TransferSrc:
+				return VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+			case WImageState::ShaderRead:
+				return VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+			case WImageState::RenderTarget:
+				if (format == WTextureDescriptor::DepthFloat)
+				{
+					return VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+				}
+				else
+				{
+					return VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+				}
+			default:
+				return VK_IMAGE_LAYOUT_UNDEFINED;
+		}
 	}
 }

@@ -15,25 +15,23 @@ namespace WaveE
 		void Init(size_t bigBufferSize, UINT bigBufferCount, size_t smallBufferSize, UINT smallBufferCount);
 
 		void UploadDataToBuffer(VkBuffer pDestBuffer, const void* pData, size_t size, WBufferState currentState, WBufferState finalState);
-		void UploadDataToTexture(VkTexture pDestResource, const void* pData, UINT bytesPerPixel, D3D12_RESOURCE_STATES currentState, D3D12_RESOURCE_STATES finalState);
+		void UploadDataToTexture(VkImage pDestTexture, const void* pData, UINT width, UINT height, UINT bytesPerPixel, WTextureDescriptor::Format format, WImageState currentState, WImageState finalState);
 
 	private:
 		struct UploadBuffer
 		{
-			ComPtr<ID3D12Resource> pResource{ nullptr };
-			UINT64 fenceValue{ 0 };
-			size_t bufferSize;
+			VkBuffer pBuffer{ VK_NULL_HANDLE };
+			VkDeviceMemory pMemory{ VK_NULL_HANDLE };
+			VkFence pFence{ VK_NULL_HANDLE };
+			size_t bufferSize{ 0 };
+			void* pMappedPtr{ nullptr };
 		};
 
 		size_t m_bigBufferSize;
 		size_t m_smallBufferSize;
 		std::vector<UploadBuffer> m_vUploadBuffers;
-		std::vector<UINT> m_qAvailableBuffers;
+		std::vector<UINT> m_vAvailableBuffers;
 		std::vector<UINT> m_vInUseBuffers;
-
-		HANDLE m_fenceEvent;
-		ComPtr<ID3D12Fence> m_pFence;
-		UINT64 m_fenceValue;
 
 		UINT RequestUploadBuffer(size_t bufferSize);
 		void ReleaseUploadBuffer(UINT bufferIndex);

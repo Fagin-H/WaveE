@@ -14,14 +14,7 @@ namespace WaveE
 		m_bigBufferSize = bigBufferSize;
 		m_smallBufferSize = smallBufferSize;
 
-		WaveEDevice* pDevice = WaveManager::Instance()->GetDevice();
-
-		// Create a fence for synchronization
-		HRESULT hr = pDevice->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&m_pFence));
-		WAVEE_ASSERT_MESSAGE(SUCCEEDED(hr), "Failed to create fence!");
-
-		m_fenceEvent = CreateEvent(nullptr, FALSE, FALSE, nullptr);
-		WAVEE_ASSERT_MESSAGE(m_fenceEvent, "Failed to create fence event!");
+		WaveEDevice pDevice = WaveManager::Instance()->GetDevice();
 
 		for (UINT i = 0; i < bigBufferCount; ++i)
 		{
@@ -33,119 +26,188 @@ namespace WaveE
 		}
 	}
 
-	void WUploadManager::UploadDataToBuffer(ID3D12Resource* pDestResource, const void* pData, size_t size, D3D12_RESOURCE_STATES currentState, D3D12_RESOURCE_STATES finalState)
+	void WUploadManager::UploadDataToBuffer(VkBuffer pDestBuffer, const void* pData, size_t size, WBufferState currentState, WBufferState finalState)
 	{
 		WAVEE_ASSERT_MESSAGE(size <= m_bigBufferSize, "Data too big for upload buffer!");
 
 		UINT bufferIndex = RequestUploadBuffer(size);
+		UploadBuffer& uploadBuffer{ m_vUploadBuffers[bufferIndex] };
 
-		WaveECommandList* pCommandList = WaveManager::Instance()->GetCommandList();
-		WaveECommandQueue* pCommandQueue = WaveManager::Instance()->GetCommandQueue();
+		WaveECommandBuffer pCommandBuffer = WaveManager::Instance()->GetCommandBuffer();
 
-		void* pMappedData = nullptr;
-		D3D12_RANGE readRange = { 0, 0 }; // We do not intend to read this resource on the CPU
-		HRESULT hr = m_vUploadBuffers[bufferIndex].pResource->Map(0, &readRange, &pMappedData);
-		WAVEE_ASSERT_MESSAGE(SUCCEEDED(hr), "Failed to map upload buffer!");
+		memcpy(uploadBuffer.pMappedPtr, pData, size);
 
-		memcpy(pMappedData, pData, size);
-		m_vUploadBuffers[bufferIndex].pResource->Unmap(0, nullptr);
-
-		if (currentState != D3D12_RESOURCE_STATE_COPY_DEST)
+		if (currentState != WBufferState::TransferDst)
 		{
-			// Transition the resource to the copy destination state
-			D3D12_RESOURCE_BARRIER barrierBeforeCopy = CreateTransitionBarrier(pDestResource, currentState, D3D12_RESOURCE_STATE_COPY_DEST);
-			pCommandList->ResourceBarrier(1, &barrierBeforeCopy);
+			// Transition the buffer to the copy destination state
+			VkBufferMemoryBarrier barrier{};
+			barrier.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
+			barrier.srcAccessMask = GetAccessMask(currentState);
+			barrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+			barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+			barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+			barrier.buffer = pDestBuffer;
+			barrier.offset = 0;
+			barrier.size = size;
+
+			vkCmdPipelineBarrier(
+				pCommandBuffer,
+				GetPipelineStage(currentState),
+				VK_PIPELINE_STAGE_TRANSFER_BIT,
+				0,
+				0, nullptr,
+				1, &barrier,
+				0, nullptr
+			);
 		}
 
 		// Copy the data to the destination resource
-		pCommandList->CopyBufferRegion(pDestResource, 0, m_vUploadBuffers[bufferIndex].pResource.Get(), 0, size);
+		VkBufferCopy region{};
+		region.srcOffset = 0;
+		region.dstOffset = 0;
+		region.size = size;
+		vkCmdCopyBuffer(pCommandBuffer, uploadBuffer.pBuffer, pDestBuffer, 1, &region);
 
-		if (finalState != D3D12_RESOURCE_STATE_COPY_DEST)
+		if (finalState != WBufferState::TransferDst)
 		{
-			// Transition the resource to the final state
-			D3D12_RESOURCE_BARRIER barrierAfterCopy = CreateTransitionBarrier(pDestResource, D3D12_RESOURCE_STATE_COPY_DEST, finalState);
-			pCommandList->ResourceBarrier(1, &barrierAfterCopy);
+			VkBufferMemoryBarrier barrier{};
+			barrier.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
+			barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+			barrier.dstAccessMask = GetAccessMask(finalState);
+			barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+			barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+			barrier.buffer = pDestBuffer;
+			barrier.offset = 0;
+			barrier.size = size;
+
+			vkCmdPipelineBarrier(
+				pCommandBuffer,
+				VK_PIPELINE_STAGE_TRANSFER_BIT,
+				GetPipelineStage(finalState),
+				0,
+				0, nullptr,
+				1, &barrier,
+				0, nullptr
+			);
 		}
 	}
 
-	void WUploadManager::UploadDataToTexture(ID3D12Resource* pDestResource, const void* pData, UINT bytesPerPixel, D3D12_RESOURCE_STATES currentState, D3D12_RESOURCE_STATES finalState)
+	void WUploadManager::UploadDataToTexture(VkImage pDestTexture, const void* pData, UINT width, UINT height, UINT bytesPerPixel, WTextureDescriptor::Format format, WImageState currentState, WImageState finalState)
 	{
-		WaveECommandList* pCommandList = WaveManager::Instance()->GetCommandList();
-		WaveECommandQueue* pCommandQueue = WaveManager::Instance()->GetCommandQueue();
-
-		D3D12_RESOURCE_DESC textureDescriptor = pDestResource->GetDesc();
+		WaveECommandBuffer pCommandBuffer = WaveManager::Instance()->GetCommandBuffer();
 
 		// Calculate required size
-		UINT64 rowPitch = align_value(textureDescriptor.Width * bytesPerPixel, D3D12_TEXTURE_DATA_PITCH_ALIGNMENT);
-		UINT64 totalSize = rowPitch * textureDescriptor.Height;
+		UINT64 rowPitch = align_value(width * bytesPerPixel, 4);
+		UINT64 totalSize = rowPitch * height;
 
 		WAVEE_ASSERT_MESSAGE(totalSize <= m_bigBufferSize, "Texture data too big for upload buffer!");
 		
 		UINT bufferIndex = RequestUploadBuffer(totalSize);
-
-		// Map the upload buffer
-		void* pMappedData = nullptr;
-		D3D12_RANGE readRange = { 0, 0 }; // We do not intend to read this resource on the CPU
-		HRESULT hr = m_vUploadBuffers[bufferIndex].pResource->Map(0, &readRange, &pMappedData);
-		WAVEE_ASSERT_MESSAGE(SUCCEEDED(hr), "Failed to map upload buffer!");
+		UploadBuffer& uploadBuffer{ m_vUploadBuffers[bufferIndex] };
 
 		// Copy data to the upload buffer
 		const char* pSrcData = static_cast<const char*>(pData);
-		char* pDstData = static_cast<char*>(pMappedData);
-		for (UINT y = 0; y < textureDescriptor.Height; ++y)
+		char* pDstData = static_cast<char*>(uploadBuffer.pMappedPtr);
+		for (UINT y = 0; y < height; ++y)
 		{
-			memcpy(pDstData, pSrcData, textureDescriptor.Width * bytesPerPixel);
-			pSrcData += textureDescriptor.Width * bytesPerPixel;
+			memcpy(pDstData, pSrcData, width * bytesPerPixel);
+			pSrcData += width * bytesPerPixel;
 			pDstData += rowPitch;
 		}
 
-		m_vUploadBuffers[bufferIndex].pResource->Unmap(0, nullptr);
-
 		// Transition the resource to the copy destination state if needed
-		if (currentState != D3D12_RESOURCE_STATE_COPY_DEST)
+		if (currentState != WImageState::TransferDst)
 		{
-			D3D12_RESOURCE_BARRIER barrierBeforeCopy = CreateTransitionBarrier(
-				pDestResource, currentState, D3D12_RESOURCE_STATE_COPY_DEST);
-			pCommandList->ResourceBarrier(1, &barrierBeforeCopy);
+			VkImageMemoryBarrier barrier{};
+			barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+			barrier.oldLayout = GetImageLayout(currentState, format);
+			barrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+			barrier.srcAccessMask = GetImageAccessMask(currentState, format);
+			barrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+			barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+			barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+			barrier.image = pDestTexture;
+			barrier.subresourceRange.aspectMask = (format == WTextureDescriptor::DepthFloat) ? VK_IMAGE_ASPECT_DEPTH_BIT : VK_IMAGE_ASPECT_COLOR_BIT;
+			barrier.subresourceRange.baseMipLevel = 0;
+			barrier.subresourceRange.levelCount = 1;
+			barrier.subresourceRange.baseArrayLayer = 0;
+			barrier.subresourceRange.layerCount = 1;
+
+			vkCmdPipelineBarrier(
+				pCommandBuffer,
+				GetImagePipelineStage(currentState, format),
+				VK_PIPELINE_STAGE_TRANSFER_BIT,
+				0,
+				0, nullptr,
+				0, nullptr,
+				1, &barrier
+			);
 		}
 
 		// Copy the data to the destination texture
-		D3D12_TEXTURE_COPY_LOCATION dst = {};
-		dst.pResource = pDestResource;
-		dst.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
-		dst.SubresourceIndex = 0;
+		VkBufferImageCopy region{};
+		region.bufferOffset = 0;
+		region.bufferRowLength = 0;
+		region.bufferImageHeight = 0;
+		region.imageSubresource.aspectMask = (format == WTextureDescriptor::DepthFloat) ? VK_IMAGE_ASPECT_DEPTH_BIT : VK_IMAGE_ASPECT_COLOR_BIT;
+		region.imageSubresource.mipLevel = 0;
+		region.imageSubresource.baseArrayLayer = 0;
+		region.imageSubresource.layerCount = 1;
+		region.imageOffset = { 0, 0, 0 };
+		region.imageExtent = { width, height, 1 };
 
-		D3D12_TEXTURE_COPY_LOCATION src = {};
-		src.pResource = m_vUploadBuffers[bufferIndex].pResource.Get();
-		src.Type = D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT;
-		src.PlacedFootprint.Offset = 0;
-		src.PlacedFootprint.Footprint.Format = textureDescriptor.Format;
-		src.PlacedFootprint.Footprint.Width = textureDescriptor.Width;
-		src.PlacedFootprint.Footprint.Height = textureDescriptor.Height;
-		src.PlacedFootprint.Footprint.Depth = 1;
-		src.PlacedFootprint.Footprint.RowPitch = rowPitch;
-
-		pCommandList->CopyTextureRegion(&dst, 0, 0, 0, &src, nullptr);
+		vkCmdCopyBufferToImage(
+			pCommandBuffer,
+			uploadBuffer.pBuffer,
+			pDestTexture,
+			VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+			1,
+			&region
+		);
 
 		// Transition the resource to the final state if needed
-		if (finalState != D3D12_RESOURCE_STATE_COPY_DEST)
+		if (finalState != WImageState::TransferDst)
 		{
-			D3D12_RESOURCE_BARRIER barrierAfterCopy = CreateTransitionBarrier(
-				pDestResource, D3D12_RESOURCE_STATE_COPY_DEST, finalState);
-			pCommandList->ResourceBarrier(1, &barrierAfterCopy);
+			VkImageMemoryBarrier barrier{};
+			barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+			barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+			barrier.newLayout = GetImageLayout(finalState, format);
+			barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+			barrier.dstAccessMask = GetImageAccessMask(finalState, format);
+			barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+			barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+			barrier.image = pDestTexture;
+			barrier.subresourceRange.aspectMask = (format == WTextureDescriptor::DepthFloat) ? VK_IMAGE_ASPECT_DEPTH_BIT : VK_IMAGE_ASPECT_COLOR_BIT;
+			barrier.subresourceRange.baseMipLevel = 0;
+			barrier.subresourceRange.levelCount = 1;
+			barrier.subresourceRange.baseArrayLayer = 0;
+			barrier.subresourceRange.layerCount = 1;
+
+			vkCmdPipelineBarrier(
+				pCommandBuffer,
+				VK_PIPELINE_STAGE_TRANSFER_BIT,
+				GetImagePipelineStage(finalState, format),
+				0,
+				0, nullptr,
+				0, nullptr,
+				1, &barrier
+			);
 		}
 	}
 
 	void WUploadManager::EndFrame()
 	{
+		WaveEDevice pDevice = WaveManager::Instance()->GetDevice();
+
 		std::vector<UINT> bufferIndicesToRelease;
 		for (UINT i = 0; i < m_vInUseBuffers.size(); i++)
 		{
 			UINT bufferIndex = m_vInUseBuffers[i];
 
-			if (m_pFence->GetCompletedValue() >= m_vUploadBuffers[bufferIndex].fenceValue)
+			if (vkGetFenceStatus(pDevice, m_vUploadBuffers[bufferIndex].pFence) == VK_SUCCESS)
 			{
 				bufferIndicesToRelease.push_back(bufferIndex);
+				vkResetFences(pDevice, 1, &m_vUploadBuffers[bufferIndex].pFence);
 			}
 		}
 		for (UINT bufferIndex : bufferIndicesToRelease)
@@ -156,23 +218,14 @@ namespace WaveE
 
 	UINT WUploadManager::RequestUploadBuffer(size_t bufferSize)
 	{
-		WaveECommandQueue* pCommandQueue = WaveManager::Instance()->GetCommandQueue();
-
-		// Signal and increment the fence value
-		const UINT64 fenceToWaitFor = m_fenceValue;
-		HRESULT hr = pCommandQueue->Signal(m_pFence.Get(), fenceToWaitFor);
-		WAVEE_ASSERT_MESSAGE(SUCCEEDED(hr), "Failed to signal fence!");
-
-		m_fenceValue++;
-
 		UINT bufferIndex{ UINT_MAX };
 		
 		// Search for small buffers first
 		if (bufferSize <= m_smallBufferSize)
 		{
-			for (UINT i = 0; i < m_qAvailableBuffers.size(); i++)
+			for (UINT i = 0; i < m_vAvailableBuffers.size(); i++)
 			{
-				UINT newBufferIndex = m_qAvailableBuffers[i];
+				UINT newBufferIndex = m_vAvailableBuffers[i];
 				if (m_vUploadBuffers[newBufferIndex].bufferSize == m_smallBufferSize)
 				{
 					bufferIndex = newBufferIndex;
@@ -183,9 +236,9 @@ namespace WaveE
 		// Otherwise search for big buffers
 		if (bufferIndex == UINT_MAX)
 		{
-			for (UINT i = 0; i < m_qAvailableBuffers.size(); i++)
+			for (UINT i = 0; i < m_vAvailableBuffers.size(); i++)
 			{
-				UINT newBufferIndex = m_qAvailableBuffers[i];
+				UINT newBufferIndex = m_vAvailableBuffers[i];
 				if (m_vUploadBuffers[newBufferIndex].bufferSize >= bufferSize)
 				{
 					bufferIndex = newBufferIndex;
@@ -200,13 +253,11 @@ namespace WaveE
 		}
 		else
 		{
-			auto it = std::find(m_qAvailableBuffers.begin(), m_qAvailableBuffers.end(), bufferIndex);
-			WAVEE_ASSERT_MESSAGE(it != m_qAvailableBuffers.end(), "Could not find buffer index in avilable buffers!");
-			m_qAvailableBuffers.erase(it);
+			auto it = std::find(m_vAvailableBuffers.begin(), m_vAvailableBuffers.end(), bufferIndex);
+			WAVEE_ASSERT_MESSAGE(it != m_vAvailableBuffers.end(), "Could not find buffer index in avilable buffers!");
+			m_vAvailableBuffers.erase(it);
 			m_vInUseBuffers.push_back(bufferIndex);
 		}
-
-		m_vUploadBuffers[bufferIndex].fenceValue = fenceToWaitFor;
 
 		return bufferIndex;
 	}
@@ -222,38 +273,60 @@ namespace WaveE
 		{
 			WAVEE_ASSERT_MESSAGE(false, "Index not in use!");
 		}
-		m_qAvailableBuffers.push_back(bufferIndex);
+		m_vAvailableBuffers.push_back(bufferIndex);
 	}
 
 	UINT WUploadManager::CreateUploadBuffer(bool addToAvailableBuffers, size_t bufferSize)
 	{
-		UploadBuffer newBuffer;
+		WaveEDevice pDevice = WaveManager::Instance()->GetDevice();
+
+		UploadBuffer newBuffer{};
 		newBuffer.bufferSize = bufferSize;
 
-		WaveEDevice* pDevice = WaveManager::Instance()->GetDevice();
+		VkBufferCreateInfo bufferInfo{};
+		bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+		bufferInfo.size = bufferSize;
+		bufferInfo.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+		bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
-		HRESULT hr = pDevice->CreateCommittedResource(
-			&CreateHeapProperties(D3D12_HEAP_TYPE_UPLOAD),
-			D3D12_HEAP_FLAG_NONE,
-			&CreateBufferResourceDesc(bufferSize),
-			D3D12_RESOURCE_STATE_GENERIC_READ,
-			nullptr,
-			IID_PPV_ARGS(&newBuffer.pResource)
+		VkResult result = vkCreateBuffer(pDevice, &bufferInfo, nullptr, &newBuffer.pBuffer);
+		WAVEE_ASSERT_MESSAGE(result == VK_SUCCESS, "Failed to create upload buffer!");
+
+		VkMemoryRequirements memReq{};
+		vkGetBufferMemoryRequirements(pDevice, newBuffer.pBuffer, &memReq);
+
+		VkMemoryAllocateInfo allocInfo{};
+		allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+		allocInfo.allocationSize = memReq.size;
+		allocInfo.memoryTypeIndex = FindMemoryType(
+			memReq.memoryTypeBits,
+			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT
 		);
-		WAVEE_ASSERT_MESSAGE(SUCCEEDED(hr), "Failed to create upload buffer!");
 
-		m_vUploadBuffers.push_back(std::move(newBuffer));
-		UINT newBufferIndex = static_cast<UINT>(m_vUploadBuffers.size()) - 1;
-		
+		result = vkAllocateMemory(pDevice, &allocInfo, nullptr, &newBuffer.pMemory);
+		WAVEE_ASSERT_MESSAGE(result == VK_SUCCESS, "Failed to allocate upload buffer memory!");
+
+		vkBindBufferMemory(pDevice, newBuffer.pBuffer, newBuffer.pMemory, 0);
+
+		vkMapMemory(pDevice, newBuffer.pMemory, 0, bufferSize, 0, &newBuffer.pMappedPtr);
+
+		VkFenceCreateInfo fenceInfo{};
+		fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+
+		vkCreateFence(pDevice, &fenceInfo, nullptr, &newBuffer.pFence);
+
+		m_vUploadBuffers.push_back(newBuffer);
+		uint32_t index = static_cast<uint32_t>(m_vUploadBuffers.size()) - 1;
+
 		if (addToAvailableBuffers)
 		{
-			m_qAvailableBuffers.push_back(newBufferIndex);
+			m_vAvailableBuffers.push_back(index);
 		}
 		else
 		{
-			m_vInUseBuffers.push_back(newBufferIndex);
+			m_vInUseBuffers.push_back(index);
 		}
 
-		return newBufferIndex;
+		return index;
 	}
 }

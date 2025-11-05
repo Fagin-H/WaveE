@@ -1,5 +1,4 @@
 #pragma once
-#include "WDescriptorHeapManager.h"
 
 namespace WaveE
 {
@@ -10,8 +9,7 @@ namespace WaveE
 			RGBA,
 			SRGBA,
 			RGBAF16,
-			DepthFloat,
-			DepthTypeless,
+			DepthFloat
 		};
 
 		enum Usage : UINT
@@ -27,57 +25,61 @@ namespace WaveE
 		UINT width;
 		UINT height;
 		const void* pInitalData{ nullptr };
+		int descriptorSlot{ -1 };
 	};
 
-	// A wrapper around a DX12 resource for use as a texture
+	enum class WImageState
+	{
+		Undefined,
+		TransferDst,
+		TransferSrc,
+		ShaderRead,
+		RenderTarget
+	};
+
+	VkAccessFlags GetImageAccessMask(WImageState state, WTextureDescriptor::Format format);
+	VkPipelineStageFlags GetImagePipelineStage(WImageState state, WTextureDescriptor::Format format);
+	VkImageLayout GetImageLayout(WImageState state, WTextureDescriptor::Format format);
+
 	class WTexture
 	{
 	public:
-		WTexture(const WTextureDescriptor& rDescriptor, WDescriptorHeapManager::Allocation allocationSRV = WDescriptorHeapManager::InvalidAllocation(), UINT offset = 0);
+		WTexture(const WTextureDescriptor& rDescriptor);
 		~WTexture();
 
-		ID3D12Resource* GetTexture() const { return m_pTexture.Get(); }
+		VkImage GetTexture() const { return m_pImage; }
 
-		VkImageView GetView() const;
+		VkImageView GetView() const { return m_pView; }
 
 		void UploadData(const void* pData);
-
-		enum State
-		{
-			Input,
-			Output,
-		};
 		
 		// Returns true if the state has changed, false otherwise
-		bool SetState(State state);
+		bool SetState(WImageState state);
 
-		D3D12_CPU_DESCRIPTOR_HANDLE GetCPUDescriptorHandle() const;
-
-		WDescriptorHeapManager::Allocation GetAllocationSRV() const { return m_allocationSRV; }
-		WDescriptorHeapManager::Allocation GetAllocationRTV_DSV() const { return m_allocationRTV_DSV; }
+		int GetSlot() const { return m_slot; }
 
 		UINT GetWidth() const { return m_width; }
 		UINT GetHeight() const { return m_height; }
-		D3D12_RESOURCE_STATES GetCurrentState() const;
+		WImageState GetCurrentState() const { return m_currentState; }
 
 		bool IsDepthType() const { return m_isDepthType; }
 
 	private:
+
 		size_t m_sizeBytes{ 0 };
 		UINT m_bytesPerPixel{ 0 };
 		UINT m_width;
 		UINT m_height;
 		bool m_isDepthType;
-		WDescriptorHeapManager::Allocation m_allocationSRV;
-		UINT m_offsetSRV;
-		bool m_doesOwnAllocationSRV;
-		WDescriptorHeapManager::Allocation m_allocationRTV_DSV;
-		State m_currentState;
-		D3D12_RESOURCE_STATES m_renderTargetState;
-		D3D12_RESOURCE_STATES m_shaderResourceState;
-		ComPtr<ID3D12Resource> m_pTexture{ nullptr };
+		int m_slot{ -1 };
+		WTextureDescriptor::Format m_format;
+		WTextureDescriptor::Usage m_usage;
+		WImageState m_currentState;
+		VkImage m_pImage{ nullptr };
+		VkDeviceMemory m_pMemory{ nullptr };
+		VkImageView m_pView{ nullptr };
 
-		void UploadData(const void* pData, D3D12_RESOURCE_STATES currentState, D3D12_RESOURCE_STATES finalState);
+		void UploadData(const void* pData, WImageState currentState, WImageState finalState);
 	};
 }
 

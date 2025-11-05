@@ -1,5 +1,4 @@
 #pragma once
-#include "WDescriptorHeapManager.h"
 
 namespace WaveE
 {
@@ -33,58 +32,9 @@ namespace WaveE
 		StorageBufferWrite
 	};
 
-	VkAccessFlags GetAccessMask(WBufferState state)
-	{
-		switch (state)
-		{
-			case WBufferState::Undefined:
-				return 0;
-			case WBufferState::TransferDst:
-				return VK_ACCESS_TRANSFER_WRITE_BIT;
-			case WBufferState::TransferSrc:
-				return VK_ACCESS_TRANSFER_READ_BIT;
-			case WBufferState::VertexBuffer:
-				return VK_ACCESS_VERTEX_ATTRIBUTE_READ_BIT;
-			case WBufferState::IndexBuffer:
-				return VK_ACCESS_INDEX_READ_BIT;
-			case WBufferState::UniformBuffer:
-				return VK_ACCESS_UNIFORM_READ_BIT;
-			case WBufferState::StorageBufferRead:
-				return VK_ACCESS_SHADER_READ_BIT;
-			case WBufferState::StorageBufferWrite:
-				return VK_ACCESS_SHADER_WRITE_BIT;
-			default:
-				return 0;
-		}
-	}
+	VkAccessFlags GetAccessMask(WBufferState state);
 
-	VkPipelineStageFlags GetPipelineStage(WBufferState state)
-	{
-		switch (state)
-		{
-			case WBufferState::Undefined:
-				return VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
-			case WBufferState::TransferDst: [[fallthrough]]
-			case WBufferState::TransferSrc:
-				return VK_PIPELINE_STAGE_TRANSFER_BIT;
-			case WBufferState::VertexBuffer: [[fallthrough]]
-			case WBufferState::IndexBuffer:
-				return VK_PIPELINE_STAGE_VERTEX_INPUT_BIT;
-			case WBufferState::UniformBuffer:
-				return VK_PIPELINE_STAGE_VERTEX_SHADER_BIT |
-					VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
-			case WBufferState::StorageBufferRead:
-				return VK_PIPELINE_STAGE_VERTEX_SHADER_BIT |
-					VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT |
-					VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
-			case WBufferState::StorageBufferWrite:
-				return VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT |
-					VK_PIPELINE_STAGE_VERTEX_SHADER_BIT |
-					VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
-			default:
-				return VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
-		}
-	}
+	VkPipelineStageFlags GetPipelineStage(WBufferState state);
 
 	class WBuffer
 	{

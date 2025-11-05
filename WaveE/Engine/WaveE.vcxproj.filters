@@ -13,13 +13,7 @@
     <ClCompile Include="WTexture.cpp">
       <Filter>Private\WaveGraphics</Filter>
     </ClCompile>
-    <ClCompile Include="WDescriptorHeapManager.cpp">
-      <Filter>Private\WaveGraphics</Filter>
-    </ClCompile>
     <ClCompile Include="WUploadManager.cpp">
-      <Filter>Private\WaveGraphics</Filter>
-    </ClCompile>
-    <ClCompile Include="WRootSigniture.cpp">
       <Filter>Private\WaveGraphics</Filter>
     </ClCompile>
     <ClCompile Include="WSampler.cpp">
@@ -58,10 +52,10 @@
     <ClCompile Include="WInput.cpp">
       <Filter>Private\WaveGraphics</Filter>
     </ClCompile>
-    <ClCompile Include="DX12Helper.cpp">
+    <ClCompile Include="WResource.cpp">
       <Filter>Private\WaveGraphics</Filter>
     </ClCompile>
-    <ClCompile Include="WResource.cpp">
+    <ClCompile Include="WDescriptorManager.cpp">
       <Filter>Private\WaveGraphics</Filter>
     </ClCompile>
   </ItemGroup>
@@ -75,13 +69,7 @@
     <ClInclude Include="WTexture.h">
       <Filter>Public\WaveGraphics</Filter>
     </ClInclude>
-    <ClInclude Include="WDescriptorHeapManager.h">
-      <Filter>Public\WaveGraphics</Filter>
-    </ClInclude>
     <ClInclude Include="WUploadManager.h">
-      <Filter>Public\WaveGraphics</Filter>
-    </ClInclude>
-    <ClInclude Include="WRootSigniture.h">
       <Filter>Public\WaveGraphics</Filter>
     </ClInclude>
     <ClInclude Include="WSampler.h">
@@ -126,7 +114,7 @@
     <ClInclude Include="WInput.h">
       <Filter>Public\WaveGraphics</Filter>
     </ClInclude>
-    <ClInclude Include="DX12Helper.h">
+    <ClInclude Include="WDescriptorManager.h">
       <Filter>Public\WaveGraphics</Filter>
     </ClInclude>
   </ItemGroup>

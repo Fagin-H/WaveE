@@ -19,24 +19,6 @@ namespace WaveE
 		return usageFlags;
 	}
 
-	uint32_t FindMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties)
-	{
-		WaveEPhysicalDevice pPhysicalDevice = WaveManager::Instance()->GetPhysicalDevice();
-		VkPhysicalDeviceMemoryProperties memProps;
-		vkGetPhysicalDeviceMemoryProperties(pPhysicalDevice, &memProps);
-
-		for (uint32_t i = 0; i < memProps.memoryTypeCount; i++)
-		{
-			bool typeValid = typeFilter & (1 << i);
-			bool hasProps = (memProps.memoryTypes[i].propertyFlags & properties) == properties;
-
-			if (typeValid && hasProps)
-				return i;
-		}
-
-		WAVEE_ASSERT_MESSAGE(false, "Failed to find suitable Vulkan memory type!");
-	}
-
 	WBuffer::WBuffer(const WBufferDescriptor& rDescriptor)
 	{
 		bool initialData = rDescriptor.pInitalData;
@@ -144,5 +126,57 @@ namespace WaveE
 		);
 
 		m_bufferState = newState;
+	}
+
+	VkAccessFlags GetAccessMask(WBufferState state)
+	{
+		switch (state)
+		{
+			case WBufferState::Undefined:
+				return 0;
+			case WBufferState::TransferDst:
+				return VK_ACCESS_TRANSFER_WRITE_BIT;
+			case WBufferState::TransferSrc:
+				return VK_ACCESS_TRANSFER_READ_BIT;
+			case WBufferState::VertexBuffer:
+				return VK_ACCESS_VERTEX_ATTRIBUTE_READ_BIT;
+			case WBufferState::IndexBuffer:
+				return VK_ACCESS_INDEX_READ_BIT;
+			case WBufferState::UniformBuffer:
+				return VK_ACCESS_UNIFORM_READ_BIT;
+			case WBufferState::StorageBufferRead:
+				return VK_ACCESS_SHADER_READ_BIT;
+			case WBufferState::StorageBufferWrite:
+				return VK_ACCESS_SHADER_WRITE_BIT;
+			default:
+				return 0;
+		}
+	}
+	VkPipelineStageFlags GetPipelineStage(WBufferState state)
+	{
+		switch (state)
+		{
+			case WBufferState::Undefined:
+				return VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+			case WBufferState::TransferDst: [[fallthrough]]
+			case WBufferState::TransferSrc:
+				return VK_PIPELINE_STAGE_TRANSFER_BIT;
+			case WBufferState::VertexBuffer: [[fallthrough]]
+			case WBufferState::IndexBuffer:
+				return VK_PIPELINE_STAGE_VERTEX_INPUT_BIT;
+			case WBufferState::UniformBuffer:
+				return VK_PIPELINE_STAGE_VERTEX_SHADER_BIT |
+					VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+			case WBufferState::StorageBufferRead:
+				return VK_PIPELINE_STAGE_VERTEX_SHADER_BIT |
+					VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT |
+					VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
+			case WBufferState::StorageBufferWrite:
+				return VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT |
+					VK_PIPELINE_STAGE_VERTEX_SHADER_BIT |
+					VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+			default:
+				return VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
+		}
 	}
 }

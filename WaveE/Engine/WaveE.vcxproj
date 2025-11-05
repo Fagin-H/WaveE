@@ -69,7 +69,7 @@
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>C:\VulkanSDK\1.4.328.1\Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <CompileAsWinRT>false</CompileAsWinRT>
       <LanguageStandard>stdcpp17</LanguageStandard>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
@@ -91,6 +91,10 @@
     <FxCompile>
       <EntryPointName />
     </FxCompile>
+    <Lib>
+      <AdditionalLibraryDirectories>C:\VulkanSDK\1.4.328.1\Lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>vulkan-1.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Lib>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
@@ -101,7 +105,7 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>C:\VulkanSDK\1.4.328.1\Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <CompileAsWinRT>false</CompileAsWinRT>
       <LanguageStandard>stdcpp17</LanguageStandard>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
@@ -125,11 +129,15 @@
     <FxCompile>
       <EntryPointName />
     </FxCompile>
+    <Lib>
+      <AdditionalLibraryDirectories>C:\VulkanSDK\1.4.328.1\Lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>vulkan-1.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Lib>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="DX12Helper.h" />
     <ClInclude Include="TinyObjLoader\tiny_obj_loader.h" />
     <ClInclude Include="WCamera.h" />
+    <ClInclude Include="WDescriptorManager.h" />
     <ClInclude Include="WInput.h" />
     <ClInclude Include="WMaterial.h" />
     <ClInclude Include="WMaths.h" />
@@ -139,19 +147,17 @@
     <ClInclude Include="WPipeline.h" />
     <ClInclude Include="WResource.h" />
     <ClInclude Include="WResourceManager.h" />
-    <ClInclude Include="WRootSigniture.h" />
     <ClInclude Include="WSampler.h" />
     <ClInclude Include="WShader.h" />
     <ClInclude Include="WTextureLoader.h" />
     <ClInclude Include="WUploadManager.h" />
     <ClInclude Include="WaveManager.h" />
-    <ClInclude Include="WDescriptorHeapManager.h" />
     <ClInclude Include="WBuffer.h" />
     <ClInclude Include="WTexture.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="DX12Helper.cpp" />
     <ClCompile Include="WCamera.cpp" />
+    <ClCompile Include="WDescriptorManager.cpp" />
     <ClCompile Include="WInput.cpp" />
     <ClCompile Include="WMaterial.cpp" />
     <ClCompile Include="WMaths.cpp" />
@@ -161,13 +167,11 @@
     <ClCompile Include="WPipeline.cpp" />
     <ClCompile Include="WResource.cpp" />
     <ClCompile Include="WResourceManager.cpp" />
-    <ClCompile Include="WRootSigniture.cpp" />
     <ClCompile Include="WSampler.cpp" />
     <ClCompile Include="WShader.cpp" />
     <ClCompile Include="WTextureLoader.cpp" />
     <ClCompile Include="WUploadManager.cpp" />
     <ClCompile Include="WaveManager.cpp" />
-    <ClCompile Include="WDescriptorHeapManager.cpp" />
     <ClCompile Include="stdafx.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
