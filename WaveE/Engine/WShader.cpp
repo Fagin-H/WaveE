@@ -1,31 +1,24 @@
 #include "stdafx.h"
 #include "WShader.h"
+#include "WaveManager.h"
 
 namespace WaveE
 {
 	WShader::WShader(const WShaderDescriptor& rDescriptor)
 		: m_type{ rDescriptor.type }
 	{
-		m_pBytecodeData = _aligned_malloc(rDescriptor.shaderData.bytecodeLength, 16);
-		WAVEE_ASSERT_MESSAGE(m_pBytecodeData, "Failed to alloc byte code data!");
-		m_shaderBytecode.pShaderBytecode = m_pBytecodeData;
-		m_shaderBytecode.BytecodeLength = rDescriptor.shaderData.bytecodeLength;
-		memcpy(m_pBytecodeData, rDescriptor.shaderData.pShaderBytecode, rDescriptor.shaderData.bytecodeLength);
+        WaveEDevice pDevice = WaveManager::Instance()->GetDevice();
+
+        VkShaderModuleCreateInfo createInfo{};
+        createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
+        createInfo.codeSize = rDescriptor.shaderData.bytecodeLength;
+        createInfo.pCode = reinterpret_cast<const uint32_t*>(rDescriptor.shaderData.pShaderBytecode);
+
+        VkResult result = vkCreateShaderModule(pDevice, &createInfo, nullptr, &m_pShaderModule);
+        WAVEE_ASSERT_MESSAGE(result == VK_SUCCESS, "Failed to create Vulkan shader module!");
 	}
 
 	WShader::~WShader()
 	{
-		if (m_shaderBytecode.pShaderBytecode)
-		{
-			_aligned_free(m_pBytecodeData);
-			m_pBytecodeData = nullptr;
-			m_shaderBytecode.pShaderBytecode = nullptr;
-			m_shaderBytecode.BytecodeLength = 0;
-		}
-	}
-
-	D3D12_SHADER_BYTECODE WShader::GetShaderBytecode() const
-	{
-		return m_shaderBytecode;
 	}
 }

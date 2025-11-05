@@ -27,11 +27,10 @@ namespace WaveE
 		WShader(const WShaderDescriptor& rDescriptor);
 		~WShader();
 
-		D3D12_SHADER_BYTECODE GetShaderBytecode() const;
+		VkShaderModule GetShaderModule() const { return m_pShaderModule; };
 
 	private:
 		WShaderDescriptor::ShaderType m_type;
-		D3D12_SHADER_BYTECODE m_shaderBytecode;
-		void* m_pBytecodeData{ nullptr };
+		VkShaderModule m_pShaderModule{ nullptr };
 	};
 }
