@@ -4,6 +4,7 @@
 #include "WaveManager.h"
 #include "WTextureLoader.h"
 #include "WMeshLoader.h"
+#include "WMaterialManager.h"
 
 namespace WaveE
 {
@@ -587,6 +588,8 @@ namespace WaveE
 
 	void WaveManager::EndFrame()
 	{
+		WMaterialManager::Instance()->EndFrame();
+
 		// Transition the back buffer to present state
 		ChangeBackBufferState(STATE_PRESENT);
 

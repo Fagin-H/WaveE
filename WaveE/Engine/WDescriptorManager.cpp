@@ -8,12 +8,17 @@ namespace WaveE
 	{
 	}
 
-	void WDescriptorManager::Init(int maxTextures, int maxUniformBuffers, int maxStorageBuffers, int maxSamplers)
+	void WDescriptorManager::Init(int maxTextures, int maxUniformBuffers, int maxStorageBuffers, int maxSamplers, int reservedTextures, int reservedUniformBuffers, int reservedStorageBuffers, int reservedSamplers)
 	{	
 		m_maxTextures = maxTextures;
 		m_maxUniformBuffers = maxUniformBuffers;
 		m_maxStorageBuffers = maxStorageBuffers;
 		m_maxSamplers = maxSamplers;
+
+		m_nextTextureSlot = reservedTextures;
+		m_nextUniformBufferSlot = reservedUniformBuffers;
+		m_nextStorageBufferSlot = reservedStorageBuffers;
+		m_nextSamplerSlot = reservedSamplers;
 
 		WaveEDevice pDevice = WaveManager::Instance()->GetDevice();
 

@@ -37,6 +37,7 @@ namespace WaveE
 		void SwapSampler(ResourceID<WSampler> samplerID, UINT index);
 
 		void FillMaterialBuffer(MaterialBuffer& materialBuffer) const;
+		int GetMaterialID() const { return m_materialID; }
 	private:
 		static int m_nextMaterialID;
 		int m_materialID;

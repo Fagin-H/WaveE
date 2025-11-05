@@ -1,6 +1,7 @@
 #include "stdafx.h"
 #include "WMaterial.h"
 #include "WaveManager.h"
+#include "WMaterialManager.h"
 
 namespace WaveE
 {
@@ -15,6 +16,8 @@ namespace WaveE
 		memcpy(&m_vStorageBuffers[0], &rDescriptor.vStorageBuffers[0], sizeof(ResourceID<WBuffer>) * MAX_MATERIAL_SLOTS);
 		memcpy(&m_vTextures[0], &rDescriptor.vTextures[0], sizeof(ResourceID<WTexture>) * MAX_MATERIAL_SLOTS);
 		memcpy(&m_vSamplers[0], &rDescriptor.vSamplers[0], sizeof(ResourceID<WSampler>) * MAX_MATERIAL_SLOTS);
+
+		WMaterialManager::Instance()->MaterialChanged(this);
 	}
 
 	void WMaterial::SwapBuffer(ResourceID<WBuffer> bufferID, UINT index)
@@ -31,6 +34,8 @@ namespace WaveE
 		{
 			m_vUniformBuffers[index] = bufferID;
 		}
+
+		WMaterialManager::Instance()->MaterialChanged(this);
 	}
 
 	void WMaterial::SwapTexture(ResourceID<WTexture> textureID, UINT index)
@@ -38,6 +43,8 @@ namespace WaveE
 		WAVEE_ASSERT_MESSAGE(index < MAX_MATERIAL_SLOTS, "Texture index out of range!");
 
 		m_vTextures[index] = textureID;
+
+		WMaterialManager::Instance()->MaterialChanged(this);
 	}
 
 	void WMaterial::SwapSampler(ResourceID<WSampler> samplerID, UINT index)
@@ -45,6 +52,8 @@ namespace WaveE
 		WAVEE_ASSERT_MESSAGE(index < MAX_MATERIAL_SLOTS, "Sampler index out of range!");
 
 		m_vSamplers[index] = samplerID;
+
+		WMaterialManager::Instance()->MaterialChanged(this);
 	}
 
 	void WMaterial::FillMaterialBuffer(MaterialBuffer& materialBuffer) const

@@ -9,7 +9,7 @@ namespace WaveE
 		WAVEE_NO_COPY(WDescriptorManager);
 
 		WDescriptorManager();
-		void Init(int maxTextures, int maxUniformBuffers, int maxStorageBuffers, int maxSamplers);
+		void Init(int maxTextures, int maxUniformBuffers, int maxStorageBuffers, int maxSamplers, int reservedTextures, int reservedUniformBuffers, int reservedStorageBuffers, int reservedSamplers);
 
 		UINT AddResource(ResourceID<WTexture> textureID, int slot = -1);
 		UINT AddResource(ResourceID<WBuffer> bufferID, int slot = -1);
